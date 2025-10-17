@@ -1,0 +1,685 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Play, Building2, TrendingUp, Award, Users, MapPin, Phone, Mail, Star, Shield, Zap } from "lucide-react";
+import Navigation from "@/components/Navigation";
+import ProjectCard from "@/components/ProjectCard";
+import luxuryApartment1 from "@/assets/luxury-apartment-1.jpg";
+import luxuryApartment2 from "@/assets/luxury-apartment-2.jpg";
+import luxuryBuilding from "@/assets/luxury-building.jpg";
+import heroImage from "@/assets/hero-skyline.jpg";
+import { Link } from "react-router-dom";
+
+const Homepage = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const featuredProjects = [
+    {
+      id: "1",
+      title: "Kapil Business Park",
+      location: "Shamshabad, near Hyderabad International Airport",
+      price: "₹36 Lakhs",
+      image: luxuryApartment1,
+      area: "160 sqft onwards",
+      status: "Available" as const,
+      description: "Premium commercial space with guaranteed 18% ROI and professional management"
+    },
+    {
+      id: "2",
+      title: "Kapil Kavuri Hub",
+      location: "Financial District, Gachibowli",
+      price: "₹36 Lakhs",
+      image: luxuryBuilding,
+      area: "120 sqft onwards",
+      status: "Available" as const,
+      description: "Strategic location with world-class infrastructure and seamless connectivity"
+    },
+    {
+      id: "3",
+      title: "Kapil Kakatiya Towers",
+      location: "Nakkala Gutta, Hanamkonda",
+      price: "₹36 Lakhs",
+      image: luxuryApartment2,
+      area: "120 sqft onwards",
+      status: "Available" as const,
+      description: "Modern business hub designed for the future of commercial real estate"
+    }
+  ];
+
+  const stats = [
+    { number: "500+", label: "Happy Investors", icon: Users, color: "text-primary" },
+    { number: "₹250Cr+", label: "Assets Under Management", icon: Building2, color: "text-secondary" },
+    { number: "18%", label: "Up to Returns", icon: TrendingUp, color: "text-primary" },
+    { number: "5+", label: "Premium Projects", icon: Award, color: "text-secondary" }
+  ];
+
+  const benefits = [
+    {
+      title: "Financial Security",
+      description: "Build a recession-proof income stream that protects your financial future",
+      icon: Shield
+    },
+    {
+      title: "Family Care",
+      description: "Ensure your parents' needs are met with steady passive income",
+      icon: Users
+    },
+    {
+      title: "Business Stability",
+      description: "Navigate business off-seasons with confidence and consistent returns",
+      icon: TrendingUp
+    },
+    {
+      title: "Inflation Protection",
+      description: "Safeguard your wealth against inflation with appreciating real estate",
+      icon: Zap
+    },
+    {
+      title: "Retirement Planning",
+      description: "Create a worry-free retirement with guaranteed rental income",
+      icon: Star
+    },
+    {
+      title: "Life Goals",
+      description: "Achieve any financial milestone without compromising your lifestyle",
+      icon: Award
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: "Sarvesh Kalyan",
+      role: "Businessman",
+      content: "The Kapil Group's stellar reputation and proven track record in Hyderabad's financial district made this investment decision effortless. Their transparency and professionalism are unmatched.",
+      rating: 5,
+      image: "SK"
+    },
+    {
+      name: "Lakkineni Sravani",
+      role: "IT Professional",
+      content: "As a working professional, I needed an investment that didn't require active management. Kapil Business Park delivers exactly that - passive income with professional oversight.",
+      rating: 5,
+      image: "LS"
+    },
+    {
+      name: "Anil Kumar",
+      role: "Doctor",
+      content: "The location near the international airport and the quality of tenants attracted to this project ensure stable, long-term rental income. It's a smart investment choice.",
+      rating: 5,
+      image: "AK"
+    }
+  ];
+
+  const faqs = [
+    {
+      question: "What is the minimum investment amount?",
+      answer: "Start your investment journey with just ₹36 lakhs for a commercial unit that grows over 7 years, offering up to 18% annual returns."
+    },
+    {
+      question: "How does the installment plan work?",
+      answer: "Choose flexible payment options - pay ₹1 lakh monthly for 36 months, then enjoy ₹31,500 monthly rental income from the 37th month onwards."
+    },
+    {
+      question: "Are returns guaranteed and secure?",
+      answer: "Yes, we guarantee uninterrupted rental income regardless of occupancy, backed by our comprehensive tenant management and legal compliance."
+    },
+    {
+      question: "Can NRIs invest in this project?",
+      answer: "Absolutely. NRIs can invest subject to FEMA compliance, with our team providing complete documentation support through our secure platform."
+    },
+    {
+      question: "Who handles property management?",
+      answer: "Our professional facility management team handles everything - tenant relations, maintenance, legal compliance - ensuring truly passive income for you."
+    },
+    {
+      question: "What legal documentation is provided?",
+      answer: "You receive comprehensive legal documents defining your ownership rights, terms, and obligations, all reviewed by legal professionals for complete transparency."
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Navigation />
+
+      {/* Hero Section with Background Image */}
+      <section
+        className="relative min-h-screen flex items-center justify-center pt-20 pb-16"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(63, 63, 65, 0.8) 0%, rgba(78, 79, 82, 0.6) 50%, rgba(84, 88, 91, 0.4) 100%), url(${heroImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Content */}
+        <div className="relative z-10 container-professional text-center text-white">
+          <div className="max-w-5xl mx-auto">
+            {/* Badge */}
+            <div className="mb-8 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
+              <Badge className="bg-yellow-600/20 text-yellow-300 border-yellow-600/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
+                Premium Commercial Real Estate Investment
+              </Badge>
+            </div>
+
+            {/* Main Heading */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 leading-tight animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
+              Build Wealth with
+              <span className="text-yellow-400 block mt-2">Smart Real Estate Investment</span>
+            </h1>
+
+            {/* Subheading */}
+            <p className="text-lg md:text-xl mb-12 text-white/90 leading-relaxed max-w-3xl mx-auto animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
+              Own premium commercial properties in Hyderabad's fastest-growing business district.
+              Start with ₹36 lakhs and earn guaranteed rental returns up to 18% annually.
+            </p>
+
+            {/* Key Highlights */}
+            <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto animate-fade-in-scale" style={{ animationDelay: '0.4s' }}>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-white/20">
+                <div className="text-2xl font-bold text-yellow-400 mb-2">₹36L</div>
+                <div className="text-sm text-white/80 font-medium">Minimum Investment</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-white/20">
+                <div className="text-2xl font-bold text-yellow-400 mb-2">Upto 18%</div>
+                <div className="text-sm text-white/80 font-medium">Annual Returns</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-white/20">
+                <div className="text-2xl font-bold text-yellow-400 mb-2">500+</div>
+                <div className="text-sm text-white/80 font-medium">Happy Investors</div>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-in-up" style={{ animationDelay: '0.5s' }}>
+              <Link to="/projects">
+                <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 text-base font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
+                  Explore Investment Options
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button className="border-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-blue-900 px-8 py-4 text-base font-semibold rounded-lg bg-transparent transition-all duration-300 hover:transform hover:scale-105">
+                  <Play className="mr-2 w-5 h-5" />
+                  Start Investing Now
+                </Button>
+              </Link>
+            </div>
+
+            {/* RERA Badge */}
+            <div className="mt-12 animate-fade-in-scale" style={{ animationDelay: '0.6s' }}>
+              <div className="inline-flex items-center bg-green-600/20 border border-green-500/30 px-4 py-2 rounded-lg backdrop-blur-sm">
+                <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
+                <span className="text-sm font-medium text-green-300">RERA Approved & Legally Compliant</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="container-professional">
+          <div className="grid md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div key={index} className="group relative animate-slide-in-up hover:-translate-y-2 transition-all duration-500" style={{ animationDelay: `${index * 150}ms` }}>
+                  {/* Main Card */}
+                  <div className="relative bg-gradient-to-br from-white via-gray-50 to-white p-8 rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+                    {/* Animated Background Pattern */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 via-transparent to-yellow-50"></div>
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-yellow-100 to-transparent rounded-full transform translate-x-16 -translate-y-16"></div>
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-yellow-100 to-transparent rounded-full transform -translate-x-12 translate-y-12"></div>
+                    </div>
+
+                    {/* Hover line animation */}
+                    <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-700 ease-out"></div>
+
+                    {/* Content */}
+                    <div className="relative z-10">
+                      {/* Icon */}
+                      <div className="w-16 h-16 bg-gradient-to-br from-yellow-100 via-yellow-50 to-white rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md">
+                        <Icon className="w-8 h-8 text-yellow-600 group-hover:text-yellow-700 transition-colors duration-300" />
+                      </div>
+
+                      {/* Number */}
+                      <div className="text-center mb-4">
+                        <div className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-gray-900 to-black bg-clip-text text-transparent mb-2 group-hover:from-yellow-600 group-hover:via-yellow-700 group-hover:to-yellow-800 transition-all duration-500">
+                          {stat.number}
+                        </div>
+                      </div>
+
+                      {/* Label */}
+                      <div className="text-center">
+                        <div className="text-base font-semibold text-gray-700 group-hover:text-gray-900 transition-colors duration-300">
+                          {stat.label}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom accent */}
+                    <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  </div>
+
+                  {/* Shadow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-200 to-yellow-300 rounded-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-xl -z-10 scale-105"></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Projects */}
+      <section className="py-20 bg-white">
+        <div className="container-professional">
+          <div className="text-center mb-16 animate-fade-in-scale">
+            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 mb-6 text-xs font-medium">
+              Investment Opportunities
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+              Featured <span className="text-yellow-600">Properties</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Handpicked premium properties offering guaranteed returns and luxury commercial experiences
+              designed for the modern investor.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-10">
+            {featuredProjects.map((project, index) => (
+              <div key={project.id} className="animate-slide-in-up" style={{ animationDelay: `${index * 200}ms` }}>
+                <ProjectCard {...project} />
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-16">
+            <Link to="/projects">
+              <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
+                View All Projects
+                <ArrowRight className="ml-3 w-5 h-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Hyderabad Growth Story */}
+      <section className="py-20 bg-gray-50">
+        <div className="container-professional">
+          <div className="text-center mb-16 animate-fade-in-scale">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+              Hyderabad is Growing By Leaps and Bounds, <span className="text-yellow-600">So Should You</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              As India's unique melting pot, Hyderabad seamlessly blends traditional culture with cutting-edge technology,
+              creating an unparalleled business environment that's perfect for strategic real estate investment.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { title: "Strategic Location", desc: "Heart of India's growth engine", icon: MapPin },
+              { title: "Airport Connectivity", desc: "Minutes from international airport", icon: Zap },
+              { title: "World-Class Infrastructure", desc: "Premium business facilities", icon: Building2 },
+              { title: "Tech Hub", desc: "India's Silicon Valley", icon: TrendingUp },
+              { title: "Rich Heritage", desc: "Traditional meets modern", icon: Star },
+              { title: "Business Friendly", desc: "Welcoming investment climate", icon: Users },
+              { title: "Pharma Capital", desc: "Leading industry presence", icon: Award },
+              { title: "Quality Living", desc: "Exceptional lifestyle amenities", icon: Shield }
+            ].map((feature, index) => (
+              <div key={index} className="group relative bg-white p-8 text-center rounded-xl shadow-md border animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-2 overflow-hidden" style={{ animationDelay: `${index * 100}ms` }}>
+                <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out"></div>
+
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 transition-transform duration-300 hover:scale-110">
+                  <feature.icon className="w-8 h-8 text-blue-900" />
+                </div>
+                <h4 className="text-lg font-bold mb-3 text-gray-900">{feature.title}</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Smart Investment Benefits */}
+      <section className="py-20 bg-white">
+        <div className="container-professional">
+          <div className="text-center mb-16 animate-fade-in-scale">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+              Smart Investment for a <span className="text-yellow-600">Successful Life</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Transform your financial future with strategic real estate investment. Here's how Kapil Business Park
+              becomes your pathway to financial freedom and peace of mind.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {benefits.map((benefit, index) => (
+              <Card key={index} className="group relative bg-white shadow-md border rounded-xl animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden" style={{ animationDelay: `${index * 150}ms` }}>
+                <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out"></div>
+                <CardContent className="p-8">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mt-1 transition-transform duration-300 hover:scale-110">
+                      <benefit.icon className="w-6 h-6 text-yellow-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold mb-3 text-gray-900">{benefit.title}</h4>
+                      <p className="text-gray-600 leading-relaxed">{benefit.description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Us */}
+      <section className="py-20 bg-gray-50">
+        <div className="container-professional">
+          <div className="text-center mb-16 animate-fade-in-scale">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+              Why Ramya Constructions is Your <span className="text-yellow-600">Passport to Prosperity</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              A perfect combination of affordability, transparency, and professional management
+              that creates a win-win opportunity for every investor.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-12">
+            {[
+              {
+                icon: TrendingUp,
+                title: "Unmatched Affordability",
+                description: "Starting at just ₹36 lakhs, we've made premium commercial real estate accessible to smart investors. Experience wealth creation that's both affordable and exceptionally rewarding.",
+                color: "yellow"
+              },
+              {
+                icon: Shield,
+                title: "Complete Transparency",
+                description: "As a RERA-approved developer with full legal compliance, we ensure complete transparency in every transaction, building unshakeable investor confidence.",
+                color: "blue"
+              },
+              {
+                icon: Users,
+                title: "Professional Management",
+                description: "You own the asset, we handle everything else. Our expert facility management team ensures your investment generates returns while you focus on what matters most.",
+                color: "yellow"
+              }
+            ].map((item, index) => (
+              <Card key={index} className="group relative bg-white shadow-lg border rounded-xl animate-slide-in-up hover:shadow-xl transition-all duration-300 hover:-translate-y-2 overflow-hidden" style={{ animationDelay: `${index * 200}ms` }}>
+                <div className={`absolute top-0 left-1/2 w-0 h-1 ${item.color === 'yellow' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'} group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out`}></div>
+                <CardContent className="p-10 text-center">
+                  <div className={`w-16 h-16 ${item.color === 'yellow' ? 'bg-yellow-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-8 transition-transform duration-300 hover:scale-110`}>
+                    <item.icon className={`w-8 h-8 ${item.color === 'yellow' ? 'text-yellow-600' : 'text-blue-900'}`} />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-6 text-gray-900">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed text-lg">{item.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 bg-white">
+        <div className="container-professional">
+          <div className="text-center mb-16 animate-fade-in-scale">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+              What Our <span className="text-yellow-600">Investors Say</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Join thousands of satisfied investors who have transformed their financial future through
+              strategic real estate investment with us.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-10">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="group relative bg-white shadow-md border rounded-xl animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden" style={{ animationDelay: `${index * 200}ms` }}>
+                <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out"></div>
+                <CardContent className="p-8">
+                  <div className="flex items-center mb-6">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mr-4 transition-transform duration-300 hover:scale-110">
+                      <span className="text-yellow-600 font-semibold text-sm">{testimonial.image}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">{testimonial.name}</div>
+                      <div className="text-sm text-gray-600">{testimonial.role}</div>
+                    </div>
+                  </div>
+                  <div className="flex mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current text-yellow-500" />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 leading-relaxed italic">"{testimonial.content}"</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container-professional">
+          <div className="text-center mb-16 animate-fade-in-scale">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+              Frequently Asked <span className="text-yellow-600">Questions</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Get clear, comprehensive answers to the most common questions about Kapil Business Park
+              investment opportunities.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8">
+              {faqs.map((faq, index) => (
+                <Card key={index} className="group relative bg-white shadow-md border rounded-xl animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden" style={{ animationDelay: `${index * 100}ms` }}>
+                  <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out"></div>
+                  <CardContent className="p-8">
+                    <h4 className="text-lg font-bold mb-4 text-gray-900">{faq.question}</h4>
+                    <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="text-center mt-16">
+              <Link to="/faq">
+                <Button className="border-2 border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white px-10 py-4 text-lg bg-transparent transition-all duration-300 hover:transform hover:scale-105">
+                  View All FAQs
+                  <ArrowRight className="ml-3 w-5 h-5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-gradient-to-br from-gray-100 to-blue-50">
+        <div className="container-professional">
+          <div className="max-w-4xl mx-auto text-center animate-fade-in-scale">
+            <div className="mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+                Ready to Build Your <span className="text-yellow-600">Financial Future?</span>
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
+                Join hundreds of smart investors who have secured their financial independence through strategic commercial real estate.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-10">
+              {[
+                { icon: Building2, title: "Premium Location", desc: "Strategically positioned for growth & connectivity", color: "yellow" },
+                { icon: TrendingUp, title: "Guaranteed Returns", desc: "Up to 18% annual rental income", color: "blue" },
+                { icon: Shield, title: "RERA Approved", desc: "100% legal and transparent", color: "yellow" }
+              ].map((item, index) => (
+                <div key={index} className="group relative bg-white p-6 text-center rounded-xl shadow-md border animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden" style={{ animationDelay: `${index * 150}ms` }}>
+                  <div className={`absolute top-0 left-1/2 w-0 h-1 ${item.color === 'yellow' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'} group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out`}></div>
+
+                  <div className={`w-12 h-12 ${item.color === 'yellow' ? 'bg-yellow-100' : 'bg-blue-100'} rounded-xl flex items-center justify-center mx-auto mb-3 transition-transform duration-300 hover:scale-110`}>
+                    <item.icon className={`w-6 h-6 ${item.color === 'yellow' ? 'text-yellow-600' : 'text-blue-900'}`} />
+                  </div>
+                  <h3 className="text-base font-bold mb-2 text-gray-900">{item.title}</h3>
+                  <p className="text-sm text-gray-600">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-lg border max-w-xl mx-auto mb-8 animate-fade-in-scale" style={{ animationDelay: '0.3s' }}>
+              <div className="text-sm text-gray-600 mb-1">Investment Highlight</div>
+              <div className="text-2xl md:text-3xl font-bold text-yellow-600 mb-2">₹36,00,000</div>
+              <div className="text-sm text-gray-900 mb-3 font-medium">Starting investment with rental income up to ₹6.48L annually*</div>
+              <div className="text-xs text-gray-600">*Based on 18% annual returns. Terms and conditions apply.</div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-in-up" style={{ animationDelay: '0.4s' }}>
+              <Link to="/login">
+                <div className="flex justify-start">
+                  <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 text-base font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
+                    Start Your Investment Journey
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+
+                </div>
+
+              </Link>
+              <Link to="/contact">
+                <Button className="border-2 border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white px-8 py-4 text-base font-semibold rounded-lg bg-transparent transition-all duration-300 hover:transform hover:scale-105">
+                  Schedule a Consultation
+                  <Phone className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-20">
+        <div className="container-professional">
+          <div className="grid md:grid-cols-4 gap-12 mb-16">
+            {/* Company Info */}
+            <div className="space-y-6 animate-fade-in-scale">
+              <Link to="/" className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-gray-900">Ramya <span className="text-yellow-600">Constructions</span></span>
+              </Link>
+              <p className="text-gray-600 leading-relaxed">
+                Redefining modern business
+                infrastructure and investment opportunities in Hyderabad.
+              </p>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p className="font-medium text-gray-900">Ramya Constructions Ltd.</p>
+                <p>CIN: U45200AP1992PLC014532</p>
+                <p>Incorporated: 17th December 1992</p>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div className="space-y-6 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
+              <h4 className="text-lg font-bold text-gray-900">Quick Links</h4>
+              <div className="space-y-3">
+                {[
+                  { name: "About Us", href: "/about" },
+                  { name: "Projects", href: "/projects" },
+                  { name: "Investment Plans", href: "/projects/1" },
+                  { name: "FAQ", href: "/faq" },
+                  { name: "Contact", href: "/contact" }
+                ].map((link, index) => (
+                  <Link
+                    key={index}
+                    to={link.href}
+                    className="block text-gray-600 hover:text-yellow-600 transition-colors duration-300"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Legal */}
+            <div className="space-y-6 animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
+              <h4 className="text-lg font-bold text-gray-900">Legal</h4>
+              <div className="space-y-3">
+                {[
+                  { name: "Privacy Policy", href: "/privacy" },
+                  { name: "Terms & Conditions", href: "/terms" },
+                  { name: "Disclaimer", href: "/disclaimer" },
+                  { name: "RERA Details", href: "/rera" }
+                ].map((link, index) => (
+                  <Link
+                    key={index}
+                    to={link.href}
+                    className="block text-gray-600 hover:text-yellow-600 transition-colors duration-300"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="space-y-6 animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
+              <h4 className="text-lg font-bold text-gray-900">Contact Info</h4>
+              <div className="space-y-4 text-gray-600">
+                <div className="flex items-start space-x-3">
+                  <MapPin className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <p>40-14-3/1, Chandramoulipuram</p>
+                    <p>Near Benz Circle, Vijayawada</p>
+                    <p>Andhra Pradesh - 520010</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Phone className="w-5 h-5 text-yellow-600" />
+                  <span>Contact details available on website</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Mail className="w-5 h-5 text-yellow-600" />
+                  <span>Investment inquiry form available</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Footer */}
+          <div className="border-t border-gray-200 pt-8 animate-fade-in-scale">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="text-sm text-gray-600">
+                <p>&copy; 2024 Ramya Constructions Ltd. All rights reserved.</p>
+                <p className="mt-1">RERA approved project. Returns subject to terms and conditions.</p>
+              </div>
+              <div className="flex space-x-8 text-sm">
+                <Link to="/privacy" className="text-gray-600 hover:text-yellow-600 transition-colors duration-300">
+                  Privacy Policy
+                </Link>
+                <Link to="/terms" className="text-gray-600 hover:text-yellow-600 transition-colors duration-300">
+                  Terms & Conditions
+                </Link>
+                <Link to="/disclaimer" className="text-gray-600 hover:text-yellow-600 transition-colors duration-300">
+                  Disclaimer
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Homepage;
