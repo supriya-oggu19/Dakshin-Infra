@@ -19,7 +19,7 @@ import {
   Eye,
   AlertCircle,
   Plus,
-  Minus
+  Minus,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,12 +27,12 @@ import UserInfoForm from "@/pages/UserInfoForm";
 import KYCForm from "./KYCForm";
 import { useToast } from "@/components/ui/use-toast";
 
-type PurchaseStep = 'plan-selection' | 'user-info' | 'kyc' | 'payment' | 'confirmation';
+type PurchaseStep = "plan-selection" | "user-info" | "kyc" | "payment" | "confirmation";
 
 interface Scheme {
   id: string;
   project_id: string;
-  scheme_type: 'single_payment' | 'installment';
+  scheme_type: "single_payment" | "installment";
   scheme_name: string;
   area_sqft: number;
   booking_advance: number;
@@ -45,7 +45,7 @@ interface Scheme {
 }
 
 interface PlanSelection {
-  type: 'single' | 'installment';
+  type: "single" | "installment";
   planId: string;
   area: number;
   price: number;
@@ -61,7 +61,7 @@ interface UserInfo {
   firstName: string;
   lastName: string;
   dob: string;
-  gender: 'male' | 'female' | 'other';
+  gender: "male" | "female" | "other";
   email: string;
   phone: string;
   presentAddress: {
@@ -83,7 +83,33 @@ interface UserInfo {
   gstNumber: string;
   passportNumber: string;
   sameAddress: boolean;
-  userType: 'individual' | 'business' | 'nri';
+  userType: "individual" | "business" | "nri";
+  accountDetails: {
+    accountHolderName: string;
+    bankAccountName: string;
+    accountNumber: string;
+    ifscCode: string;
+  };
+}
+
+interface JointAccountInfo {
+  firstName: string;
+  lastName: string;
+  dob: string;
+  gender: "male" | "female" | "other";
+  email: string;
+  phone: string;
+  panNumber: string;
+  aadharNumber: string;
+  gstNumber: string;
+  passportNumber: string;
+  userType: "individual" | "business" | "nri";
+  accountDetails: {
+    accountHolderName: string;
+    bankAccountName: string;
+    accountNumber: string;
+    ifscCode: string;
+  };
 }
 
 interface KYCDocuments {
@@ -91,6 +117,10 @@ interface KYCDocuments {
   aadharCard?: File | null;
   gstDocument?: File | null;
   passportPhoto?: File | null;
+  jointPanCard?: File | null;
+  jointAadharCard?: File | null;
+  jointGstDocument?: File | null;
+  jointPassportPhoto?: File | null;
 }
 
 const PurchaseFlow = () => {
@@ -99,64 +129,107 @@ const PurchaseFlow = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
 
-  const [currentStep, setCurrentStep] = useState<PurchaseStep>('plan-selection');
+  // State declarations (all hooks are inside the component body)
+  const [currentStep, setCurrentStep] = useState<PurchaseStep>("plan-selection");
   const [selectedPlan, setSelectedPlan] = useState<PlanSelection | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<number>(1);
-  const [customPayment, setCustomPayment] = useState<string>('');
+  const [customPayment, setCustomPayment] = useState<string>("");
   const [userInfo, setUserInfo] = useState<UserInfo>({
-    firstName: '',
-    lastName: '',
-    dob: '',
-    gender: 'male',
-    email: user?.email || '',
-    phone: '',
+    firstName: "",
+    lastName: "",
+    dob: "",
+    gender: "male",
+    email: user?.email || "",
+    phone: "",
     presentAddress: {
-      street: '',
-      city: '',
-      state: '',
-      pincode: '',
+      street: "",
+      city: "",
+      state: "",
+      pincode: "",
     },
     permanentAddress: {
-      street: '',
-      city: '',
-      state: '',
-      pincode: '',
+      street: "",
+      city: "",
+      state: "",
+      pincode: "",
     },
-    occupation: '',
-    annualIncome: '',
-    panNumber: '',
-    aadharNumber: '',
-    gstNumber: '',
-    passportNumber: '',
+    occupation: "",
+    annualIncome: "",
+    panNumber: "",
+    aadharNumber: "",
+    gstNumber: "",
+    passportNumber: "",
     sameAddress: true,
-    userType: 'individual',
+    userType: "individual",
+    accountDetails: {
+      accountHolderName: "",
+      bankAccountName: "",
+      accountNumber: "",
+      ifscCode: "",
+    },
   });
+  const [isJointAccount, setIsJointAccount] = useState(false);
+  const [jointAccountInfo, setJointAccountInfo] = useState<JointAccountInfo>({
+    firstName: "",
+    lastName: "",
+    dob: "",
+    gender: "male",
+    email: "",
+    phone: "",
+    panNumber: "",
+    aadharNumber: "",
+    gstNumber: "",
+    passportNumber: "",
+    userType: "individual",
+    accountDetails: {
+      accountHolderName: "",
+      bankAccountName: "",
+      accountNumber: "",
+      ifscCode: "",
+    },
+  });
+  // Moved verified state inside the component to fix hook error
+  const [verified, setVerified] = useState({
+    pan: false,
+    aadhar: false,
+    gst: false,
+    passport: false,
+    jointPan: false,
+    jointAadhar: false,
+    jointGst: false,
+    jointPassport: false,
+  });
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [jointTermsAccepted, setJointTermsAccepted] = useState(false);
   const [kycDocuments, setKycDocuments] = useState<KYCDocuments>({
     panCard: null,
     aadharCard: null,
     gstDocument: null,
-    passportPhoto: null
+    passportPhoto: null,
+    jointPanCard: null,
+    jointAadharCard: null,
+    jointGstDocument: null,
+    jointPassportPhoto: null,
   });
-  const [termsAccepted, setTermsAccepted] = useState(false);
   const [kycAccepted, setKycAccepted] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'netbanking' | 'card'>('upi');
+  const [jointKycAccepted, setJointKycAccepted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"upi" | "netbanking" | "card">("upi");
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [userProfileId, setUserProfileId] = useState<string | null>(null);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      console.log('User not authenticated, redirecting to login');
-      navigate('/login', { state: { from: `/purchase/${id}` } });
+      console.log("User not authenticated, redirecting to login");
+      navigate("/login", { state: { from: `/purchase/${id}` } });
     }
   }, [isAuthenticated, navigate, id]);
 
-  // Fetch schemes for the project
   useEffect(() => {
     const fetchSchemes = async () => {
       if (!id) {
-        setFetchError('Invalid project ID');
+        setFetchError("Invalid project ID");
         toast({
           title: "Error",
           description: "Invalid project ID",
@@ -168,14 +241,16 @@ const PurchaseFlow = () => {
       try {
         setLoading(true);
         console.log(`Fetching schemes for project_id: ${id}`);
-        const response = await fetch(`http://127.0.0.1:8001/api/investment-schemes/project?project_id=${id}&page=1&limit=5`);
+        const response = await fetch(
+          `http://127.0.0.1:8001/api/investment-schemes/project?project_id=${id}&page=1&limit=5`
+        );
         const data = await response.json();
-        console.log('API response:', data);
+        console.log("API response:", data);
 
-        if (response.ok && data.message === 'Investment schemes for project retrieved successfully') {
+        if (response.ok && data.message === "Investment schemes for project retrieved successfully") {
           setSchemes(data.schemes || []);
           if (!data.schemes || data.schemes.length === 0) {
-            setFetchError('No investment schemes available for this project');
+            setFetchError("No investment schemes available for this project");
             toast({
               title: "No Schemes",
               description: "No investment schemes available for this project",
@@ -183,16 +258,16 @@ const PurchaseFlow = () => {
             });
           }
         } else {
-          setFetchError(data.message || 'Failed to fetch investment schemes');
+          setFetchError(data.message || "Failed to fetch investment schemes");
           toast({
             title: "Error",
-            description: data.message || 'Failed to fetch investment schemes',
+            description: data.message || "Failed to fetch investment schemes",
             variant: "destructive",
           });
         }
       } catch (error) {
-        console.error('Fetch error:', error);
-        setFetchError('Error fetching schemes. Please try again.');
+        console.error("Fetch error:", error);
+        setFetchError("Error fetching schemes. Please try again.");
         toast({
           title: "Error",
           description: "Error fetching schemes. Please try again.",
@@ -215,10 +290,11 @@ const PurchaseFlow = () => {
   }
 
   const handlePlanSelection = (scheme: Scheme, units: number) => {
-    const type = scheme.scheme_type === 'single_payment' ? 'single' : 'installment';
-    const totalPrice = type === 'single'
-      ? scheme.booking_advance * units
-      : (scheme.total_installments! * scheme.monthly_installment_amount! * units);
+    const type = scheme.scheme_type === "single_payment" ? "single" : "installment";
+    const totalPrice =
+      type === "single"
+        ? scheme.booking_advance * units
+        : scheme.total_installments! * scheme.monthly_installment_amount! * units;
     const minPayment = scheme.booking_advance * units;
 
     setSelectedPlan({
@@ -226,19 +302,19 @@ const PurchaseFlow = () => {
       planId: scheme.id,
       area: scheme.area_sqft,
       price: totalPrice,
-      monthlyAmount: type === 'installment' ? scheme.monthly_installment_amount! * units : undefined,
-      installments: type === 'installment' ? scheme.total_installments! : undefined,
+      monthlyAmount: type === "installment" ? scheme.monthly_installment_amount! * units : undefined,
+      installments: type === "installment" ? scheme.total_installments! : undefined,
       rentalStart: scheme.rental_start_month
         ? `${scheme.rental_start_month}th Month`
-        : 'Next month after last installment',
+        : "Next month after last installment",
       monthlyRental: scheme.monthly_installment_amount
         ? scheme.monthly_installment_amount * units * 0.3
         : scheme.booking_advance * units * 0.01,
       units: units,
-      paymentAmount: type === 'single' ? minPayment : undefined
+      paymentAmount: type === "single" ? minPayment : undefined,
     });
 
-    if (type === 'single') {
+    if (type === "single") {
       setCustomPayment(minPayment.toString());
     }
   };
@@ -248,116 +324,204 @@ const PurchaseFlow = () => {
     setSelectedUnits(newUnits);
 
     if (selectedPlan) {
-      const scheme = schemes.find(s => s.id === selectedPlan.planId);
+      const scheme = schemes.find((s) => s.id === selectedPlan.planId);
       if (scheme) {
-        handlePlanSelection(scheme, newUnits); // Pass newUnits directly
+        handlePlanSelection(scheme, newUnits);
       }
     }
   };
 
-  // const handlePlanSelection = (scheme: Scheme) => {
-  //   const type = scheme.scheme_type === 'single_payment' ? 'single' : 'installment';
-  //   const totalPrice = type === 'single'
-  //     ? scheme.booking_advance * selectedUnits
-  //     : (scheme.total_installments! * scheme.monthly_installment_amount! * selectedUnits);
-  //   const minPayment = scheme.booking_advance * selectedUnits;
-
-  //   setSelectedPlan({
-  //     type,
-  //     planId: scheme.id,
-  //     area: scheme.area_sqft,
-  //     price: totalPrice,
-  //     monthlyAmount: type === 'installment' ? scheme.monthly_installment_amount! * selectedUnits : undefined,
-  //     installments: type === 'installment' ? scheme.total_installments! : undefined,
-  //     rentalStart: scheme.rental_start_month
-  //       ? `${scheme.rental_start_month}th Month`
-  //       : 'Next month after last installment',
-  //     monthlyRental: scheme.monthly_installment_amount
-  //       ? scheme.monthly_installment_amount * selectedUnits * 0.3
-  //       : scheme.booking_advance * selectedUnits * 0.01,
-  //     units: selectedUnits,
-  //     paymentAmount: type === 'single' ? minPayment : undefined
-  //   });
-
-  //   if (type === 'single') {
-  //     setCustomPayment(minPayment.toString());
-  //   }
-  // };
-
-  // const handleUnitsChange = (increment: boolean) => {
-  //   const newUnits = increment ? selectedUnits + 1 : Math.max(1, selectedUnits - 1);
-  //   setSelectedUnits(newUnits);
-
-  //   if (selectedPlan) {
-  //     const scheme = schemes.find(s => s.id === selectedPlan.planId);
-  //     if (scheme) {
-  //       handlePlanSelection(scheme);
-  //     }
-  //   }
-  // };
-
   const handleCustomPaymentChange = (value: string) => {
     setCustomPayment(value);
-    if (selectedPlan && selectedPlan.type === 'single') {
+    if (selectedPlan && selectedPlan.type === "single") {
       const paymentAmount = parseInt(value) || 0;
       setSelectedPlan({
         ...selectedPlan,
-        paymentAmount
+        paymentAmount,
       });
     }
   };
 
   const getMinPayment = () => {
-    return selectedPlan ? schemes.find(s => s.id === selectedPlan.planId)?.booking_advance! * selectedPlan.units : 200000;
+    return selectedPlan ? schemes.find((s) => s.id === selectedPlan.planId)?.booking_advance! * selectedPlan.units : 200000;
   };
 
   const isValidPaymentAmount = () => {
-    if (!selectedPlan || selectedPlan.type !== 'single') return true;
+    if (!selectedPlan || selectedPlan.type !== "single") return true;
     const paymentAmount = parseInt(customPayment) || 0;
     return paymentAmount >= getMinPayment();
   };
 
   const validateUserInfo = () => {
-    const requiredFields = ['firstName', 'lastName', 'dob', 'gender', 'email', 'phone', 'occupation', 'annualIncome'];
-    const addressRequired = ['street', 'city', 'state', 'pincode'];
-    const isUserValid = requiredFields.every(field => userInfo[field as keyof Omit<UserInfo, 'presentAddress' | 'permanentAddress' | 'sameAddress' | 'userType' | 'gstNumber' | 'passportNumber'>]);
-    const isPresentAddressValid = addressRequired.every(field => userInfo.presentAddress[field as keyof UserInfo['presentAddress']].trim() !== '');
-    const isPermanentAddressValid = userInfo.sameAddress || addressRequired.every(field => userInfo.permanentAddress[field as keyof UserInfo['permanentAddress']].trim() !== '');
+    const requiredFields = ["firstName", "lastName", "dob", "gender", "email", "phone", "occupation", "annualIncome", "userType"];
+    const addressRequired = ["street", "city", "state", "pincode"];
+    const bankRequired = ["accountHolderName", "bankAccountName", "accountNumber", "ifscCode"];
+    const isUserValid = requiredFields.every(
+      (field) => userInfo[field as keyof Omit<UserInfo, "presentAddress" | "permanentAddress" | "sameAddress" | "gstNumber" | "passportNumber" | "accountDetails">].trim() !== ""
+    );
+    const isPresentAddressValid = addressRequired.every((field) => userInfo.presentAddress[field as keyof UserInfo["presentAddress"]].trim() !== "");
+    const isPermanentAddressValid =
+      userInfo.sameAddress || addressRequired.every((field) => userInfo.permanentAddress[field as keyof UserInfo["permanentAddress"]].trim() !== "");
+    const isBankValid = bankRequired.every((field) => userInfo.accountDetails[field as keyof UserInfo["accountDetails"]].trim() !== "");
     let isTypeValid = false;
-    if (userInfo.userType === 'individual') {
-      isTypeValid = !!userInfo.panNumber && !!userInfo.aadharNumber;
-    } else if (userInfo.userType === 'business') {
-      isTypeValid = !!userInfo.gstNumber;
-    } else if (userInfo.userType === 'nri') {
-      isTypeValid = !!userInfo.passportNumber;
+    if (userInfo.userType === "individual") {
+      isTypeValid = !!userInfo.panNumber && !!userInfo.aadharNumber && verified.pan && verified.aadhar;
+    } else if (userInfo.userType === "business") {
+      isTypeValid = !!userInfo.gstNumber && !!userInfo.businessName && verified.gst;
+    } else if (userInfo.userType === "nri") {
+      isTypeValid = !!userInfo.passportNumber && verified.passport;
     }
-    return isUserValid && isPresentAddressValid && isPermanentAddressValid && isTypeValid;
+    let isJointValid = true;
+    if (isJointAccount) {
+      const jointRequiredFields = ["firstName", "lastName", "dob", "gender", "email", "phone", "userType"];
+      const jointBankRequired = ["accountHolderName", "bankAccountName", "accountNumber", "ifscCode"];
+      isJointValid =
+        jointRequiredFields.every((field) => jointAccountInfo[field as keyof Omit<JointAccountInfo, "accountDetails">].trim() !== "") &&
+        jointBankRequired.every((field) => jointAccountInfo.accountDetails[field as keyof JointAccountInfo["accountDetails"]].trim() !== "") &&
+        (jointAccountInfo.userType === "individual"
+          ? !!jointAccountInfo.panNumber && !!jointAccountInfo.aadharNumber && verified.jointPan && verified.jointAadhar
+          : jointAccountInfo.userType === "business"
+          ? !!jointAccountInfo.gstNumber && !!jointAccountInfo.businessName && verified.jointGst
+          : !!jointAccountInfo.passportNumber && verified.jointPassport) &&
+        jointTermsAccepted;
+    }
+    return isUserValid && isPresentAddressValid && isPermanentAddressValid && isBankValid && isTypeValid && isJointValid && termsAccepted;
   };
 
   const validateKYC = () => {
     let requiredDocs = false;
-    if (userInfo.userType === 'individual') {
+    if (userInfo.userType === "individual") {
       requiredDocs = !!kycDocuments.panCard && !!kycDocuments.aadharCard;
-    } else if (userInfo.userType === 'business') {
+    } else if (userInfo.userType === "business") {
       requiredDocs = !!kycDocuments.gstDocument;
     } else {
       requiredDocs = !!kycDocuments.passportPhoto;
     }
-    return requiredDocs && kycAccepted;
+    let jointRequiredDocs = true;
+    if (isJointAccount) {
+      if (jointAccountInfo.userType === "individual") {
+        jointRequiredDocs = !!kycDocuments.jointPanCard && !!kycDocuments.jointAadharCard;
+      } else if (jointAccountInfo.userType === "business") {
+        jointRequiredDocs = !!kycDocuments.jointGstDocument;
+      } else {
+        jointRequiredDocs = !!kycDocuments.jointPassportPhoto;
+      }
+    }
+    return requiredDocs && kycAccepted && jointRequiredDocs && (isJointAccount ? jointKycAccepted : true);
+  };
+
+  const updateUserProfile = async () => {
+    if (!userProfileId) {
+      throw new Error("User profile ID not found");
+    }
+
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      throw new Error("Authentication token not found");
+    }
+
+    const profileData = {
+      surname: userInfo.lastName,
+      name: userInfo.firstName,
+      dob: userInfo.dob,
+      gender: userInfo.gender,
+      present_address: {
+        street: userInfo.presentAddress.street,
+        city: userInfo.presentAddress.city,
+        state: userInfo.presentAddress.state,
+        country: "India",
+        postal_code: userInfo.presentAddress.pincode,
+      },
+      permanent_address: {
+        street: userInfo.sameAddress ? userInfo.presentAddress.street : userInfo.permanentAddress.street,
+        city: userInfo.sameAddress ? userInfo.presentAddress.city : userInfo.permanentAddress.city,
+        state: userInfo.sameAddress ? userInfo.presentAddress.state : userInfo.permanentAddress.state,
+        country: "India",
+        postal_code: userInfo.sameAddress ? userInfo.presentAddress.pincode : userInfo.permanentAddress.pincode,
+      },
+      occupation: userInfo.occupation,
+      annual_income: userInfo.annualIncome,
+      user_type: userInfo.userType,
+      pan_number: userInfo.userType === "individual" ? userInfo.panNumber : null,
+      aadhar_number: userInfo.userType === "individual" ? userInfo.aadharNumber : null,
+      gst_number: userInfo.userType === "business" ? userInfo.gstNumber : null,
+      passport_number: userInfo.userType === "nri" ? userInfo.passportNumber : null,
+      phone_number: userInfo.phone,
+      email: userInfo.email,
+      account_details: {
+        account_holder_name: userInfo.accountDetails.accountHolderName,
+        bank_account_name: userInfo.accountDetails.bankAccountName,
+        account_number: userInfo.accountDetails.accountNumber,
+        ifsc_code: userInfo.accountDetails.ifscCode,
+      },
+      joint_account: isJointAccount
+        ? {
+            surname: jointAccountInfo.lastName,
+            name: jointAccountInfo.firstName,
+            dob: jointAccountInfo.dob,
+            gender: jointAccountInfo.gender,
+            email: jointAccountInfo.email,
+            phone_number: jointAccountInfo.phone,
+            user_type: jointAccountInfo.userType,
+            pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
+            aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
+            gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
+            passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
+            account_details: {
+              account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
+              bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
+              account_number: jointAccountInfo.accountDetails.accountNumber,
+              ifsc_code: jointAccountInfo.accountDetails.ifscCode,
+            },
+          }
+        : null,
+    };
+
+    const formData = new FormData();
+    formData.append("profile_data", JSON.stringify(profileData));
+
+    if (kycDocuments.panCard) formData.append("document1", kycDocuments.panCard);
+    if (kycDocuments.aadharCard) formData.append("document2", kycDocuments.aadharCard);
+    if (kycDocuments.gstDocument) formData.append("document1", kycDocuments.gstDocument);
+    if (kycDocuments.passportPhoto) formData.append("document1", kycDocuments.passportPhoto);
+    if (isJointAccount) {
+      if (kycDocuments.jointPanCard) formData.append("joint_document1", kycDocuments.jointPanCard);
+      if (kycDocuments.jointAadharCard) formData.append("joint_document2", kycDocuments.jointAadharCard);
+      if (kycDocuments.jointGstDocument) formData.append("joint_document1", kycDocuments.jointGstDocument);
+      if (kycDocuments.jointPassportPhoto) formData.append("joint_document1", kycDocuments.jointPassportPhoto);
+    }
+
+    const response = await fetch(`http://127.0.0.1:8000/api/user_profile/update/${userProfileId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const responseData = await response.json();
+    if (!response.ok) {
+      throw new Error(responseData.message || "Failed to update user profile");
+    }
+
+    toast({
+      title: "Success",
+      description: "User profile updated successfully",
+    });
   };
 
   const nextStep = async () => {
     setLoading(true);
 
     try {
-      if (currentStep === 'plan-selection' && selectedPlan) {
-        setCurrentStep('user-info');
-      } else if (currentStep === 'user-info' && validateUserInfo() && termsAccepted) {
-        setCurrentStep('kyc');
-      } else if (currentStep === 'kyc' && validateKYC()) {
-        const token = localStorage.getItem('authToken');
+      if (currentStep === "plan-selection" && selectedPlan) {
+        setCurrentStep("user-info");
+      } else if (currentStep === "user-info" && validateUserInfo()) {
+        setCurrentStep("kyc");
+      } else if (currentStep === "kyc" && validateKYC()) {
+        const token = localStorage.getItem("authToken");
         if (!token) {
-          throw new Error('Authentication token not found');
+          throw new Error("Authentication token not found");
         }
 
         const profileData = {
@@ -369,41 +533,79 @@ const PurchaseFlow = () => {
             street: userInfo.presentAddress.street,
             city: userInfo.presentAddress.city,
             state: userInfo.presentAddress.state,
-            country: 'India',
+            country: "India",
             postal_code: userInfo.presentAddress.pincode,
           },
           permanent_address: {
             street: userInfo.sameAddress ? userInfo.presentAddress.street : userInfo.permanentAddress.street,
             city: userInfo.sameAddress ? userInfo.presentAddress.city : userInfo.permanentAddress.city,
             state: userInfo.sameAddress ? userInfo.presentAddress.state : userInfo.permanentAddress.state,
-            country: 'India',
+            country: "India",
             postal_code: userInfo.sameAddress ? userInfo.presentAddress.pincode : userInfo.permanentAddress.pincode,
           },
           occupation: userInfo.occupation,
           annual_income: userInfo.annualIncome,
           user_type: userInfo.userType,
-          pan_number: userInfo.userType === 'individual' ? userInfo.panNumber : null,
-          aadhar_number: userInfo.userType === 'individual' ? userInfo.aadharNumber : null,
-          gst_number: userInfo.userType === 'business' ? userInfo.gstNumber : null,
-          passport_number: userInfo.userType === 'nri' ? userInfo.passportNumber : null,
+          pan_number: userInfo.userType === "individual" ? userInfo.panNumber : null,
+          aadhar_number: userInfo.userType === "individual" ? userInfo.aadharNumber : null,
+          gst_number: userInfo.userType === "business" ? userInfo.gstNumber : null,
+          passport_number: userInfo.userType === "nri" ? userInfo.passportNumber : null,
           phone_number: userInfo.phone,
           email: userInfo.email,
+          account_details: {
+            account_holder_name: userInfo.accountDetails.accountHolderName,
+            bank_account_name: userInfo.accountDetails.bankAccountName,
+            account_number: userInfo.accountDetails.accountNumber,
+            ifsc_code: userInfo.accountDetails.ifscCode,
+          },
+          joint_account: isJointAccount
+            ? {
+                surname: jointAccountInfo.lastName,
+                name: jointAccountInfo.firstName,
+                dob: jointAccountInfo.dob,
+                gender: jointAccountInfo.gender,
+                email: jointAccountInfo.email,
+                phone_number: jointAccountInfo.phone,
+                user_type: jointAccountInfo.userType,
+                pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
+                aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
+                gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
+                passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
+                account_details: {
+                  account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
+                  bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
+                  account_number: jointAccountInfo.accountDetails.accountNumber,
+                  ifsc_code: jointAccountInfo.accountDetails.ifscCode,
+                },
+              }
+            : null,
         };
 
         const formData = new FormData();
-        formData.append('profile_data', JSON.stringify(profileData));
+        formData.append("profile_data", JSON.stringify(profileData));
 
-        if (userInfo.userType === 'individual') {
-          if (kycDocuments.panCard) formData.append('document1', kycDocuments.panCard);
-          if (kycDocuments.aadharCard) formData.append('document2', kycDocuments.aadharCard);
-        } else if (userInfo.userType === 'business') {
-          if (kycDocuments.gstDocument) formData.append('document1', kycDocuments.gstDocument);
-        } else if (userInfo.userType === 'nri') {
-          if (kycDocuments.passportPhoto) formData.append('document1', kycDocuments.passportPhoto);
+        if (userInfo.userType === "individual") {
+          if (kycDocuments.panCard) formData.append("document1", kycDocuments.panCard);
+          if (kycDocuments.aadharCard) formData.append("document2", kycDocuments.aadharCard);
+        } else if (userInfo.userType === "business") {
+          if (kycDocuments.gstDocument) formData.append("document1", kycDocuments.gstDocument);
+        } else if (userInfo.userType === "nri") {
+          if (kycDocuments.passportPhoto) formData.append("document1", kycDocuments.passportPhoto);
         }
 
-        const response = await fetch('http://localhost:8000/api/user_profile/create', {
-          method: 'POST',
+        if (isJointAccount) {
+          if (jointAccountInfo.userType === "individual") {
+            if (kycDocuments.jointPanCard) formData.append("joint_document1", kycDocuments.jointPanCard);
+            if (kycDocuments.jointAadharCard) formData.append("joint_document2", kycDocuments.jointAadharCard);
+          } else if (jointAccountInfo.userType === "business") {
+            if (kycDocuments.jointGstDocument) formData.append("joint_document1", kycDocuments.jointGstDocument);
+          } else if (jointAccountInfo.userType === "nri") {
+            if (kycDocuments.jointPassportPhoto) formData.append("joint_document1", kycDocuments.jointPassportPhoto);
+          }
+        }
+
+        const response = await fetch("http://127.0.0.1:8000/api/user_profile/create", {
+          method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -412,28 +614,36 @@ const PurchaseFlow = () => {
 
         const responseData = await response.json();
         if (!response.ok) {
-          throw new Error(responseData.message || 'Failed to create user profile');
+          throw new Error(responseData.message || "Failed to create user profile");
+        }
+
+        const userProfileIdFromResponse = responseData.user_profile_id;
+        if (!userProfileIdFromResponse) {
+          console.warn("No user_profile_id in response, using hardcoded ID as fallback");
+          setUserProfileId("abbb3392-3c6a-4361-9957-1ecc44b825d3");
+        } else {
+          setUserProfileId(userProfileIdFromResponse);
         }
 
         toast({
           title: "Success",
           description: "User profile created successfully",
         });
-        setCurrentStep('payment');
-      } else if (currentStep === 'payment') {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setCurrentStep('confirmation');
+        setCurrentStep("payment");
+      } else if (currentStep === "payment") {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        setCurrentStep("confirmation");
         toast({
           title: "Payment Successful",
           description: "Your investment has been confirmed!",
         });
       }
     } catch (error) {
-      console.error('Next step error:', error);
-      setFetchError((error as Error).message || 'An error occurred');
+      console.error("Next step error:", error);
+      setFetchError((error as Error).message || "An error occurred");
       toast({
         title: "Error",
-        description: (error as Error).message || 'An error occurred',
+        description: (error as Error).message || "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -442,33 +652,54 @@ const PurchaseFlow = () => {
   };
 
   const prevStep = () => {
-    if (currentStep === 'user-info') setCurrentStep('plan-selection');
-    else if (currentStep === 'kyc') setCurrentStep('user-info');
-    else if (currentStep === 'payment') setCurrentStep('kyc');
+    if (currentStep === "user-info") {
+      setCurrentStep("plan-selection");
+    } else if (currentStep === "kyc") {
+      setCurrentStep("user-info");
+      if (userProfileId) {
+        updateUserProfile().catch((error) => {
+          console.error("Update profile error:", error);
+          toast({
+            title: "Error",
+            description: (error as Error).message || "Failed to update user profile",
+            variant: "destructive",
+          });
+        });
+      } else {
+        console.warn("No userProfileId available, skipping profile update");
+        toast({
+          title: "Warning",
+          description: "User profile ID not found. Please ensure the profile was created successfully.",
+          variant: "default",
+        });
+      }
+    } else if (currentStep === "payment") {
+      setCurrentStep("kyc");
+    }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
     }).format(amount);
   };
 
   const getStepStatus = (step: PurchaseStep) => {
-    const steps = ['plan-selection', 'user-info', 'kyc', 'payment', 'confirmation'];
+    const steps = ["plan-selection", "user-info", "kyc", "payment", "confirmation"];
     const currentIndex = steps.indexOf(currentStep);
     const stepIndex = steps.indexOf(step);
 
-    if (stepIndex < currentIndex) return 'completed';
-    if (stepIndex === currentIndex) return 'active';
-    return 'pending';
+    if (stepIndex < currentIndex) return "completed";
+    if (stepIndex === currentIndex) return "active";
+    return "pending";
   };
 
   const getCurrentPaymentAmount = () => {
     if (!selectedPlan) return 0;
 
-    if (selectedPlan.type === 'installment') {
+    if (selectedPlan.type === "installment") {
       return selectedPlan.monthlyAmount!;
     } else {
       return selectedPlan.paymentAmount || getMinPayment();
@@ -496,35 +727,45 @@ const PurchaseFlow = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between max-w-4xl mx-auto">
               {[
-                { key: 'plan-selection', label: 'Select Plan', icon: Building },
-                { key: 'user-info', label: 'Your Information', icon: User },
-                { key: 'kyc', label: 'KYC Documents', icon: FileText },
-                { key: 'payment', label: 'Payment', icon: CreditCard },
-                { key: 'confirmation', label: 'Confirmation', icon: CheckCircle }
+                { key: "plan-selection", label: "Select Plan", icon: Building },
+                { key: "user-info", label: "Your Information", icon: User },
+                { key: "kyc", label: "KYC Documents", icon: FileText },
+                { key: "payment", label: "Payment", icon: CreditCard },
+                { key: "confirmation", label: "Confirmation", icon: CheckCircle },
               ].map((step, index) => {
                 const Icon = step.icon;
                 const status = getStepStatus(step.key as PurchaseStep);
 
                 return (
                   <div key={step.key} className="flex items-center">
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${status === 'completed' ? 'bg-primary border-primary text-primary-foreground' :
-                      status === 'active' ? 'border-primary text-primary bg-primary/10' :
-                        'border-muted text-muted-foreground'
-                      }`}>
-                      {status === 'completed' ? (
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                        status === "completed"
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : status === "active"
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-muted text-muted-foreground"
+                      }`}
+                    >
+                      {status === "completed" ? (
                         <CheckCircle className="w-5 h-5" />
                       ) : (
                         <Icon className="w-5 h-5" />
                       )}
                     </div>
-                    <span className={`ml-2 text-sm font-medium hidden sm:block ${status === 'active' ? 'text-primary' :
-                      status === 'completed' ? 'text-foreground' : 'text-muted-foreground'
-                      }`}>
+                    <span
+                      className={`ml-2 text-sm font-medium hidden sm:block ${
+                        status === "active"
+                          ? "text-primary"
+                          : status === "completed"
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
                       {step.label}
                     </span>
                     {index < 4 && (
-                      <div className={`w-8 sm:w-16 h-0.5 mx-2 sm:mx-4 ${status === 'completed' ? 'bg-primary' : 'bg-muted'
-                        }`} />
+                      <div className={`w-8 sm:w-16 h-0.5 mx-2 sm:mx-4 ${status === "completed" ? "bg-primary" : "bg-muted"}`} />
                     )}
                   </div>
                 );
@@ -534,7 +775,7 @@ const PurchaseFlow = () => {
 
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              {currentStep === 'plan-selection' && (
+              {currentStep === "plan-selection" && (
                 <div className="space-y-6">
                   <Card>
                     <CardHeader>
@@ -547,27 +788,16 @@ const PurchaseFlow = () => {
                       <div className="flex items-center space-x-4">
                         <label className="text-sm font-medium">Number of Units:</label>
                         <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleUnitsChange(false)}
-                            disabled={selectedUnits <= 1}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => handleUnitsChange(false)} disabled={selectedUnits <= 1}>
                             <Minus className="w-4 h-4" />
                           </Button>
-                          <div className="w-16 text-center py-2 px-3 border rounded-md font-medium">
-                            {selectedUnits}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleUnitsChange(true)}
-                          >
+                          <div className="w-16 text-center py-2 px-3 border rounded-md font-medium">{selectedUnits}</div>
+                          <Button variant="outline" size="sm" onClick={() => handleUnitsChange(true)}>
                             <Plus className="w-4 h-4" />
                           </Button>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Total Area: {selectedPlan ? selectedPlan.area * selectedUnits : 'Select a plan'} sqft
+                          Total Area: {selectedPlan ? selectedPlan.area * selectedUnits : "Select a plan"} sqft
                         </div>
                       </div>
                     </CardContent>
@@ -604,40 +834,39 @@ const PurchaseFlow = () => {
                           <div>
                             <h3 className="text-lg font-semibold mb-4 text-primary">Single Payment Schemes</h3>
                             <div className="grid md:grid-cols-3 gap-4">
-                              {schemes.filter(s => s.scheme_type === 'single_payment').map((scheme) => (
-                                <div
-                                  key={scheme.id}
-                                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedPlan?.planId === scheme.id
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border hover:border-primary/50'
+                              {schemes
+                                .filter((s) => s.scheme_type === "single_payment")
+                                .map((scheme) => (
+                                  <div
+                                    key={scheme.id}
+                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                      selectedPlan?.planId === scheme.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                                     }`}
-                                  onClick={() => handlePlanSelection(scheme, selectedUnits)} // Pass selectedUnits
-                                >
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-primary mb-2">{scheme.area_sqft} sqft</div>
-                                    <div className="text-sm text-muted-foreground mb-2">Booking Advance</div>
-                                    <div className="text-lg font-bold text-primary mb-3">{formatCurrency(scheme.booking_advance)}</div>
-                                    <div className="bg-primary/10 p-2 rounded mb-3">
-                                      <div className="text-xs text-muted-foreground">Monthly Rental (per unit)</div>
-                                      <div className="text-lg font-bold text-primary">
-                                        {formatCurrency(scheme.monthly_installment_amount
-                                          ? scheme.monthly_installment_amount * 0.3
-                                          : scheme.booking_advance * 0.01)}
+                                    onClick={() => handlePlanSelection(scheme, selectedUnits)}
+                                  >
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-primary mb-2">{scheme.area_sqft} sqft</div>
+                                      <div className="text-sm text-muted-foreground mb-2">Booking Advance</div>
+                                      <div className="text-lg font-bold text-primary mb-3">{formatCurrency(scheme.booking_advance)}</div>
+                                      <div className="bg-primary/10 p-2 rounded mb-3">
+                                        <div className="text-xs text-muted-foreground">Monthly Rental (per unit)</div>
+                                        <div className="text-lg font-bold text-primary">
+                                          {formatCurrency(
+                                            scheme.monthly_installment_amount ? scheme.monthly_installment_amount * 0.3 : scheme.booking_advance * 0.01
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="text-sm text-muted-foreground mb-2">
+                                        Rental starts from: {scheme.rental_start_month ? `${scheme.rental_start_month}th Month` : "N/A"}
+                                      </div>
+                                      <div className="text-sm font-medium">Total per unit: {formatCurrency(scheme.booking_advance)}</div>
+                                      <div className="mt-1 text-xs text-muted-foreground">
+                                        Total for {selectedUnits} unit{selectedUnits > 1 ? "s" : ""}: {formatCurrency(scheme.booking_advance * selectedUnits)}
                                       </div>
                                     </div>
-                                    <div className="text-sm text-muted-foreground mb-2">
-                                      Rental starts from: {scheme.rental_start_month ? `${scheme.rental_start_month}th Month` : 'N/A'}
-                                    </div>
-                                    <div className="text-sm font-medium">
-                                      Total per unit: {formatCurrency(scheme.booking_advance)}
-                                    </div>
-                                    <div className="mt-1 text-xs text-muted-foreground">
-                                      Total for {selectedUnits} unit{selectedUnits > 1 ? 's' : ''}: {formatCurrency(scheme.booking_advance * selectedUnits)}
-                                    </div>
                                   </div>
-                                </div>
-                              ))}
-                              {selectedPlan?.type === 'single' && (
+                                ))}
+                              {selectedPlan?.type === "single" && (
                                 <div className="md:col-span-3 mt-4">
                                   <div className="p-4 bg-muted/30 rounded-lg">
                                     <label className="text-sm font-medium mb-2 block">Enter Payment Amount</label>
@@ -652,9 +881,7 @@ const PurchaseFlow = () => {
                                       />
                                     </div>
                                     {!isValidPaymentAmount() && (
-                                      <p className="text-xs text-red-600 mt-1">
-                                        Payment must be at least {formatCurrency(getMinPayment())}
-                                      </p>
+                                      <p className="text-xs text-red-600 mt-1">Payment must be at least {formatCurrency(getMinPayment())}</p>
                                     )}
                                     <div className="text-sm mt-2">
                                       <span className="text-muted-foreground">Minimum Payment: </span>
@@ -674,7 +901,7 @@ const PurchaseFlow = () => {
                                     <ul className="space-y-1 text-blue-700">
                                       <li>• Minimum advance: {formatCurrency(getMinPayment())} per unit (required now)</li>
                                       <li>• Any amount above minimum goes toward main payment</li>
-                                      <li>• Remaining balance must be paid within {schemes.find(s => s.id === selectedPlan.planId)?.balance_payment_days || 90} days</li>
+                                      <li>• Remaining balance must be paid within {schemes.find((s) => s.id === selectedPlan.planId)?.balance_payment_days || 90} days</li>
                                       <li>• You can pay the full amount now to avoid future payment</li>
                                     </ul>
                                   </div>
@@ -686,37 +913,39 @@ const PurchaseFlow = () => {
                           <div>
                             <h3 className="text-lg font-semibold mb-4 text-primary">Installment Schemes</h3>
                             <div className="grid md:grid-cols-3 gap-4">
-                              {schemes.filter(s => s.scheme_type === 'installment').map((scheme) => (
-                                <div
-                                  key={scheme.id}
-                                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedPlan?.planId === scheme.id
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border hover:border-primary/50'
+                              {schemes
+                                .filter((s) => s.scheme_type === "installment")
+                                .map((scheme) => (
+                                  <div
+                                    key={scheme.id}
+                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                      selectedPlan?.planId === scheme.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                                     }`}
-                                  onClick={() => handlePlanSelection(scheme, selectedUnits)}
-                                >
-                                  <div className="text-center">
-                                    <div className="text-lg font-bold text-secondary mb-1">{scheme.total_installments} Installments</div>
-                                    <div className="text-2xl font-bold text-primary mb-2">{scheme.area_sqft} sqft</div>
-                                    <div className="text-sm text-muted-foreground mb-2">Booking Advance (per unit)</div>
-                                    <div className="text-lg font-bold text-primary mb-3">{formatCurrency(scheme.booking_advance)}</div>
-                                    <div className="bg-secondary/10 p-2 rounded mb-3">
-                                      <div className="text-xs text-muted-foreground">Monthly Installment (per unit)</div>
-                                      <div className="text-lg font-bold text-secondary">{formatCurrency(scheme.monthly_installment_amount!)}</div>
-                                    </div>
-                                    <div className="bg-primary/10 p-2 rounded mb-3">
-                                      <div className="text-xs text-muted-foreground">Future Monthly Rental (per unit)</div>
-                                      <div className="text-lg font-bold text-primary">{formatCurrency(scheme.monthly_installment_amount! * 0.3)}</div>
-                                    </div>
-                                    <div className="text-sm font-medium">
-                                      Total per unit: {formatCurrency(scheme.total_installments! * scheme.monthly_installment_amount!)}
-                                    </div>
-                                    <div className="mt-1 text-xs text-muted-foreground">
-                                      Total for {selectedUnits} unit{selectedUnits > 1 ? 's' : ''}: {formatCurrency(scheme.total_installments! * scheme.monthly_installment_amount! * selectedUnits)}
+                                    onClick={() => handlePlanSelection(scheme, selectedUnits)}
+                                  >
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-secondary mb-1">{scheme.total_installments} Installments</div>
+                                      <div className="text-2xl font-bold text-primary mb-2">{scheme.area_sqft} sqft</div>
+                                      <div className="text-sm text-muted-foreground mb-2">Booking Advance (per unit)</div>
+                                      <div className="text-lg font-bold text-primary mb-3">{formatCurrency(scheme.booking_advance)}</div>
+                                      <div className="bg-secondary/10 p-2 rounded mb-3">
+                                        <div className="text-xs text-muted-foreground">Monthly Installment (per unit)</div>
+                                        <div className="text-lg font-bold text-secondary">{formatCurrency(scheme.monthly_installment_amount!)}</div>
+                                      </div>
+                                      <div className="bg-primary/10 p-2 rounded mb-3">
+                                        <div className="text-xs text-muted-foreground">Future Monthly Rental (per unit)</div>
+                                        <div className="text-lg font-bold text-primary">{formatCurrency(scheme.monthly_installment_amount! * 0.3)}</div>
+                                      </div>
+                                      <div className="text-sm font-medium">
+                                        Total per unit: {formatCurrency(scheme.total_installments! * scheme.monthly_installment_amount!)}
+                                      </div>
+                                      <div className="mt-1 text-xs text-muted-foreground">
+                                        Total for {selectedUnits} unit{selectedUnits > 1 ? "s" : ""}:{" "}
+                                        {formatCurrency(scheme.total_installments! * scheme.monthly_installment_amount! * selectedUnits)}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
                             </div>
                           </div>
                         </>
@@ -726,18 +955,26 @@ const PurchaseFlow = () => {
                 </div>
               )}
 
-              {currentStep === 'user-info' && (
+              {currentStep === "user-info" && (
                 <div className="space-y-6">
                   <UserInfoForm
                     userInfo={userInfo}
                     setUserInfo={setUserInfo}
                     termsAccepted={termsAccepted}
                     setTermsAccepted={setTermsAccepted}
+                    isJointAccount={isJointAccount}
+                    setIsJointAccount={setIsJointAccount}
+                    jointAccountInfo={jointAccountInfo}
+                    setJointAccountInfo={setJointAccountInfo}
+                    jointTermsAccepted={jointTermsAccepted}
+                    setJointTermsAccepted={setJointTermsAccepted}
+                    verified={verified}
+                    setVerified={setVerified}
                   />
                 </div>
               )}
 
-              {currentStep === 'kyc' && (
+              {currentStep === "kyc" && (
                 <div className="space-y-6">
                   <KYCForm
                     kycDocuments={kycDocuments}
@@ -745,11 +982,18 @@ const PurchaseFlow = () => {
                     kycAccepted={kycAccepted}
                     setKycAccepted={setKycAccepted}
                     userType={userInfo.userType}
+                    isJointAccount={isJointAccount}
+                    jointUserType={jointAccountInfo.userType}
+                    jointKycAccepted={jointKycAccepted}
+                    setJointKycAccepted={setJointKycAccepted}
+                    userInfo={userInfo}
+                    jointAccountInfo={jointAccountInfo}
+                    setCurrentStep={setCurrentStep}
                   />
                 </div>
               )}
 
-              {currentStep === 'payment' && (
+              {currentStep === "payment" && (
                 <div className="space-y-6">
                   <Card>
                     <CardHeader>
@@ -763,17 +1007,16 @@ const PurchaseFlow = () => {
                         <label className="text-sm font-medium mb-3 block">Select Payment Method</label>
                         <div className="grid grid-cols-3 gap-4">
                           {[
-                            { key: 'upi', label: 'UPI', icon: '📱' },
-                            { key: 'netbanking', label: 'Net Banking', icon: '🏦' },
-                            { key: 'card', label: 'Credit/Debit Card', icon: '💳' }
+                            { key: "upi", label: "UPI", icon: "📱" },
+                            { key: "netbanking", label: "Net Banking", icon: "🏦" },
+                            { key: "card", label: "Credit/Debit Card", icon: "💳" },
                           ].map((method) => (
                             <div
                               key={method.key}
-                              className={`p-4 border-2 rounded-lg cursor-pointer text-center transition-all ${paymentMethod === method.key
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border hover:border-primary/50'
-                                }`}
-                              onClick={() => setPaymentMethod(method.key as 'upi' | 'netbanking' | 'card')}
+                              className={`p-4 border-2 rounded-lg cursor-pointer text-center transition-all ${
+                                paymentMethod === method.key ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                              }`}
+                              onClick={() => setPaymentMethod(method.key as "upi" | "netbanking" | "card")}
                             >
                               <div className="text-2xl mb-2">{method.icon}</div>
                               <div className="text-sm font-medium">{method.label}</div>
@@ -782,19 +1025,17 @@ const PurchaseFlow = () => {
                         </div>
                       </div>
 
-                      {paymentMethod === 'upi' && (
+                      {paymentMethod === "upi" && (
                         <div className="text-center p-6 bg-muted/30 rounded-lg">
                           <div className="text-lg font-medium mb-2">Scan QR Code to Pay</div>
                           <div className="w-48 h-48 bg-white mx-auto mb-4 flex items-center justify-center border">
                             <div className="text-xs text-muted-foreground">QR Code will appear here</div>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Or use UPI ID: payment@kapilbusinesspark.com
-                          </p>
+                          <p className="text-sm text-muted-foreground">Or use UPI ID: payment@kapilbusinesspark.com</p>
                         </div>
                       )}
 
-                      {paymentMethod === 'netbanking' && (
+                      {paymentMethod === "netbanking" && (
                         <div className="space-y-4">
                           <div>
                             <label htmlFor="bank">Select Your Bank</label>
@@ -810,75 +1051,51 @@ const PurchaseFlow = () => {
                         </div>
                       )}
 
-                      {paymentMethod === 'card' && (
+                      {paymentMethod === "card" && (
                         <div className="space-y-4">
                           <div>
                             <label htmlFor="cardNumber">Card Number</label>
-                            <input
-                              id="cardNumber"
-                              className="w-full p-2 border rounded-md"
-                              placeholder="1234 5678 9012 3456"
-                              maxLength={19}
-                            />
+                            <input id="cardNumber" className="w-full p-2 border rounded-md" placeholder="1234 5678 9012 3456" maxLength={19} />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label htmlFor="expiryDate">Expiry Date</label>
-                              <input
-                                id="expiryDate"
-                                className="w-full p-2 border rounded-md"
-                                placeholder="MM/YY"
-                                maxLength={5}
-                              />
+                              <input id="expiryDate" className="w-full p-2 border rounded-md" placeholder="MM/YY" maxLength={5} />
                             </div>
                             <div>
                               <label htmlFor="cvv">CVV</label>
-                              <input
-                                id="cvv"
-                                className="w-full p-2 border rounded-md"
-                                placeholder="123"
-                                maxLength={3}
-                                type="password"
-                              />
+                              <input id="cvv" className="w-full p-2 border rounded-md" placeholder="123" maxLength={3} type="password" />
                             </div>
                           </div>
                           <div>
                             <label htmlFor="cardholderName">Cardholder Name</label>
-                            <input
-                              id="cardholderName"
-                              className="w-full p-2 border rounded-md"
-                              placeholder="Enter name as on card"
-                            />
+                            <input id="cardholderName" className="w-full p-2 border rounded-md" placeholder="Enter name as on card" />
                           </div>
                         </div>
                       )}
 
                       <div className="flex items-center space-x-2 p-4 bg-blue-50 rounded-lg">
                         <Shield className="w-5 h-5 text-blue-600" />
-                        <span className="text-sm text-blue-800">
-                          Your payment is secured with 256-bit SSL encryption
-                        </span>
+                        <span className="text-sm text-blue-800">Your payment is secured with 256-bit SSL encryption</span>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
               )}
 
-              {currentStep === 'confirmation' && (
+              {currentStep === "confirmation" && (
                 <div className="space-y-6">
                   <Card>
                     <CardContent className="text-center py-12">
                       <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                       <h2 className="text-2xl font-bold mb-2">Payment Successful!</h2>
-                      <p className="text-muted-foreground mb-6">
-                        Your investment in Kapil Business Park has been confirmed.
-                      </p>
+                      <p className="text-muted-foreground mb-6">Your investment in Kapil Business Park has been confirmed.</p>
                       <div className="bg-muted/30 p-4 rounded-lg mb-6">
                         <div className="text-sm text-muted-foreground">Transaction ID</div>
                         <div className="font-mono text-lg">KBP{Date.now()}</div>
                       </div>
                       <div className="space-y-2">
-                        <Button className="w-full" onClick={() => navigate('/my-units')}>
+                        <Button className="w-full" onClick={() => navigate("/my-units")}>
                           <Eye className="w-4 h-4 mr-2" />
                           View My Investment Dashboard
                         </Button>
@@ -910,14 +1127,11 @@ const PurchaseFlow = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">Plan Type</span>
-                        <span className="text-sm font-medium">
-                          {selectedPlan.type === 'single' ? 'Single Payment' : 'Installment'}
-                        </span>
+                        <span className="text-sm font-medium">{selectedPlan.type === "single" ? "Single Payment" : "Installment"}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Number of Units</span>
-                        <span className="text-sm font-medium"></span>
-                        ({selectedPlan.units})
+                        <span className="text-sm font-medium">{selectedPlan.units}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Area per Unit</span>
@@ -927,7 +1141,7 @@ const PurchaseFlow = () => {
                         <span className="text-sm">Total Area</span>
                         <span className="text-sm font-medium">{selectedPlan.area * selectedPlan.units} sq ft</span>
                       </div>
-                      {selectedPlan.type === 'installment' && (
+                      {selectedPlan.type === "installment" && (
                         <>
                           <div className="flex justify-between">
                             <span className="text-sm">Installments</span>
@@ -956,7 +1170,7 @@ const PurchaseFlow = () => {
                         <span className="text-sm">Total Investment</span>
                         <span className="text-sm">{formatCurrency(selectedPlan.price)}</span>
                       </div>
-                      {selectedPlan.type === 'single' && (
+                      {selectedPlan.type === "single" && (
                         <>
                           <div className="flex justify-between">
                             <span className="text-sm">Advance Amount</span>
@@ -975,29 +1189,25 @@ const PurchaseFlow = () => {
                         </>
                       )}
                       <div className="flex justify-between text-lg font-bold">
-                        <span>
-                          {currentStep === 'plan-selection' || currentStep === 'user-info'
-                            ? (selectedPlan.type === 'single' ? 'Payment Now' : 'First Installment')
-                            : 'Total Amount'}
-                        </span>
-                        <span className="text-primary">
-                          {formatCurrency(getCurrentPaymentAmount())}
-                        </span>
+                        <span>{currentStep === "plan-selection" || currentStep === "user-info" ? (selectedPlan.type === "single" ? "Payment Now" : "First Installment") : "Total Amount"}</span>
+                        <span className="text-primary">{formatCurrency(getCurrentPaymentAmount())}</span>
                       </div>
                     </div>
 
-                    {selectedPlan.type === 'single' && currentStep !== 'confirmation' && getCurrentPaymentAmount() < selectedPlan.price && (
+                    {selectedPlan.type === "single" && currentStep !== "confirmation" && getCurrentPaymentAmount() < selectedPlan.price && (
                       <div className="text-xs text-orange-700 p-3 bg-orange-50 rounded border-l-4 border-orange-400">
                         <div className="font-medium mb-1">Payment Schedule:</div>
                         <div>• Now: {formatCurrency(getCurrentPaymentAmount())}</div>
-                        <div>• Within {schemes.find(s => s.id === selectedPlan.planId)?.balance_payment_days || 90} days: {formatCurrency(selectedPlan.price - getCurrentPaymentAmount())}</div>
-                        <div className="mt-1 text-orange-600">* Balance payment is mandatory within {schemes.find(s => s.id === selectedPlan.planId)?.balance_payment_days || 90} days</div>
+                        <div>• Within {schemes.find((s) => s.id === selectedPlan.planId)?.balance_payment_days || 90} days: {formatCurrency(selectedPlan.price - getCurrentPaymentAmount())}</div>
+                        <div className="mt-1 text-orange-600">
+                          * Balance payment is mandatory within {schemes.find((s) => s.id === selectedPlan.planId)?.balance_payment_days || 90} days
+                        </div>
                       </div>
                     )}
 
-                    {currentStep !== 'confirmation' && (
+                    {currentStep !== "confirmation" && (
                       <div className="pt-4 space-y-2">
-                        {currentStep !== 'plan-selection' && (
+                        {currentStep !== "plan-selection" && (
                           <Button variant="outline" onClick={prevStep} className="w-full" disabled={loading}>
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Previous Step
@@ -1008,9 +1218,9 @@ const PurchaseFlow = () => {
                           className="w-full"
                           disabled={
                             loading ||
-                            (currentStep === 'plan-selection' && (!selectedPlan || (selectedPlan.type === 'single' && !isValidPaymentAmount()))) ||
-                            (currentStep === 'user-info' && (!validateUserInfo() || !termsAccepted)) ||
-                            (currentStep === 'kyc' && !validateKYC())
+                            (currentStep === "plan-selection" && (!selectedPlan || (selectedPlan.type === "single" && !isValidPaymentAmount()))) ||
+                            (currentStep === "user-info" && !validateUserInfo()) ||
+                            (currentStep === "kyc" && !validateKYC())
                           }
                         >
                           {loading ? (
@@ -1020,12 +1230,11 @@ const PurchaseFlow = () => {
                             </div>
                           ) : (
                             <>
-                              {currentStep === 'payment' ? 'Complete Payment' : 'Continue'}
+                              {currentStep === "payment" ? "Complete Payment" : "Continue"}
                               <ArrowRight className="w-4 h-4 ml-2" />
                             </>
                           )}
                         </Button>
-
                       </div>
                     )}
                   </CardContent>
