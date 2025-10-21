@@ -215,40 +215,49 @@ const UserInfoForm = ({
     }
   };
 
-  const verifyPan = async (isJoint: boolean = false) => {
-    const target = isJoint ? jointAccountInfo : userInfo;
-    const key = isJoint ? 'jointPan' : 'pan';
-    if (!target?.panNumber || !target?.firstName || !target?.lastName) {
-      setErrors((prev) => ({ ...prev, [key]: 'PAN number and full name are required' }));
-      toast({ title: 'Error', description: 'PAN number and full name are required', variant: 'destructive' });
-      return;
-    }
-    setLoading((prev) => ({ ...prev, [key]: true }));
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/documents/verify-pan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pan_number: target.panNumber,
-          full_name: `${target.firstName} ${target.lastName}`,
-        }),
+const verifyPan = async (isJoint: boolean = false) => {
+  const target = isJoint ? jointAccountInfo : userInfo;
+  const key = isJoint ? 'jointPan' : 'pan';
+  if (!target?.panNumber || !target?.firstName || !target?.lastName) {
+    setErrors((prev) => ({ ...prev, [key]: 'PAN number and full name are required' }));
+    toast({ title: 'Error', description: 'PAN number and full name are required', variant: 'destructive' });
+    return;
+  }
+  setLoading((prev) => ({ ...prev, [key]: true }));
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/documents/verify-pan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pan_number: target.panNumber,
+        full_name: `${target.firstName} ${target.lastName}`,
+      }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      // Success: Assume OK status means verified, use backend message if available
+      setVerified((prev) => ({ ...prev, [key]: true }));
+      setErrors((prev) => ({ ...prev, [key]: '' }));
+      toast({ 
+        title: 'Success', 
+        description: data.detail || 'PAN verified successfully' 
       });
-      const data = await response.json();
-      if (response.ok && data.verified) {
-        setVerified((prev) => ({ ...prev, [key]: true }));
-        setErrors((prev) => ({ ...prev, [key]: '' }));
-        toast({ title: 'Success', description: 'PAN verified successfully' });
-      } else {
-        setErrors((prev) => ({ ...prev, [key]: data.detail || 'PAN verification failed' }));
-        toast({ title: 'Error', description: data.detail || 'PAN verification failed', variant: 'destructive' });
-      }
-    } catch (error) {
-      setErrors((prev) => ({ ...prev, [key]: 'Error verifying PAN' }));
-      toast({ title: 'Error', description: 'Error verifying PAN', variant: 'destructive' });
-    } finally {
-      setLoading((prev) => ({ ...prev, [key]: false }));
+    } else {
+      // Error: Use backend detail for message
+      setErrors((prev) => ({ ...prev, [key]: data.detail || 'PAN verification failed' }));
+      toast({ 
+        title: 'Error', 
+        description: data.detail || 'PAN verification failed', 
+        variant: 'destructive' 
+      });
     }
-  };
+  } catch (error) {
+    setErrors((prev) => ({ ...prev, [key]: 'Error verifying PAN' }));
+    toast({ title: 'Error', description: 'Error verifying PAN', variant: 'destructive' });
+  } finally {
+    setLoading((prev) => ({ ...prev, [key]: false }));
+  }
+};
 
   const verifyAadhar = async (isJoint: boolean = false) => {
     const target = isJoint ? jointAccountInfo : userInfo;

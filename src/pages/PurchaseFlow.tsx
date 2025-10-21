@@ -381,8 +381,8 @@ const PurchaseFlow = () => {
         (jointAccountInfo.userType === "individual"
           ? !!jointAccountInfo.panNumber && !!jointAccountInfo.aadharNumber && verified.jointPan && verified.jointAadhar
           : jointAccountInfo.userType === "business"
-          ? !!jointAccountInfo.gstNumber && !!jointAccountInfo.businessName && verified.jointGst
-          : !!jointAccountInfo.passportNumber && verified.jointPassport) &&
+            ? !!jointAccountInfo.gstNumber && !!jointAccountInfo.businessName && verified.jointGst
+            : !!jointAccountInfo.passportNumber && verified.jointPassport) &&
         jointTermsAccepted;
     }
     return isUserValid && isPresentAddressValid && isPermanentAddressValid && isBankValid && isTypeValid && isJointValid && termsAccepted;
@@ -392,22 +392,30 @@ const PurchaseFlow = () => {
     let requiredDocs = false;
     if (userInfo.userType === "individual") {
       requiredDocs = !!kycDocuments.panCard && !!kycDocuments.aadharCard;
+      console.log('Individual docs:', { panCard: !!kycDocuments.panCard, aadharCard: !!kycDocuments.aadharCard });
     } else if (userInfo.userType === "business") {
       requiredDocs = !!kycDocuments.gstDocument;
+      console.log('Business doc:', { gstDocument: !!kycDocuments.gstDocument });
     } else {
       requiredDocs = !!kycDocuments.passportPhoto;
+      console.log('NRI doc:', { passportPhoto: !!kycDocuments.passportPhoto });
     }
     let jointRequiredDocs = true;
     if (isJointAccount) {
       if (jointAccountInfo.userType === "individual") {
         jointRequiredDocs = !!kycDocuments.jointPanCard && !!kycDocuments.jointAadharCard;
+        console.log('Joint Individual docs:', { jointPanCard: !!kycDocuments.jointPanCard, jointAadharCard: !!kycDocuments.jointAadharCard });
       } else if (jointAccountInfo.userType === "business") {
         jointRequiredDocs = !!kycDocuments.jointGstDocument;
+        console.log('Joint Business doc:', { jointGstDocument: !!kycDocuments.jointGstDocument });
       } else {
         jointRequiredDocs = !!kycDocuments.jointPassportPhoto;
+        console.log('Joint NRI doc:', { jointPassportPhoto: !!kycDocuments.jointPassportPhoto });
       }
     }
-    return requiredDocs && kycAccepted && jointRequiredDocs && (isJointAccount ? jointKycAccepted : true);
+    const result = requiredDocs && kycAccepted && jointRequiredDocs && (isJointAccount ? jointKycAccepted : true);
+    console.log('Validate KYC result:', result);
+    return result;
   };
 
   const updateUserProfile = async () => {
@@ -456,24 +464,24 @@ const PurchaseFlow = () => {
       },
       joint_account: isJointAccount
         ? {
-            surname: jointAccountInfo.lastName,
-            name: jointAccountInfo.firstName,
-            dob: jointAccountInfo.dob,
-            gender: jointAccountInfo.gender,
-            email: jointAccountInfo.email,
-            phone_number: jointAccountInfo.phone,
-            user_type: jointAccountInfo.userType,
-            pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
-            aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
-            gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
-            passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
-            account_details: {
-              account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
-              bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
-              account_number: jointAccountInfo.accountDetails.accountNumber,
-              ifsc_code: jointAccountInfo.accountDetails.ifscCode,
-            },
-          }
+          surname: jointAccountInfo.lastName,
+          name: jointAccountInfo.firstName,
+          dob: jointAccountInfo.dob,
+          gender: jointAccountInfo.gender,
+          email: jointAccountInfo.email,
+          phone_number: jointAccountInfo.phone,
+          user_type: jointAccountInfo.userType,
+          pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
+          aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
+          gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
+          passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
+          account_details: {
+            account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
+            bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
+            account_number: jointAccountInfo.accountDetails.accountNumber,
+            ifsc_code: jointAccountInfo.accountDetails.ifscCode,
+          },
+        }
         : null,
     };
 
@@ -560,24 +568,24 @@ const PurchaseFlow = () => {
           },
           joint_account: isJointAccount
             ? {
-                surname: jointAccountInfo.lastName,
-                name: jointAccountInfo.firstName,
-                dob: jointAccountInfo.dob,
-                gender: jointAccountInfo.gender,
-                email: jointAccountInfo.email,
-                phone_number: jointAccountInfo.phone,
-                user_type: jointAccountInfo.userType,
-                pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
-                aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
-                gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
-                passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
-                account_details: {
-                  account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
-                  bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
-                  account_number: jointAccountInfo.accountDetails.accountNumber,
-                  ifsc_code: jointAccountInfo.accountDetails.ifscCode,
-                },
-              }
+              surname: jointAccountInfo.lastName,
+              name: jointAccountInfo.firstName,
+              dob: jointAccountInfo.dob,
+              gender: jointAccountInfo.gender,
+              email: jointAccountInfo.email,
+              phone_number: jointAccountInfo.phone,
+              user_type: jointAccountInfo.userType,
+              pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
+              aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
+              gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
+              passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
+              account_details: {
+                account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
+                bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
+                account_number: jointAccountInfo.accountDetails.accountNumber,
+                ifsc_code: jointAccountInfo.accountDetails.ifscCode,
+              },
+            }
             : null,
         };
 
@@ -739,13 +747,12 @@ const PurchaseFlow = () => {
                 return (
                   <div key={step.key} className="flex items-center">
                     <div
-                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                        status === "completed"
+                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${status === "completed"
                           ? "bg-primary border-primary text-primary-foreground"
                           : status === "active"
-                          ? "border-primary text-primary bg-primary/10"
-                          : "border-muted text-muted-foreground"
-                      }`}
+                            ? "border-primary text-primary bg-primary/10"
+                            : "border-muted text-muted-foreground"
+                        }`}
                     >
                       {status === "completed" ? (
                         <CheckCircle className="w-5 h-5" />
@@ -754,13 +761,12 @@ const PurchaseFlow = () => {
                       )}
                     </div>
                     <span
-                      className={`ml-2 text-sm font-medium hidden sm:block ${
-                        status === "active"
+                      className={`ml-2 text-sm font-medium hidden sm:block ${status === "active"
                           ? "text-primary"
                           : status === "completed"
-                          ? "text-foreground"
-                          : "text-muted-foreground"
-                      }`}
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                        }`}
                     >
                       {step.label}
                     </span>
@@ -839,9 +845,8 @@ const PurchaseFlow = () => {
                                 .map((scheme) => (
                                   <div
                                     key={scheme.id}
-                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                                      selectedPlan?.planId === scheme.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                                    }`}
+                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedPlan?.planId === scheme.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                      }`}
                                     onClick={() => handlePlanSelection(scheme, selectedUnits)}
                                   >
                                     <div className="text-center">
@@ -918,9 +923,8 @@ const PurchaseFlow = () => {
                                 .map((scheme) => (
                                   <div
                                     key={scheme.id}
-                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                                      selectedPlan?.planId === scheme.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                                    }`}
+                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedPlan?.planId === scheme.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                      }`}
                                     onClick={() => handlePlanSelection(scheme, selectedUnits)}
                                   >
                                     <div className="text-center">
@@ -1013,9 +1017,8 @@ const PurchaseFlow = () => {
                           ].map((method) => (
                             <div
                               key={method.key}
-                              className={`p-4 border-2 rounded-lg cursor-pointer text-center transition-all ${
-                                paymentMethod === method.key ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                              }`}
+                              className={`p-4 border-2 rounded-lg cursor-pointer text-center transition-all ${paymentMethod === method.key ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                                }`}
                               onClick={() => setPaymentMethod(method.key as "upi" | "netbanking" | "card")}
                             >
                               <div className="text-2xl mb-2">{method.icon}</div>
