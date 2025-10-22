@@ -26,8 +26,49 @@ import { useAuth } from "@/contexts/AuthContext";
 import UserInfoForm from "@/pages/UserInfoForm";
 import KYCForm from "./KYCForm";
 import { useToast } from "@/components/ui/use-toast";
+import PurchaseUnitConfirmation from "./PurchaseUnitConfirmation";
 
 type PurchaseStep = "plan-selection" | "user-info" | "kyc" | "payment" | "confirmation";
+
+// Validation patterns matching backend
+const VALIDATION_PATTERNS = {
+  PAN: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+  AADHAAR: /^\d{12}$/,
+  GSTIN: /^[0-9A-Z]{15}$/,
+  PASSPORT: /^[A-Z0-9]{6,12}$/,
+  PHONE: /^\+?\d{1,3}[-.\s]?\d{6,10}$/,
+  ACCOUNT_NUMBER: /^\d{9,18}$/,
+  IFSC: /^[A-Z]{4}0[A-Z0-9]{6}$/,
+};
+
+// Validation functions
+const validatePAN = (pan: string): boolean => {
+  return VALIDATION_PATTERNS.PAN.test(pan);
+};
+
+const validateAadhaar = (aadhaar: string): boolean => {
+  return VALIDATION_PATTERNS.AADHAAR.test(aadhaar);
+};
+
+const validateGSTIN = (gstin: string): boolean => {
+  return VALIDATION_PATTERNS.GSTIN.test(gstin);
+};
+
+const validatePassport = (passport: string): boolean => {
+  return VALIDATION_PATTERNS.PASSPORT.test(passport);
+};
+
+const validatePhone = (phone: string): boolean => {
+  return VALIDATION_PATTERNS.PHONE.test(phone);
+};
+
+const validateAccountNumber = (accountNumber: string): boolean => {
+  return VALIDATION_PATTERNS.ACCOUNT_NUMBER.test(accountNumber);
+};
+
+const validateIFSC = (ifsc: string): boolean => {
+  return VALIDATION_PATTERNS.IFSC.test(ifsc);
+};
 
 interface Scheme {
   id: string;
@@ -57,59 +98,54 @@ interface PlanSelection {
   paymentAmount?: number;
 }
 
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  country: string;
+  postal_code: string;
+}
+
+interface AccountDetails {
+  account_holder_name: string;
+  bank_account_name: string;
+  account_number: string;
+  ifsc_code: string;
+}
+
 interface UserInfo {
-  firstName: string;
-  lastName: string;
+  surname: string;
+  name: string;
   dob: string;
   gender: "male" | "female" | "other";
-  email: string;
-  phone: string;
-  presentAddress: {
-    street: string;
-    city: string;
-    state: string;
-    pincode: string;
-  };
-  permanentAddress: {
-    street: string;
-    city: string;
-    state: string;
-    pincode: string;
-  };
+  present_address: Address;
+  permanent_address: Address;
   occupation: string;
-  annualIncome: string;
-  panNumber: string;
-  aadharNumber: string;
-  gstNumber: string;
-  passportNumber: string;
+  annual_income: string;
+  user_type: "individual" | "business" | "NRI";
+  pan_number: string;
+  aadhar_number: string;
+  gst_number: string;
+  passport_number: string;
+  phone_number: string;
+  email: string;
+  account_details: AccountDetails;
   sameAddress: boolean;
-  userType: "individual" | "business" | "nri";
-  accountDetails: {
-    accountHolderName: string;
-    bankAccountName: string;
-    accountNumber: string;
-    ifscCode: string;
-  };
 }
 
 interface JointAccountInfo {
-  firstName: string;
-  lastName: string;
+  surname: string;
+  name: string;
   dob: string;
   gender: "male" | "female" | "other";
   email: string;
-  phone: string;
-  panNumber: string;
-  aadharNumber: string;
-  gstNumber: string;
-  passportNumber: string;
-  userType: "individual" | "business" | "nri";
-  accountDetails: {
-    accountHolderName: string;
-    bankAccountName: string;
-    accountNumber: string;
-    ifscCode: string;
-  };
+  phone_number: string;
+  user_type: "individual" | "business" | "NRI";
+  pan_number: string;
+  aadhar_number: string;
+  gst_number: string;
+  passport_number: string;
+  account_details: AccountDetails;
 }
 
 interface KYCDocuments {
@@ -129,66 +165,67 @@ const PurchaseFlow = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
 
-  // State declarations (all hooks are inside the component body)
+  // State declarations
   const [currentStep, setCurrentStep] = useState<PurchaseStep>("plan-selection");
   const [selectedPlan, setSelectedPlan] = useState<PlanSelection | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<number>(1);
   const [customPayment, setCustomPayment] = useState<string>("");
   const [userInfo, setUserInfo] = useState<UserInfo>({
-    firstName: "",
-    lastName: "",
+    surname: "",
+    name: "",
     dob: "",
     gender: "male",
     email: user?.email || "",
-    phone: "",
-    presentAddress: {
+    phone_number: "",
+    present_address: {
       street: "",
       city: "",
       state: "",
-      pincode: "",
+      country: "India",
+      postal_code: "",
     },
-    permanentAddress: {
+    permanent_address: {
       street: "",
       city: "",
       state: "",
-      pincode: "",
+      country: "India",
+      postal_code: "",
     },
     occupation: "",
-    annualIncome: "",
-    panNumber: "",
-    aadharNumber: "",
-    gstNumber: "",
-    passportNumber: "",
+    annual_income: "",
+    pan_number: "",
+    aadhar_number: "",
+    gst_number: "",
+    passport_number: "",
     sameAddress: true,
-    userType: "individual",
-    accountDetails: {
-      accountHolderName: "",
-      bankAccountName: "",
-      accountNumber: "",
-      ifscCode: "",
+    user_type: "individual",
+    account_details: {
+      account_holder_name: "",
+      bank_account_name: "",
+      account_number: "",
+      ifsc_code: "",
     },
   });
   const [isJointAccount, setIsJointAccount] = useState(false);
   const [jointAccountInfo, setJointAccountInfo] = useState<JointAccountInfo>({
-    firstName: "",
-    lastName: "",
+    surname: "",
+    name: "",
     dob: "",
     gender: "male",
     email: "",
-    phone: "",
-    panNumber: "",
-    aadharNumber: "",
-    gstNumber: "",
-    passportNumber: "",
-    userType: "individual",
-    accountDetails: {
-      accountHolderName: "",
-      bankAccountName: "",
-      accountNumber: "",
-      ifscCode: "",
+    phone_number: "",
+    pan_number: "",
+    aadhar_number: "",
+    gst_number: "",
+    passport_number: "",
+    user_type: "individual",
+    account_details: {
+      account_holder_name: "",
+      bank_account_name: "",
+      account_number: "",
+      ifsc_code: "",
     },
   });
-  // Moved verified state inside the component to fix hook error
   const [verified, setVerified] = useState({
     pan: false,
     aadhar: false,
@@ -353,47 +390,76 @@ const PurchaseFlow = () => {
   };
 
   const validateUserInfo = () => {
-    const requiredFields = ["firstName", "lastName", "dob", "gender", "email", "phone", "occupation", "annualIncome", "userType"];
-    const addressRequired = ["street", "city", "state", "pincode"];
-    const bankRequired = ["accountHolderName", "bankAccountName", "accountNumber", "ifscCode"];
+    const requiredFields = ["name", "surname", "dob", "gender", "email", "phone_number", "occupation", "annual_income", "user_type"];
+    const addressRequired = ["street", "city", "state", "postal_code", "country"];
+    const bankRequired = ["account_holder_name", "bank_account_name", "account_number", "ifsc_code"];
+
+    // Basic field validation
     const isUserValid = requiredFields.every(
-      (field) => userInfo[field as keyof Omit<UserInfo, "presentAddress" | "permanentAddress" | "sameAddress" | "gstNumber" | "passportNumber" | "accountDetails">].trim() !== ""
+      (field) => userInfo[field as keyof Omit<UserInfo, "present_address" | "permanent_address" | "sameAddress" | "account_details">].trim() !== ""
     );
-    const isPresentAddressValid = addressRequired.every((field) => userInfo.presentAddress[field as keyof UserInfo["presentAddress"]].trim() !== "");
-    const isPermanentAddressValid =
-      userInfo.sameAddress || addressRequired.every((field) => userInfo.permanentAddress[field as keyof UserInfo["permanentAddress"]].trim() !== "");
-    const isBankValid = bankRequired.every((field) => userInfo.accountDetails[field as keyof UserInfo["accountDetails"]].trim() !== "");
+
+    // Address validation
+    const isPresentAddressValid = addressRequired.every((field) =>
+      userInfo.present_address[field as keyof UserInfo["present_address"]].trim() !== ""
+    );
+    const isPermanentAddressValid = userInfo.sameAddress || addressRequired.every((field) =>
+      userInfo.permanent_address[field as keyof UserInfo["permanent_address"]].trim() !== ""
+    );
+
+    // Bank validation with pattern matching
+    const isBankValid = bankRequired.every((field) =>
+      userInfo.account_details[field as keyof UserInfo["account_details"]].trim() !== ""
+    ) &&
+      validateAccountNumber(userInfo.account_details.account_number) &&
+      validateIFSC(userInfo.account_details.ifsc_code);
+
+    // User type specific validation
     let isTypeValid = false;
-    if (userInfo.userType === "individual") {
-      isTypeValid = !!userInfo.panNumber && !!userInfo.aadharNumber && verified.pan && verified.aadhar;
-    } else if (userInfo.userType === "business") {
-      isTypeValid = !!userInfo.gstNumber && !!userInfo.businessName && verified.gst;
-    } else if (userInfo.userType === "nri") {
-      isTypeValid = !!userInfo.passportNumber && verified.passport;
+    if (userInfo.user_type === "individual") {
+      isTypeValid = !!userInfo.pan_number && !!userInfo.aadhar_number &&
+        validatePAN(userInfo.pan_number) && validateAadhaar(userInfo.aadhar_number) &&
+        verified.pan && verified.aadhar;
+    } else if (userInfo.user_type === "business") {
+      isTypeValid = !!userInfo.gst_number && validateGSTIN(userInfo.gst_number) && verified.gst;
+    } else if (userInfo.user_type === "NRI") {
+      isTypeValid = !!userInfo.passport_number && validatePassport(userInfo.passport_number) && verified.passport;
     }
+
+    // Joint account validation
     let isJointValid = true;
     if (isJointAccount) {
-      const jointRequiredFields = ["firstName", "lastName", "dob", "gender", "email", "phone", "userType"];
-      const jointBankRequired = ["accountHolderName", "bankAccountName", "accountNumber", "ifscCode"];
+      const jointRequiredFields = ["name", "surname", "dob", "gender", "email", "phone_number", "user_type"];
+      const jointBankRequired = ["account_holder_name", "bank_account_name", "account_number", "ifsc_code"];
+
       isJointValid =
-        jointRequiredFields.every((field) => jointAccountInfo[field as keyof Omit<JointAccountInfo, "accountDetails">].trim() !== "") &&
-        jointBankRequired.every((field) => jointAccountInfo.accountDetails[field as keyof JointAccountInfo["accountDetails"]].trim() !== "") &&
-        (jointAccountInfo.userType === "individual"
-          ? !!jointAccountInfo.panNumber && !!jointAccountInfo.aadharNumber && verified.jointPan && verified.jointAadhar
-          : jointAccountInfo.userType === "business"
-            ? !!jointAccountInfo.gstNumber && !!jointAccountInfo.businessName && verified.jointGst
-            : !!jointAccountInfo.passportNumber && verified.jointPassport) &&
+        jointRequiredFields.every((field) =>
+          jointAccountInfo[field as keyof Omit<JointAccountInfo, "account_details">].trim() !== ""
+        ) &&
+        jointBankRequired.every((field) =>
+          jointAccountInfo.account_details[field as keyof JointAccountInfo["account_details"]].trim() !== ""
+        ) &&
+        validateAccountNumber(jointAccountInfo.account_details.account_number) &&
+        validateIFSC(jointAccountInfo.account_details.ifsc_code) &&
+        (jointAccountInfo.user_type === "individual"
+          ? !!jointAccountInfo.pan_number && !!jointAccountInfo.aadhar_number &&
+          validatePAN(jointAccountInfo.pan_number) && validateAadhaar(jointAccountInfo.aadhar_number) &&
+          verified.jointPan && verified.jointAadhar
+          : jointAccountInfo.user_type === "business"
+            ? !!jointAccountInfo.gst_number && validateGSTIN(jointAccountInfo.gst_number) && verified.jointGst
+            : !!jointAccountInfo.passport_number && validatePassport(jointAccountInfo.passport_number) && verified.jointPassport) &&
         jointTermsAccepted;
     }
+
     return isUserValid && isPresentAddressValid && isPermanentAddressValid && isBankValid && isTypeValid && isJointValid && termsAccepted;
   };
 
   const validateKYC = () => {
     let requiredDocs = false;
-    if (userInfo.userType === "individual") {
+    if (userInfo.user_type === "individual") {
       requiredDocs = !!kycDocuments.panCard && !!kycDocuments.aadharCard;
       console.log('Individual docs:', { panCard: !!kycDocuments.panCard, aadharCard: !!kycDocuments.aadharCard });
-    } else if (userInfo.userType === "business") {
+    } else if (userInfo.user_type === "business") {
       requiredDocs = !!kycDocuments.gstDocument;
       console.log('Business doc:', { gstDocument: !!kycDocuments.gstDocument });
     } else {
@@ -402,10 +468,10 @@ const PurchaseFlow = () => {
     }
     let jointRequiredDocs = true;
     if (isJointAccount) {
-      if (jointAccountInfo.userType === "individual") {
+      if (jointAccountInfo.user_type === "individual") {
         jointRequiredDocs = !!kycDocuments.jointPanCard && !!kycDocuments.jointAadharCard;
         console.log('Joint Individual docs:', { jointPanCard: !!kycDocuments.jointPanCard, jointAadharCard: !!kycDocuments.jointAadharCard });
-      } else if (jointAccountInfo.userType === "business") {
+      } else if (jointAccountInfo.user_type === "business") {
         jointRequiredDocs = !!kycDocuments.jointGstDocument;
         console.log('Joint Business doc:', { jointGstDocument: !!kycDocuments.jointGstDocument });
       } else {
@@ -423,63 +489,63 @@ const PurchaseFlow = () => {
       throw new Error("User profile ID not found");
     }
 
-    const token = localStorage.getItem("authToken");
+    const token = sessionStorage.getItem("auth_token");
     if (!token) {
       throw new Error("Authentication token not found");
     }
 
     const profileData = {
-      surname: userInfo.lastName,
-      name: userInfo.firstName,
+      surname: userInfo.surname,
+      name: userInfo.name,
       dob: userInfo.dob,
       gender: userInfo.gender,
       present_address: {
-        street: userInfo.presentAddress.street,
-        city: userInfo.presentAddress.city,
-        state: userInfo.presentAddress.state,
+        street: userInfo.present_address.street,
+        city: userInfo.present_address.city,
+        state: userInfo.present_address.state,
         country: "India",
-        postal_code: userInfo.presentAddress.pincode,
+        postal_code: userInfo.present_address.postal_code,
       },
       permanent_address: {
-        street: userInfo.sameAddress ? userInfo.presentAddress.street : userInfo.permanentAddress.street,
-        city: userInfo.sameAddress ? userInfo.presentAddress.city : userInfo.permanentAddress.city,
-        state: userInfo.sameAddress ? userInfo.presentAddress.state : userInfo.permanentAddress.state,
+        street: userInfo.sameAddress ? userInfo.present_address.street : userInfo.permanent_address.street,
+        city: userInfo.sameAddress ? userInfo.present_address.city : userInfo.permanent_address.city,
+        state: userInfo.sameAddress ? userInfo.present_address.state : userInfo.permanent_address.state,
         country: "India",
-        postal_code: userInfo.sameAddress ? userInfo.presentAddress.pincode : userInfo.permanentAddress.pincode,
+        postal_code: userInfo.sameAddress ? userInfo.present_address.postal_code : userInfo.permanent_address.postal_code,
       },
       occupation: userInfo.occupation,
-      annual_income: userInfo.annualIncome,
-      user_type: userInfo.userType,
-      pan_number: userInfo.userType === "individual" ? userInfo.panNumber : null,
-      aadhar_number: userInfo.userType === "individual" ? userInfo.aadharNumber : null,
-      gst_number: userInfo.userType === "business" ? userInfo.gstNumber : null,
-      passport_number: userInfo.userType === "nri" ? userInfo.passportNumber : null,
-      phone_number: userInfo.phone,
+      annual_income: userInfo.annual_income,
+      user_type: userInfo.user_type,
+      pan_number: userInfo.user_type === "individual" ? userInfo.pan_number : null,
+      aadhar_number: userInfo.user_type === "individual" ? userInfo.aadhar_number : null,
+      gst_number: userInfo.user_type === "business" ? userInfo.gst_number : null,
+      passport_number: userInfo.user_type === "NRI" ? userInfo.passport_number : null,
+      phone_number: userInfo.phone_number,
       email: userInfo.email,
       account_details: {
-        account_holder_name: userInfo.accountDetails.accountHolderName,
-        bank_account_name: userInfo.accountDetails.bankAccountName,
-        account_number: userInfo.accountDetails.accountNumber,
-        ifsc_code: userInfo.accountDetails.ifscCode,
+        account_holder_name: userInfo.account_details.account_holder_name,
+        bank_account_name: userInfo.account_details.bank_account_name,
+        account_number: userInfo.account_details.account_number,
+        ifsc_code: userInfo.account_details.ifsc_code,
       },
       joint_account: isJointAccount
         ? {
-          surname: jointAccountInfo.lastName,
-          name: jointAccountInfo.firstName,
+          surname: jointAccountInfo.surname,
+          name: jointAccountInfo.name,
           dob: jointAccountInfo.dob,
           gender: jointAccountInfo.gender,
           email: jointAccountInfo.email,
-          phone_number: jointAccountInfo.phone,
-          user_type: jointAccountInfo.userType,
-          pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
-          aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
-          gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
-          passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
+          phone_number: jointAccountInfo.phone_number,
+          user_type: jointAccountInfo.user_type,
+          pan_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.pan_number : null,
+          aadhar_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.aadhar_number : null,
+          gst_number: jointAccountInfo.user_type === "business" ? jointAccountInfo.gst_number : null,
+          passport_number: jointAccountInfo.user_type === "NRI" ? jointAccountInfo.passport_number : null,
           account_details: {
-            account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
-            bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
-            account_number: jointAccountInfo.accountDetails.accountNumber,
-            ifsc_code: jointAccountInfo.accountDetails.ifscCode,
+            account_holder_name: jointAccountInfo.account_details.account_holder_name,
+            bank_account_name: jointAccountInfo.account_details.bank_account_name,
+            account_number: jointAccountInfo.account_details.account_number,
+            ifsc_code: jointAccountInfo.account_details.ifsc_code,
           },
         }
         : null,
@@ -527,63 +593,63 @@ const PurchaseFlow = () => {
       } else if (currentStep === "user-info" && validateUserInfo()) {
         setCurrentStep("kyc");
       } else if (currentStep === "kyc" && validateKYC()) {
-        const token = localStorage.getItem("authToken");
+        const token = sessionStorage.getItem("auth_token");
         if (!token) {
           throw new Error("Authentication token not found");
         }
 
         const profileData = {
-          surname: userInfo.lastName,
-          name: userInfo.firstName,
+          surname: userInfo.surname,
+          name: userInfo.name,
           dob: userInfo.dob,
           gender: userInfo.gender,
           present_address: {
-            street: userInfo.presentAddress.street,
-            city: userInfo.presentAddress.city,
-            state: userInfo.presentAddress.state,
+            street: userInfo.present_address.street,
+            city: userInfo.present_address.city,
+            state: userInfo.present_address.state,
             country: "India",
-            postal_code: userInfo.presentAddress.pincode,
+            postal_code: userInfo.present_address.postal_code,
           },
           permanent_address: {
-            street: userInfo.sameAddress ? userInfo.presentAddress.street : userInfo.permanentAddress.street,
-            city: userInfo.sameAddress ? userInfo.presentAddress.city : userInfo.permanentAddress.city,
-            state: userInfo.sameAddress ? userInfo.presentAddress.state : userInfo.permanentAddress.state,
+            street: userInfo.sameAddress ? userInfo.present_address.street : userInfo.permanent_address.street,
+            city: userInfo.sameAddress ? userInfo.present_address.city : userInfo.permanent_address.city,
+            state: userInfo.sameAddress ? userInfo.present_address.state : userInfo.permanent_address.state,
             country: "India",
-            postal_code: userInfo.sameAddress ? userInfo.presentAddress.pincode : userInfo.permanentAddress.pincode,
+            postal_code: userInfo.sameAddress ? userInfo.present_address.postal_code : userInfo.permanent_address.postal_code,
           },
           occupation: userInfo.occupation,
-          annual_income: userInfo.annualIncome,
-          user_type: userInfo.userType,
-          pan_number: userInfo.userType === "individual" ? userInfo.panNumber : null,
-          aadhar_number: userInfo.userType === "individual" ? userInfo.aadharNumber : null,
-          gst_number: userInfo.userType === "business" ? userInfo.gstNumber : null,
-          passport_number: userInfo.userType === "nri" ? userInfo.passportNumber : null,
-          phone_number: userInfo.phone,
+          annual_income: userInfo.annual_income,
+          user_type: userInfo.user_type,
+          pan_number: userInfo.user_type === "individual" ? userInfo.pan_number : null,
+          aadhar_number: userInfo.user_type === "individual" ? userInfo.aadhar_number : null,
+          gst_number: userInfo.user_type === "business" ? userInfo.gst_number : null,
+          passport_number: userInfo.user_type === "NRI" ? userInfo.passport_number : null,
+          phone_number: userInfo.phone_number,
           email: userInfo.email,
           account_details: {
-            account_holder_name: userInfo.accountDetails.accountHolderName,
-            bank_account_name: userInfo.accountDetails.bankAccountName,
-            account_number: userInfo.accountDetails.accountNumber,
-            ifsc_code: userInfo.accountDetails.ifscCode,
+            account_holder_name: userInfo.account_details.account_holder_name,
+            bank_account_name: userInfo.account_details.bank_account_name,
+            account_number: userInfo.account_details.account_number,
+            ifsc_code: userInfo.account_details.ifsc_code,
           },
           joint_account: isJointAccount
             ? {
-              surname: jointAccountInfo.lastName,
-              name: jointAccountInfo.firstName,
+              surname: jointAccountInfo.surname,
+              name: jointAccountInfo.name,
               dob: jointAccountInfo.dob,
               gender: jointAccountInfo.gender,
               email: jointAccountInfo.email,
-              phone_number: jointAccountInfo.phone,
-              user_type: jointAccountInfo.userType,
-              pan_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.panNumber : null,
-              aadhar_number: jointAccountInfo.userType === "individual" ? jointAccountInfo.aadharNumber : null,
-              gst_number: jointAccountInfo.userType === "business" ? jointAccountInfo.gstNumber : null,
-              passport_number: jointAccountInfo.userType === "nri" ? jointAccountInfo.passportNumber : null,
+              phone_number: jointAccountInfo.phone_number,
+              user_type: jointAccountInfo.user_type,
+              pan_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.pan_number : null,
+              aadhar_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.aadhar_number : null,
+              gst_number: jointAccountInfo.user_type === "business" ? jointAccountInfo.gst_number : null,
+              passport_number: jointAccountInfo.user_type === "NRI" ? jointAccountInfo.passport_number : null,
               account_details: {
-                account_holder_name: jointAccountInfo.accountDetails.accountHolderName,
-                bank_account_name: jointAccountInfo.accountDetails.bankAccountName,
-                account_number: jointAccountInfo.accountDetails.accountNumber,
-                ifsc_code: jointAccountInfo.accountDetails.ifscCode,
+                account_holder_name: jointAccountInfo.account_details.account_holder_name,
+                bank_account_name: jointAccountInfo.account_details.bank_account_name,
+                account_number: jointAccountInfo.account_details.account_number,
+                ifsc_code: jointAccountInfo.account_details.ifsc_code,
               },
             }
             : null,
@@ -592,22 +658,22 @@ const PurchaseFlow = () => {
         const formData = new FormData();
         formData.append("profile_data", JSON.stringify(profileData));
 
-        if (userInfo.userType === "individual") {
+        if (userInfo.user_type === "individual") {
           if (kycDocuments.panCard) formData.append("document1", kycDocuments.panCard);
           if (kycDocuments.aadharCard) formData.append("document2", kycDocuments.aadharCard);
-        } else if (userInfo.userType === "business") {
+        } else if (userInfo.user_type === "business") {
           if (kycDocuments.gstDocument) formData.append("document1", kycDocuments.gstDocument);
-        } else if (userInfo.userType === "nri") {
+        } else if (userInfo.user_type === "NRI") {
           if (kycDocuments.passportPhoto) formData.append("document1", kycDocuments.passportPhoto);
         }
 
         if (isJointAccount) {
-          if (jointAccountInfo.userType === "individual") {
+          if (jointAccountInfo.user_type === "individual") {
             if (kycDocuments.jointPanCard) formData.append("joint_document1", kycDocuments.jointPanCard);
             if (kycDocuments.jointAadharCard) formData.append("joint_document2", kycDocuments.jointAadharCard);
-          } else if (jointAccountInfo.userType === "business") {
+          } else if (jointAccountInfo.user_type === "business") {
             if (kycDocuments.jointGstDocument) formData.append("joint_document1", kycDocuments.jointGstDocument);
-          } else if (jointAccountInfo.userType === "nri") {
+          } else if (jointAccountInfo.user_type === "NRI") {
             if (kycDocuments.jointPassportPhoto) formData.append("joint_document1", kycDocuments.jointPassportPhoto);
           }
         }
@@ -748,10 +814,10 @@ const PurchaseFlow = () => {
                   <div key={step.key} className="flex items-center">
                     <div
                       className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${status === "completed"
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : status === "active"
-                            ? "border-primary text-primary bg-primary/10"
-                            : "border-muted text-muted-foreground"
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : status === "active"
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-muted text-muted-foreground"
                         }`}
                     >
                       {status === "completed" ? (
@@ -762,10 +828,10 @@ const PurchaseFlow = () => {
                     </div>
                     <span
                       className={`ml-2 text-sm font-medium hidden sm:block ${status === "active"
-                          ? "text-primary"
-                          : status === "completed"
-                            ? "text-foreground"
-                            : "text-muted-foreground"
+                        ? "text-primary"
+                        : status === "completed"
+                          ? "text-foreground"
+                          : "text-muted-foreground"
                         }`}
                     >
                       {step.label}
@@ -985,9 +1051,9 @@ const PurchaseFlow = () => {
                     setKycDocuments={setKycDocuments}
                     kycAccepted={kycAccepted}
                     setKycAccepted={setKycAccepted}
-                    userType={userInfo.userType}
+                    userType={userInfo.user_type}
                     isJointAccount={isJointAccount}
-                    jointUserType={jointAccountInfo.userType}
+                    jointUserType={jointAccountInfo.user_type}
                     jointKycAccepted={jointKycAccepted}
                     setJointKycAccepted={setJointKycAccepted}
                     userInfo={userInfo}
@@ -997,92 +1063,21 @@ const PurchaseFlow = () => {
                 </div>
               )}
 
-              {currentStep === "payment" && (
+              {currentStep === "payment" && selectedPlan && (
                 <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <CreditCard className="w-5 h-5 mr-2" />
-                        Payment Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div>
-                        <label className="text-sm font-medium mb-3 block">Select Payment Method</label>
-                        <div className="grid grid-cols-3 gap-4">
-                          {[
-                            { key: "upi", label: "UPI", icon: "📱" },
-                            { key: "netbanking", label: "Net Banking", icon: "🏦" },
-                            { key: "card", label: "Credit/Debit Card", icon: "💳" },
-                          ].map((method) => (
-                            <div
-                              key={method.key}
-                              className={`p-4 border-2 rounded-lg cursor-pointer text-center transition-all ${paymentMethod === method.key ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                                }`}
-                              onClick={() => setPaymentMethod(method.key as "upi" | "netbanking" | "card")}
-                            >
-                              <div className="text-2xl mb-2">{method.icon}</div>
-                              <div className="text-sm font-medium">{method.label}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {paymentMethod === "upi" && (
-                        <div className="text-center p-6 bg-muted/30 rounded-lg">
-                          <div className="text-lg font-medium mb-2">Scan QR Code to Pay</div>
-                          <div className="w-48 h-48 bg-white mx-auto mb-4 flex items-center justify-center border">
-                            <div className="text-xs text-muted-foreground">QR Code will appear here</div>
-                          </div>
-                          <p className="text-sm text-muted-foreground">Or use UPI ID: payment@kapilbusinesspark.com</p>
-                        </div>
-                      )}
-
-                      {paymentMethod === "netbanking" && (
-                        <div className="space-y-4">
-                          <div>
-                            <label htmlFor="bank">Select Your Bank</label>
-                            <select id="bank" className="w-full p-2 border rounded-md">
-                              <option>Choose your bank</option>
-                              <option value="sbi">State Bank of India</option>
-                              <option value="hdfc">HDFC Bank</option>
-                              <option value="icici">ICICI Bank</option>
-                              <option value="axis">Axis Bank</option>
-                              <option value="pnb">Punjab National Bank</option>
-                            </select>
-                          </div>
-                        </div>
-                      )}
-
-                      {paymentMethod === "card" && (
-                        <div className="space-y-4">
-                          <div>
-                            <label htmlFor="cardNumber">Card Number</label>
-                            <input id="cardNumber" className="w-full p-2 border rounded-md" placeholder="1234 5678 9012 3456" maxLength={19} />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label htmlFor="expiryDate">Expiry Date</label>
-                              <input id="expiryDate" className="w-full p-2 border rounded-md" placeholder="MM/YY" maxLength={5} />
-                            </div>
-                            <div>
-                              <label htmlFor="cvv">CVV</label>
-                              <input id="cvv" className="w-full p-2 border rounded-md" placeholder="123" maxLength={3} type="password" />
-                            </div>
-                          </div>
-                          <div>
-                            <label htmlFor="cardholderName">Cardholder Name</label>
-                            <input id="cardholderName" className="w-full p-2 border rounded-md" placeholder="Enter name as on card" />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center space-x-2 p-4 bg-blue-50 rounded-lg">
-                        <Shield className="w-5 h-5 text-blue-600" />
-                        <span className="text-sm text-blue-800">Your payment is secured with 256-bit SSL encryption</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <PurchaseUnitConfirmation
+                    projectId={id!}
+                    schemeId={selectedPlan.planId}
+                    isJointOwnership={isJointAccount}
+                    numberOfUnits={selectedUnits}
+                    onPurchaseSuccess={(data) => {
+                      console.log('Purchase successful:', data);
+                      // Don't move to next page, stay on payment step
+                    }}
+                    userProfileId={userProfileId}
+                    projectData={project} // Pass the project data you already have
+                    schemeData={schemes.find(s => s.id === selectedPlan.planId)} // Pass the scheme data
+                  />
                 </div>
               )}
 
