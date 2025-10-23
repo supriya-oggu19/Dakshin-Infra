@@ -8,8 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, LogIn, Phone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-const API_BASE_URL = "http://127.0.0.1:8000";
+import { userApi } from "@/api/userApi";
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -20,47 +19,26 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
 
-  const { login, isAuthenticated } = useAuth(); // Assume isAuthenticated is provided by useAuth
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect authenticated users to /projects on mount
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/projects");
     }
   }, [isAuthenticated, navigate]);
 
-  // Validate phone number format (example: +91 followed by 10 digits)
-  const validatePhoneNumber = (phone: string) => {
-    const phoneRegex = /^\+\d{1,3}\d{10}$/;
-    return phoneRegex.test(phone);
-  };
-
-  // Validate OTP format (6 digits)
-  const validateOtp = (otp: string) => {
-    const otpRegex = /^\d{6}$/;
-    return otpRegex.test(otp);
-  };
+  const validatePhoneNumber = (phone: string) => /^\+\d{1,3}\d{10}$/.test(phone);
+  const validateOtp = (otp: string) => /^\d{6}$/.test(otp);
 
   const handleSendOtp = async () => {
     if (!phoneNumber.trim()) {
-      setError("Please enter your phone number");
-      toast({
-        title: "Error",
-        description: "Please enter your phone number",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter your phone number", variant: "destructive" });
       return;
     }
-
     if (!validatePhoneNumber(phoneNumber)) {
-      setError("Please enter a valid phone number (e.g., +918688475255)");
-      toast({
-        title: "Error",
-        description: "Please enter a valid phone number",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Invalid phone number format", variant: "destructive" });
       return;
     }
 
@@ -69,59 +47,31 @@ const Login = () => {
     setOtpLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/send_otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone_no: phoneNumber,
-        }),
-      });
+      const response = await userApi.sendOtp({ phone_no: phoneNumber });
+      const data = response.data;
 
-      const data = await response.json();
-      console.log("Send OTP Response:", response.status, data); // Debug log
-
-      if (response.ok && data.status === "success") {
+      if (data.status === "success") {
         setSuccess(data.message || "OTP sent successfully");
         setShowOtpField(true);
-        setOtp(""); // Clear OTP field on resend
-        toast({
-          title: "Success",
-          description: data.message || "OTP sent successfully",
-        });
+        setOtp("");
+        toast({ title: "Success", description: data.message || "OTP sent successfully" });
       } else {
-        setError(data.message || `Failed to send OTP (Status: ${response.status})`);
-        toast({
-          title: "Error",
-          description: data.message || `Failed to send OTP (Status: ${response.status})`,
-          variant: "destructive",
-        });
+        setError(data.message || "Failed to send OTP");
+        toast({ title: "Error", description: data.message || "Failed to send OTP", variant: "destructive" });
       }
     } catch (err) {
-      console.error("Send OTP error:", err.message, err.stack);
-      const errorMsg = "Failed to send OTP. Please check your connection.";
-      setError(errorMsg);
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
+      setError("Failed to send OTP. Please check your connection.");
+      toast({ title: "Error", description: "Failed to send OTP. Please check your connection.", variant: "destructive" });
     } finally {
       setOtpLoading(false);
     }
   };
 
-  const handleLogin = async (e: React.FormEvent, retryCount = 0) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateOtp(otp)) {
-      setError("Please enter a valid 6-digit OTP");
-      toast({
-        title: "Error",
-        description: "Please enter a valid 6-digit OTP",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter a valid 6-digit OTP", variant: "destructive" });
       return;
     }
 
@@ -130,59 +80,21 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone_no: phoneNumber,
-          otp: otp,
-        }),
-      });
+      const response = await userApi.login({ phone_no: phoneNumber, otp });
+      const data = response.data;
 
-      const data = await response.json();
-      console.log("Login Response:", response.status, data); // Debug log
-
-      if (response.ok && data.token) {
+      if (data.token) {
         login(data.token);
-        setSuccess(data.message || "Login successful");
-        toast({
-          title: "Success",
-          description: data.message || "Login successful",
-        });
-        setTimeout(() => {
-          navigate("/projects");
-        }, 500);
+        toast({ title: "Success", description: data.message || "Login successful" });
+        setTimeout(() => navigate("/projects"), 500);
       } else {
-        // Retry only for server errors (500+) or network issues
-        if (retryCount < 1 && (!response || response.status >= 500)) {
-          console.warn("Retrying OTP submission...");
-          setTimeout(() => handleLogin(e, retryCount + 1), 1000);
-          return;
-        }
-        const errorMsg = data.message || `Login failed with status ${response.status}. Try resending the OTP.`;
-        setError(errorMsg);
-        toast({
-          title: "Error",
-          description: errorMsg,
-          variant: "destructive",
-        });
+        const errMsg = data.message || "Login failed. Try resending the OTP.";
+        setError(errMsg);
+        toast({ title: "Error", description: errMsg, variant: "destructive" });
       }
     } catch (err) {
-      console.error("Login error:", err.message, err.stack);
-      if (retryCount < 1) {
-        console.warn("Retrying OTP submission...");
-        setTimeout(() => handleLogin(e, retryCount + 1), 1000);
-        return;
-      }
-      const errorMsg = "Login failed. Please check your connection or try again.";
-      setError(errorMsg);
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
+      setError("Login failed. Please check your connection.");
+      toast({ title: "Error", description: "Login failed. Please check your connection.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -210,22 +122,17 @@ const Login = () => {
               Access your investment dashboard and manage your properties
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
-            <form onSubmit={(e) => handleLogin(e)} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               {error && (
                 <Alert className="border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-700">
-                    {error}
-                  </AlertDescription>
+                  <AlertDescription className="text-red-700">{error}</AlertDescription>
                 </Alert>
               )}
-
               {success && (
                 <Alert className="border-green-200 bg-green-50">
-                  <AlertDescription className="text-green-700">
-                    {success}
-                  </AlertDescription>
+                  <AlertDescription className="text-green-700">{success}</AlertDescription>
                 </Alert>
               )}
 
@@ -268,32 +175,32 @@ const Login = () => {
               </div>
 
               {showOtpField && (
-                <div className="space-y-2">
+                  <div className="space-y-2">
                   <Label htmlFor="otp" className="text-foreground">
                     Enter OTP
                   </Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="Enter 6-digit OTP"
-                    required
-                    maxLength={6}
+                    <Input
+                      id="otp"
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="Enter 6-digit OTP"
+                      required
+                      maxLength={6}
                     className="bg-background border-border focus:border-primary focus:ring-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowOtpField(false);
-                      setOtp("");
-                      setSuccess("");
-                    }}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Change phone number
-                  </button>
-                </div>
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOtpField(false);
+                        setOtp("");
+                        setSuccess("");
+                      }}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Change phone number
+                    </button>
+                  </div>
               )}
 
               {showOtpField && (
@@ -317,13 +224,7 @@ const Login = () => {
                     )}
                   </Button>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleSendOtp}
-                    disabled={otpLoading}
-                    className="w-full"
-                  >
+                  <Button type="button" variant="outline" onClick={handleSendOtp} disabled={otpLoading} className="w-full">
                     Resend OTP
                   </Button>
                 </>
@@ -332,13 +233,13 @@ const Login = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                New user?{" "}
+              New user?{" "}
                 <Link
                   to="/register"
                   className="text-primary hover:underline font-medium"
                 >
-                  Register here
-                </Link>
+                Register here
+              </Link>
               </p>
             </div>
           </CardContent>
