@@ -794,7 +794,6 @@ const PurchaseFlow = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Project Details
             </button>
-            <h1 className="text-3xl font-bold mb-2">Purchase Kapil Business Park Unit</h1>
             <p className="text-muted-foreground">Complete your investment in a few simple steps</p>
           </div>
 
@@ -1075,7 +1074,6 @@ const PurchaseFlow = () => {
                       // Don't move to next page, stay on payment step
                     }}
                     userProfileId={userProfileId}
-                    projectData={project} // Pass the project data you already have
                     schemeData={schemes.find(s => s.id === selectedPlan.planId)} // Pass the scheme data
                   />
                 </div>
@@ -1115,10 +1113,7 @@ const PurchaseFlow = () => {
                     <CardTitle className="text-lg">Order Summary</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <div className="font-medium text-foreground">Kapil Business Park</div>
-                      <div className="text-sm text-muted-foreground">Commercial Office Space</div>
-                    </div>
+                   
 
                     <Separator />
 
@@ -1164,10 +1159,10 @@ const PurchaseFlow = () => {
                     <Separator />
 
                     <div className="space-y-2">
-                      <div className="flex justify-between">
+                      {/* <div className="flex justify-between">
                         <span className="text-sm">Total Investment</span>
                         <span className="text-sm">{formatCurrency(selectedPlan.price)}</span>
-                      </div>
+                      </div> */}
                       {selectedPlan.type === "single" && (
                         <>
                           <div className="flex justify-between">

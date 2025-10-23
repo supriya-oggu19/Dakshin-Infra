@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  DollarSign, 
-  Clock, 
+import {
+  DollarSign,
+  Clock,
   Calendar,
   Building,
   TrendingUp,
@@ -17,8 +17,10 @@ import {
   CreditCard
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface InvestmentScheme {
+  base_price: number;
   id: string;
   project_id: string;
   scheme_type: string;
@@ -33,6 +35,7 @@ interface InvestmentScheme {
   end_date: string | null;
   created_at: string;
   updated_at: string;
+
 }
 
 interface InvestmentSchemeListResponse {
@@ -52,6 +55,8 @@ interface InvestmentSchemesProps {
 
 const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) => {
   const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [schemes, setSchemes] = useState<InvestmentScheme[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,14 +71,14 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
       }
       try {
         setLoading(true);
-        
+
         // Fetch project details if projectName is not provided
         if (!projectName) {
           const projectResponse = await fetch(`http://localhost:8001/api/projects/${id}`);
           const projectData = await projectResponse.json();
           setFetchedProjectName(projectData.data.title);
         }
-        
+
         const response = await fetch(`http://127.0.0.1:8001/api/investment-schemes/project?project_id=${id}`);
         const data: InvestmentSchemeListResponse = await response.json();
         setSchemes(data.schemes);
@@ -90,8 +95,8 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
   const formatCurrency = (amount: number | null) => {
     if (!amount) return 'N/A';
     const lakhs = amount / 100000;
-    return lakhs >= 100 
-      ? `₹${(lakhs / 100).toFixed(2)} Cr` 
+    return lakhs >= 100
+      ? `₹${(lakhs / 100).toFixed(2)} Cr`
       : `₹${lakhs.toFixed(2)} L`;
   };
 
@@ -106,13 +111,26 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
     }
   };
 
-  const calculateTotalPayment = (scheme: InvestmentScheme) => {
-    if (scheme.scheme_type === 'single_payment') {
-      return scheme.booking_advance || 0;
+  // CORRECTED: Calculate total payment based on scheme type
+  // CORRECT: Use base_price from backend for total investment for BOTH scheme types
+ // Use only fields that actually exist in backend response
+const calculateTotalPayment = (scheme: InvestmentScheme) => {
+  if (scheme.scheme_type === 'single_payment') {
+    // For single payment, use booking_advance since base_price doesn't exist
+    return scheme.booking_advance || 0;
+  } else {
+    // For installment, use (total_installments * monthly_installment_amount)
+    const installmentsTotal = (scheme.total_installments || 0) * (scheme.monthly_installment_amount || 0);
+    return installmentsTotal;
+  }
+};
+
+  const handleInvestNow = (schemeId: string) => {
+    if (isAuthenticated) {
+      navigate(`/purchase/${id}`, { state: { selectedSchemeId: schemeId } });
+    } else {
+      navigate('/login', { state: { from: `/purchase/${id}`, selectedSchemeId: schemeId } });
     }
-    const advance = scheme.booking_advance || 0;
-    const installments = (scheme.total_installments || 0) * (scheme.monthly_installment_amount || 0);
-    return advance + installments;
   };
 
   const displayProjectName = projectName || fetchedProjectName;
@@ -154,7 +172,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       {/* Header Section */}
       <div className="bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 text-white py-16 px-4 mt-16">
         <div className="max-w-7xl mx-auto">
@@ -190,7 +208,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border-border shadow-lg bg-card">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -206,7 +224,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border-border shadow-lg bg-card">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -241,7 +259,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
             {schemes.map((scheme) => (
               <Card key={scheme.id} className="border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
                 <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
-                
+
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-2">
                     <CardTitle className="text-lg font-bold text-foreground">
@@ -251,7 +269,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
                       {scheme.scheme_type === 'single_payment' ? 'One-Time' : 'EMI'}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <Building className="w-3.5 h-3.5" />
@@ -265,60 +283,63 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
                 </CardHeader>
 
                 <CardContent className="space-y-3 pt-0">
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Booking Advance */}
-                    <div className="bg-background p-3 rounded-lg border border-border">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-xs font-medium text-muted-foreground">Booking Advance</span>
-                      </div>
-                      <span className="text-base font-bold text-emerald-600">
-                        {formatCurrency(scheme.booking_advance)}
-                      </span>
-                    </div>
+<div className="grid grid-cols-2 gap-3">
+  {/* Booking Advance - Show for both types if available */}
+  {(scheme.booking_advance && scheme.booking_advance > 0) && (
+    <div className="bg-background p-3 rounded-lg border border-border">
+      <div className="flex items-center gap-1.5 mb-1">
+        <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">
+          {scheme.scheme_type === 'single_payment' ? 'Booking Advance' : 'Booking Advance'}
+        </span>
+      </div>
+      <span className="text-base font-bold text-emerald-600">
+        {formatCurrency(scheme.booking_advance)}
+      </span>
+    </div>
+  )}
 
-                    {/* Monthly EMI or Balance Payment */}
-                    {scheme.scheme_type === 'installment' ? (
-                      <div className="bg-background p-3 rounded-lg border border-border">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
-                        </div>
-                        <span className="text-base font-bold text-foreground">
-                          {formatCurrency(scheme.monthly_installment_amount)}
-                        </span>
-                      </div>
-                    ) : scheme.balance_payment_days ? (
-                      <div className="bg-background p-3 rounded-lg border border-border">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
-                        </div>
-                        <span className="text-base font-bold text-foreground">
-                          {scheme.balance_payment_days} days
-                        </span>
-                      </div>
-                    ) : null}
+  {/* Monthly EMI for installment plans */}
+  {scheme.scheme_type === 'installment' && (
+    <div className="bg-background p-3 rounded-lg border border-border">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
+      </div>
+      <span className="text-base font-bold text-foreground">
+        {formatCurrency(scheme.monthly_installment_amount)}
+      </span>
+    </div>
+  )}
 
-                    {/* Duration */}
-                    {scheme.scheme_type === 'installment' && (
-                      <div className="bg-background p-3 rounded-lg border border-border">
-                        <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
-                        <span className="text-base font-bold text-foreground">
-                          {scheme.total_installments || 'N/A'} months
-                        </span>
-                      </div>
-                    )}
+  {/* Balance Payment Days for single payment */}
+  {scheme.scheme_type === 'single_payment' && scheme.balance_payment_days && (
+    <div className="bg-background p-3 rounded-lg border border-border">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
+      </div>
+      <span className="text-base font-bold text-foreground">
+        {scheme.balance_payment_days} days
+      </span>
+    </div>
+  )}
 
-                    {/* Total Investment */}
-                    <div className="bg-background p-3 rounded-lg border border-border">
-                      <span className="text-xs font-medium text-muted-foreground block mb-1">Total Investment</span>
-                      <span className="text-base font-bold text-yellow-500 glow-text">
-                        {formatCurrency(calculateTotalPayment(scheme))}
-                      </span>
-                    </div>
-                  </div>
+  {/* Duration for installment plans */}
+  {scheme.scheme_type === 'installment' && (
+    <div className="bg-background p-3 rounded-lg border border-border">
+      <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
+      <span className="text-base font-bold text-foreground">
+        {scheme.total_installments || 'N/A'} months
+      </span>
+    </div>
+  )}
 
+  {/* REMOVED: Total Investment box completely */}
+</div>
+
+
+                  {/* Rental Information */}
                   {/* Rental Information */}
                   {scheme.rental_start_month && (
                     <div className="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30">
@@ -331,11 +352,18 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
                           Month {scheme.rental_start_month}
                         </span>
                       </div>
+                      {/* Optional: Show estimated rental based on base_price */}
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Estimated Monthly Rental: {formatCurrency(scheme.base_price * 0.01)}
+                      </div>
                     </div>
                   )}
 
                   {/* Action Button */}
-                  <Button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  <Button
+                    onClick={() => handleInvestNow(scheme.id)}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 group"
+                  >
                     <DollarSign className="w-4 h-4 mr-2" />
                     Invest Now
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
