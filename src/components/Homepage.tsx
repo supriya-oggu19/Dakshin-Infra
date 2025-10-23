@@ -1,51 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Play, Building2, TrendingUp, Award, Users, MapPin, Phone, Mail, Star, Shield, Zap } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import ProjectCard from "@/components/ProjectCard";
-import luxuryApartment1 from "@/assets/luxury-apartment-1.jpg";
-import luxuryApartment2 from "@/assets/luxury-apartment-2.jpg";
-import luxuryBuilding from "@/assets/luxury-building.jpg";
 import heroImage from "@/assets/hero-skyline.jpg";
 import { Link } from "react-router-dom";
 
 const Homepage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const featuredProjects = [
-    {
-      id: "1",
-      title: "Kapil Business Park",
-      location: "Shamshabad, near Hyderabad International Airport",
-      price: "₹36 Lakhs",
-      image: luxuryApartment1,
-      area: "160 sqft onwards",
-      status: "Available" as const,
-      description: "Premium commercial space with guaranteed 18% ROI and professional management"
-    },
-    {
-      id: "2",
-      title: "Kapil Kavuri Hub",
-      location: "Financial District, Gachibowli",
-      price: "₹36 Lakhs",
-      image: luxuryBuilding,
-      area: "120 sqft onwards",
-      status: "Available" as const,
-      description: "Strategic location with world-class infrastructure and seamless connectivity"
-    },
-    {
-      id: "3",
-      title: "Kapil Kakatiya Towers",
-      location: "Nakkala Gutta, Hanamkonda",
-      price: "₹36 Lakhs",
-      image: luxuryApartment2,
-      area: "120 sqft onwards",
-      status: "Available" as const,
-      description: "Modern business hub designed for the future of commercial real estate"
+  useEffect(() => {
+    fetchFeaturedProjects();
+  }, []);
+
+  const fetchFeaturedProjects = async () => {
+    try {
+      const response = await fetch('http://localhost:8001/api/projects/all?page=1&limit=3');
+      const data = await response.json();
+      
+      const formattedProjects = data.projects.map((project: any) => ({
+        ...project,
+        status: formatStatus(project.status),
+        type: project.property_type.charAt(0).toUpperCase() + project.property_type.slice(1),
+        price: `₹${(project.base_price / 100000).toFixed(0)} Lakhs`,
+        area: project.pricing_details?.sqft ? `${project.pricing_details.sqft} sqft onwards` : 'N/A',
+        image: project.gallery_images?.[0]?.url || null,
+        priceRange: getPriceRange(project.base_price),
+        description: project.description || "Premium property investment opportunity",
+      }));
+      
+      setFeaturedProjects(formattedProjects);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      setLoading(false);
     }
-  ];
+  };
+
+  const formatStatus = (status: string): "Available" | "Sold Out" | "Coming Soon" => {
+    if (status === "available") return "Available";
+    if (status === "sold_out") return "Sold Out";
+    if (status === "coming_soon") return "Coming Soon";
+    return "Available";
+  };
+
+  const getPriceRange = (basePrice: number): string => {
+    const lakhs = basePrice / 100000;
+    if (lakhs <= 20) return "15-20";
+    if (lakhs <= 70) return "60-70";
+    if (lakhs <= 80) return "70-80";
+    if (lakhs <= 90) return "80-90";
+    if (lakhs <= 100) return "90-100";
+    return "100+";
+  };
 
   const stats = [
     { number: "500+", label: "Happy Investors", icon: Users, color: "text-primary" },
@@ -264,7 +275,7 @@ const Homepage = () => {
                   </div>
 
                   {/* Shadow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-200 to-yellow-300 rounded-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-xl -z-10 scale-105"></div>
+                  <div className="absolute inset-0 rounded-3xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md bg-gradient-to-br from-yellow-100 to-yellow-200"></div>
                 </div>
               );
             })}
@@ -276,29 +287,32 @@ const Homepage = () => {
       <section className="py-20 bg-white">
         <div className="container-professional">
           <div className="text-center mb-16 animate-fade-in-scale">
-            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 mb-6 text-xs font-medium">
-              Investment Opportunities
-            </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-              Featured <span className="text-yellow-600">Properties</span>
+              Featured <span className="text-yellow-600">Projects</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Handpicked premium properties offering guaranteed returns and luxury commercial experiences
-              designed for the modern investor.
+              Discover our premium commercial properties offering exceptional investment opportunities
+              in Hyderabad's most promising locations.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-10">
-            {featuredProjects.map((project, index) => (
-              <div key={project.id} className="animate-slide-in-up" style={{ animationDelay: `${index * 200}ms` }}>
-                <ProjectCard {...project} />
+          <div className="grid md:grid-cols-3 gap-8">
+            {loading ? (
+              <div className="col-span-3 text-center py-12">
+                <p className="text-lg text-gray-600">Loading featured projects...</p>
               </div>
-            ))}
+            ) : (
+              featuredProjects.map((project, index) => (
+                <div key={project.id} className="animate-slide-in-up" style={{ animationDelay: `${index * 200}ms` }}>
+                  <ProjectCard {...project} />
+                </div>
+              ))
+            )}
           </div>
 
-          <div className="text-center mt-16">
+          <div className="text-center mt-16 animate-slide-in-up" style={{ animationDelay: '0.6s' }}>
             <Link to="/projects">
-              <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
+              <Button className="border-2 border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white px-10 py-4 text-lg bg-transparent transition-all duration-300 hover:transform hover:scale-105">
                 View All Projects
                 <ArrowRight className="ml-3 w-5 h-5" />
               </Button>
@@ -307,71 +321,28 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* Hyderabad Growth Story */}
-      <section className="py-20 bg-gray-50">
+      {/* Benefits Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="container-professional">
           <div className="text-center mb-16 animate-fade-in-scale">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-              Hyderabad is Growing By Leaps and Bounds, <span className="text-yellow-600">So Should You</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-              As India's unique melting pot, Hyderabad seamlessly blends traditional culture with cutting-edge technology,
-              creating an unparalleled business environment that's perfect for strategic real estate investment.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { title: "Strategic Location", desc: "Heart of India's growth engine", icon: MapPin },
-              { title: "Airport Connectivity", desc: "Minutes from international airport", icon: Zap },
-              { title: "World-Class Infrastructure", desc: "Premium business facilities", icon: Building2 },
-              { title: "Tech Hub", desc: "India's Silicon Valley", icon: TrendingUp },
-              { title: "Rich Heritage", desc: "Traditional meets modern", icon: Star },
-              { title: "Business Friendly", desc: "Welcoming investment climate", icon: Users },
-              { title: "Pharma Capital", desc: "Leading industry presence", icon: Award },
-              { title: "Quality Living", desc: "Exceptional lifestyle amenities", icon: Shield }
-            ].map((feature, index) => (
-              <div key={index} className="group relative bg-white p-8 text-center rounded-xl shadow-md border animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-2 overflow-hidden" style={{ animationDelay: `${index * 100}ms` }}>
-                <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out"></div>
-
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 transition-transform duration-300 hover:scale-110">
-                  <feature.icon className="w-8 h-8 text-blue-900" />
-                </div>
-                <h4 className="text-lg font-bold mb-3 text-gray-900">{feature.title}</h4>
-                <p className="text-sm text-gray-600 leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Smart Investment Benefits */}
-      <section className="py-20 bg-white">
-        <div className="container-professional">
-          <div className="text-center mb-16 animate-fade-in-scale">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-              Smart Investment for a <span className="text-yellow-600">Successful Life</span>
+              Why <span className="text-yellow-600">Invest</span> With Us
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Transform your financial future with strategic real estate investment. Here's how Kapil Business Park
-              becomes your pathway to financial freedom and peace of mind.
+              Transform your financial future with investments that deliver security, growth, and peace of mind
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             {benefits.map((benefit, index) => (
               <Card key={index} className="group relative bg-white shadow-md border rounded-xl animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden" style={{ animationDelay: `${index * 150}ms` }}>
                 <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out"></div>
-                <CardContent className="p-8">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mt-1 transition-transform duration-300 hover:scale-110">
-                      <benefit.icon className="w-6 h-6 text-yellow-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold mb-3 text-gray-900">{benefit.title}</h4>
-                      <p className="text-gray-600 leading-relaxed">{benefit.description}</p>
-                    </div>
+                <CardContent className="p-8 text-center">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <benefit.icon className="w-8 h-8 text-yellow-600 group-hover:text-yellow-700" />
                   </div>
+                  <h3 className="text-xl font-bold mb-4 text-gray-900 group-hover:text-yellow-600 transition-colors duration-300">{benefit.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{benefit.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -379,65 +350,15 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* Why Choose Us */}
-      <section className="py-20 bg-gray-50">
-        <div className="container-professional">
-          <div className="text-center mb-16 animate-fade-in-scale">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-              Why Ramya Constructions is Your <span className="text-yellow-600">Passport to Prosperity</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              A perfect combination of affordability, transparency, and professional management
-              that creates a win-win opportunity for every investor.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-12">
-            {[
-              {
-                icon: TrendingUp,
-                title: "Unmatched Affordability",
-                description: "Starting at just ₹36 lakhs, we've made premium commercial real estate accessible to smart investors. Experience wealth creation that's both affordable and exceptionally rewarding.",
-                color: "yellow"
-              },
-              {
-                icon: Shield,
-                title: "Complete Transparency",
-                description: "As a RERA-approved developer with full legal compliance, we ensure complete transparency in every transaction, building unshakeable investor confidence.",
-                color: "blue"
-              },
-              {
-                icon: Users,
-                title: "Professional Management",
-                description: "You own the asset, we handle everything else. Our expert facility management team ensures your investment generates returns while you focus on what matters most.",
-                color: "yellow"
-              }
-            ].map((item, index) => (
-              <Card key={index} className="group relative bg-white shadow-lg border rounded-xl animate-slide-in-up hover:shadow-xl transition-all duration-300 hover:-translate-y-2 overflow-hidden" style={{ animationDelay: `${index * 200}ms` }}>
-                <div className={`absolute top-0 left-1/2 w-0 h-1 ${item.color === 'yellow' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'} group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out`}></div>
-                <CardContent className="p-10 text-center">
-                  <div className={`w-16 h-16 ${item.color === 'yellow' ? 'bg-yellow-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-8 transition-transform duration-300 hover:scale-110`}>
-                    <item.icon className={`w-8 h-8 ${item.color === 'yellow' ? 'text-yellow-600' : 'text-blue-900'}`} />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-6 text-gray-900">{item.title}</h3>
-                  <p className="text-gray-600 leading-relaxed text-lg">{item.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
+      {/* Testimonials Section */}
       <section className="py-20 bg-white">
         <div className="container-professional">
           <div className="text-center mb-16 animate-fade-in-scale">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-              What Our <span className="text-yellow-600">Investors Say</span>
+              What Our <span className="text-yellow-600">Investors</span> Say
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Join thousands of satisfied investors who have transformed their financial future through
-              strategic real estate investment with us.
+              Hear from successful investors who have achieved financial security through strategic real estate investment with us.
             </p>
           </div>
 
