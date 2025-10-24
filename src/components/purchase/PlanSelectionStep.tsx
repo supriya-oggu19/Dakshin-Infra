@@ -332,7 +332,11 @@ const PaymentInputSection: React.FC<any> = ({
         </div>
       </div>
       
-      <PaymentStructureInfo getMinPayment={getMinPayment} scheme={scheme} />
+      <PaymentStructureInfo
+        getMinPayment={getMinPayment}
+        scheme={scheme}
+        formatCurrency={formatCurrency}
+      />
     </div>
   );
 };

@@ -152,8 +152,10 @@ const PurchaseFlow = () => {
 
       try {
         setLoading(true);
-        console.log(`Fetching schemes for project_id: ${id}`);
-        
+        setFetchError(null);
+
+        if (!id) throw new Error("Invalid project ID");
+
         const params: SchemeListRequest = {
           project_id: id,
           page: 1,
@@ -163,30 +165,25 @@ const PurchaseFlow = () => {
         const response = await purchaseApi.getInvestmentSchemes(params);
         console.log("API response:", response);
 
-        if (response.message === "Investment schemes for project retrieved successfully") {
-          setSchemes(response.schemes || []);
-          if (!response.schemes || response.schemes.length === 0) {
-            setFetchError("No investment schemes available for this project");
-            toast({
-              title: "No Schemes",
-              description: "No investment schemes available for this project",
-              variant: "destructive",
-            });
-          }
+        if (response.schemes && response.schemes.length > 0) {
+          // Success: schemes exist
+          setSchemes(response.schemes);
         } else {
-          setFetchError(response.message || "Failed to fetch investment schemes");
+          // No schemes returned
+          setSchemes([]);
+          setFetchError("No investment schemes available for this project");
           toast({
-            title: "Error",
-            description: response.message || "Failed to fetch investment schemes",
+            title: "No Schemes",
+            description: "No investment schemes available for this project",
             variant: "destructive",
           });
         }
       } catch (error: any) {
         console.error("Fetch error:", error);
-        setFetchError(error.response?.data?.message || "Error fetching schemes. Please try again.");
+        setFetchError(error.response?.data?.message || error.message || "Error fetching schemes. Please try again.");
         toast({
           title: "Error",
-          description: error.response?.data?.message || "Error fetching schemes. Please try again.",
+          description: error.response?.data?.message || error.message || "Error fetching schemes. Please try again.",
           variant: "destructive",
         });
       } finally {
