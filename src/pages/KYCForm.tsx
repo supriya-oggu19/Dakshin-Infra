@@ -22,7 +22,7 @@ const KYCForm = ({
   jointAccountInfo,
   setCurrentStep,
 }: KYCFormProps) => {
-  const [showDocuments, setShowDocuments] = useState(false);
+  const [showDocuments, setShowDocuments] = useState(false); 
 
   const handleFileUpload = (field: keyof KYCDocuments, file: File) => {
     setKycDocuments(prev => ({ ...prev, [field]: file }));

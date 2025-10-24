@@ -21,7 +21,7 @@ import {
   UserInfo,
   JointAccountInfo,
   UserInfoFormProps,
-} from "@/models/userInfo.model";
+} from "@/api/models/userInfo.model";
 import {
   validatePAN,
   validateAadhaar,

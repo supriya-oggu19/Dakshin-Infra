@@ -45,6 +45,7 @@ export const ENDPOINTS = {
     CREATE: "/user_profile/create",
     UPDATE: (id: string) => `/user_profile/update/${id}`,
     DELETE: (id: string) => `/user_profile/delete/${id}`,
+    GET: (id: string) => `/user_profile/${id}`,
   },
   PURCHASED_UNITS: {
     CREATE: "/purchased-unit/create",
@@ -61,12 +62,4 @@ export const ENDPOINTS = {
     VERIFY_GSTIN: "/documents/verify-gstin", // Removed /api prefix
     VERIFY_PASSPORT: "/documents/verify-passport", // Removed /api prefix
   },
-
-  USER_PROFILE: {
-    CREATE: "/user_profile/create",
-    UPDATE: (id: string) => `/user_profile/update/${id}`,
-    DELETE: (id: string) => `/user_profile/delete/${id}`,
-    GET: (id: string) => `/user_profile/${id}`,
-  },
-
 };

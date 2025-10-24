@@ -1,6 +1,6 @@
-import axiosClient from "./axiosClient";
+import {mainAxiosClient,getAxiosClient} from "./axiosClient";
 import { ENDPOINTS } from "./endpoints";
 
 export const purchasedUnitApi = {
-  create: (data: any) => axiosClient.post(ENDPOINTS.PURCHASED_UNITS.CREATE, data),
+  create: (data: any) => mainAxiosClient.post(ENDPOINTS.PURCHASED_UNITS.CREATE, data),
 };
