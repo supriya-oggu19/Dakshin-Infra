@@ -15,6 +15,38 @@ export interface AccountDetails {
   ifsc_code: string;
 }
 
+export interface UserInfo {
+  surname: string;
+  name: string;
+  dob: string;
+  gender: "male" | "female" | "other";
+  present_address: Address;
+  permanent_address: Address;
+  occupation: string;
+  annual_income: string;
+  user_type: "individual" | "business" | "NRI";
+  pan_number: string;
+  aadhar_number: string;
+  gst_number: string;
+  passport_number: string;
+  phone_number: string;
+  email: string;
+  account_details: AccountDetails;
+  sameAddress: boolean;
+}
+
+
+export interface KYCDocuments {
+  panCard?: File | null;
+  aadharCard?: File | null;
+  gstDocument?: File | null;
+  passportPhoto?: File | null;
+  jointPanCard?: File | null;
+  jointAadharCard?: File | null;
+  jointGstDocument?: File | null;
+  jointPassportPhoto?: File | null;
+}
+
 /** --- User Profile Request --- */
 export interface CreateUserProfileRequest {
   surname: string;
