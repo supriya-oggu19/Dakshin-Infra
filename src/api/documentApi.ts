@@ -18,8 +18,8 @@ export const documentApi = {
 
   verifyAadhar: (aadhar_number: string, aadhar_image: File) => {
     const formData = new FormData();
-    formData.append('aadhar_number', aadhar_number);
-    formData.append('aadhar_image', aadhar_image);
+    formData.append('verification_id', aadhar_number);
+    formData.append('image', aadhar_image);
     return mainAxiosClient.post<VerifyResponse>(ENDPOINTS.DOCUMENTS.VERIFY_AADHAAR, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
