@@ -7,7 +7,13 @@ import Navigation from "@/components/Navigation";
 import ProjectCard from "@/components/ProjectCard";
 import heroImage from "@/assets/hero-skyline.jpg";
 import { Link } from "react-router-dom";
+
+
 import { projectApi } from "@/api/projectApi";
+import FAQ from "@/components/FAQ";
+
+// NO Footer import here
+// NO <Footer /> in return
 
 const Homepage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -22,7 +28,7 @@ const Homepage = () => {
     try {
       const response = await projectApi.list({ page: 1, limit: 3 });
       const data = response.data;
-      
+
       const formattedProjects = data.projects.map((project: any) => ({
         ...project,
         status: formatStatus(project.status),
@@ -33,7 +39,7 @@ const Homepage = () => {
         priceRange: getPriceRange(project.base_price),
         description: project.description || "Premium property investment opportunity",
       }));
-      
+
       setFeaturedProjects(formattedProjects);
       setLoading(false);
     } catch (error) {
@@ -123,38 +129,11 @@ const Homepage = () => {
     }
   ];
 
-  const faqs = [
-    {
-      question: "What is the minimum investment amount?",
-      answer: "Start your investment journey with just ₹36 lakhs for a commercial unit that grows over 7 years, offering up to 18% annual returns."
-    },
-    {
-      question: "How does the installment plan work?",
-      answer: "Choose flexible payment options - pay ₹1 lakh monthly for 36 months, then enjoy ₹31,500 monthly rental income from the 37th month onwards."
-    },
-    {
-      question: "Are returns guaranteed and secure?",
-      answer: "Yes, we guarantee uninterrupted rental income regardless of occupancy, backed by our comprehensive tenant management and legal compliance."
-    },
-    {
-      question: "Can NRIs invest in this project?",
-      answer: "Absolutely. NRIs can invest subject to FEMA compliance, with our team providing complete documentation support through our secure platform."
-    },
-    {
-      question: "Who handles property management?",
-      answer: "Our professional facility management team handles everything - tenant relations, maintenance, legal compliance - ensuring truly passive income for you."
-    },
-    {
-      question: "What legal documentation is provided?",
-      answer: "You receive comprehensive legal documents defining your ownership rights, terms, and obligations, all reviewed by legal professionals for complete transparency."
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
 
-      {/* Hero Section with Background Image */}
+      {/* Hero Section */}
       <section
         className="relative min-h-screen flex items-center justify-center pt-20 pb-16"
         style={{
@@ -164,29 +143,24 @@ const Homepage = () => {
           backgroundRepeat: 'no-repeat'
         }}
       >
-        {/* Content */}
         <div className="relative z-10 container-professional text-center text-white">
           <div className="max-w-5xl mx-auto">
-            {/* Badge */}
             <div className="mb-8 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
               <Badge className="bg-yellow-600/20 text-yellow-300 border-yellow-600/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
                 Premium Commercial Real Estate Investment
               </Badge>
             </div>
 
-            {/* Main Heading */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 leading-tight animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
               Build Wealth with
               <span className="text-yellow-400 block mt-2">Smart Real Estate Investment</span>
             </h1>
 
-            {/* Subheading */}
             <p className="text-lg md:text-xl mb-12 text-white/90 leading-relaxed max-w-3xl mx-auto animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
               Own premium commercial properties in Hyderabad's fastest-growing business district.
               Start with ₹36 lakhs and earn guaranteed rental returns up to 18% annually.
             </p>
 
-            {/* Key Highlights */}
             <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto animate-fade-in-scale" style={{ animationDelay: '0.4s' }}>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-white/20">
                 <div className="text-2xl font-bold text-yellow-400 mb-2">₹36L</div>
@@ -202,7 +176,6 @@ const Homepage = () => {
               </div>
             </div>
 
-            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-in-up" style={{ animationDelay: '0.5s' }}>
               <Link to="/projects">
                 <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 text-base font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
@@ -218,7 +191,6 @@ const Homepage = () => {
               </Link>
             </div>
 
-            {/* RERA Badge */}
             <div className="mt-12 animate-fade-in-scale" style={{ animationDelay: '0.6s' }}>
               <div className="inline-flex items-center bg-green-600/20 border border-green-500/30 px-4 py-2 rounded-lg backdrop-blur-sm">
                 <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
@@ -237,33 +209,26 @@ const Homepage = () => {
               const Icon = stat.icon;
               return (
                 <div key={index} className="group relative animate-slide-in-up hover:-translate-y-2 transition-all duration-500" style={{ animationDelay: `${index * 150}ms` }}>
-                  {/* Main Card */}
                   <div className="relative bg-gradient-to-br from-white via-gray-50 to-white p-8 rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
-                    {/* Animated Background Pattern */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                       <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 via-transparent to-yellow-50"></div>
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-yellow-100 to-transparent rounded-full transform translate-x-16 -translate-y-16"></div>
                       <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-yellow-100 to-transparent rounded-full transform -translate-x-12 translate-y-12"></div>
                     </div>
 
-                    {/* Hover line animation */}
                     <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-700 ease-out"></div>
 
-                    {/* Content */}
                     <div className="relative z-10">
-                      {/* Icon */}
                       <div className="w-16 h-16 bg-gradient-to-br from-yellow-100 via-yellow-50 to-white rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md">
                         <Icon className="w-8 h-8 text-yellow-600 group-hover:text-yellow-700 transition-colors duration-300" />
                       </div>
 
-                      {/* Number */}
                       <div className="text-center mb-4">
                         <div className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-gray-900 to-black bg-clip-text text-transparent mb-2 group-hover:from-yellow-600 group-hover:via-yellow-700 group-hover:to-yellow-800 transition-all duration-500">
                           {stat.number}
                         </div>
                       </div>
 
-                      {/* Label */}
                       <div className="text-center">
                         <div className="text-base font-semibold text-gray-700 group-hover:text-gray-900 transition-colors duration-300">
                           {stat.label}
@@ -271,11 +236,9 @@ const Homepage = () => {
                       </div>
                     </div>
 
-                    {/* Bottom accent */}
                     <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   </div>
 
-                  {/* Shadow effect */}
                   <div className="absolute inset-0 rounded-3xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md bg-gradient-to-br from-yellow-100 to-yellow-200"></div>
                 </div>
               );
@@ -391,42 +354,7 @@ const Homepage = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container-professional">
-          <div className="text-center mb-16 animate-fade-in-scale">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-              Frequently Asked <span className="text-yellow-600">Questions</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Get clear, comprehensive answers to the most common questions about Kapil Business Park
-              investment opportunities.
-            </p>
-          </div>
-
-          <div className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-8">
-              {faqs.map((faq, index) => (
-                <Card key={index} className="group relative bg-white shadow-md border rounded-xl animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden" style={{ animationDelay: `${index * 100}ms` }}>
-                  <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out"></div>
-                  <CardContent className="p-8">
-                    <h4 className="text-lg font-bold mb-4 text-gray-900">{faq.question}</h4>
-                    <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="text-center mt-16">
-              <Link to="/faq">
-                <Button className="border-2 border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white px-10 py-4 text-lg bg-transparent transition-all duration-300 hover:transform hover:scale-105">
-                  View All FAQs
-                  <ArrowRight className="ml-3 w-5 h-5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FAQ />
 
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-gray-100 to-blue-50">
@@ -468,14 +396,10 @@ const Homepage = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-in-up" style={{ animationDelay: '0.4s' }}>
               <Link to="/login">
-                <div className="flex justify-start">
-                  <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 text-base font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
-                    Start Your Investment Journey
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-
-                </div>
-
+                <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 text-base font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
+                  Start Your Investment Journey
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
               </Link>
               <Link to="/contact">
                 <Button className="border-2 border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white px-8 py-4 text-base font-semibold rounded-lg bg-transparent transition-all duration-300 hover:transform hover:scale-105">
@@ -488,118 +412,6 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-20">
-        <div className="container-professional">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
-            {/* Company Info */}
-            <div className="space-y-6 animate-fade-in-scale">
-              <Link to="/" className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-2xl font-bold text-gray-900">Ramya <span className="text-yellow-600">Constructions</span></span>
-              </Link>
-              <p className="text-gray-600 leading-relaxed">
-                Redefining modern business
-                infrastructure and investment opportunities in Hyderabad.
-              </p>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p className="font-medium text-gray-900">Ramya Constructions Ltd.</p>
-                <p>CIN: U45200AP1992PLC014532</p>
-                <p>Incorporated: 17th December 1992</p>
-              </div>
-            </div>
-
-            {/* Quick Links */}
-            <div className="space-y-6 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
-              <h4 className="text-lg font-bold text-gray-900">Quick Links</h4>
-              <div className="space-y-3">
-                {[
-                  { name: "About Us", href: "/about" },
-                  { name: "Projects", href: "/projects" },
-                  { name: "Investment Plans", href: "/projects/1" },
-                  { name: "FAQ", href: "/faq" },
-                  { name: "Contact", href: "/contact" }
-                ].map((link, index) => (
-                  <Link
-                    key={index}
-                    to={link.href}
-                    className="block text-gray-600 hover:text-yellow-600 transition-colors duration-300"
-                  >
-                    {link.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Legal */}
-            <div className="space-y-6 animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
-              <h4 className="text-lg font-bold text-gray-900">Legal</h4>
-              <div className="space-y-3">
-                {[
-                  { name: "Privacy Policy", href: "/privacy" },
-                  { name: "Terms & Conditions", href: "/terms" },
-                  { name: "Disclaimer", href: "/disclaimer" },
-                  { name: "RERA Details", href: "/rera" }
-                ].map((link, index) => (
-                  <Link
-                    key={index}
-                    to={link.href}
-                    className="block text-gray-600 hover:text-yellow-600 transition-colors duration-300"
-                  >
-                    {link.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Contact Info */}
-            <div className="space-y-6 animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
-              <h4 className="text-lg font-bold text-gray-900">Contact Info</h4>
-              <div className="space-y-4 text-gray-600">
-                <div className="flex items-start space-x-3">
-                  <MapPin className="w-5 h-5 text-yellow-600 mt-0.5" />
-                  <div className="leading-relaxed">
-                    <p>40-14-3/1, Chandramoulipuram</p>
-                    <p>Near Benz Circle, Vijayawada</p>
-                    <p>Andhra Pradesh - 520010</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Phone className="w-5 h-5 text-yellow-600" />
-                  <span>Contact details available on website</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-5 h-5 text-yellow-600" />
-                  <span>Investment inquiry form available</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Footer */}
-          <div className="border-t border-gray-200 pt-8 animate-fade-in-scale">
-            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              <div className="text-sm text-gray-600">
-                <p>&copy; 2024 Ramya Constructions Ltd. All rights reserved.</p>
-                <p className="mt-1">RERA approved project. Returns subject to terms and conditions.</p>
-              </div>
-              <div className="flex space-x-8 text-sm">
-                <Link to="/privacy" className="text-gray-600 hover:text-yellow-600 transition-colors duration-300">
-                  Privacy Policy
-                </Link>
-                <Link to="/terms" className="text-gray-600 hover:text-yellow-600 transition-colors duration-300">
-                  Terms & Conditions
-                </Link>
-                <Link to="/disclaimer" className="text-gray-600 hover:text-yellow-600 transition-colors duration-300">
-                  Disclaimer
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

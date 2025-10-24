@@ -13,12 +13,14 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import MyUnits from "./pages/MyUnits";
-import SipTracker from "./pages/SipTracker";
+import SipTracker from "./pages/sipTracker";
 import Agreements from "./pages/Agreements";
 import PurchaseFlow from "./pages/PurchaseFlow";
 import NotFound from "./pages/NotFound";
 import InvestmentSchemes from "./pages/InvestmentSchemes";
 import React from "react";
+import FAQ from "./components/FAQ";
+import Footer from "./components/Footer";  // ← ADDED
 
 const queryClient = new QueryClient();
 
@@ -45,7 +47,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
             >
-              Refresh Page
+ SCHEDULERefresh Page
             </button>
           </div>
         </div>
@@ -71,6 +73,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
+// Layout Component to wrap all pages with Footer
+const AppLayout = ({ children }: { children: React.ReactNode }) => (
+  <>
+    {children}
+    <Footer />  {/* ← FOOTER APPEARS ON EVERY PAGE */}
+  </>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -80,22 +90,23 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:id" element={<ProjectDetail />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/agents" element={<Agents />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/investment-schemes/:id" element={<InvestmentSchemes />} />
+              <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+              <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
+              <Route path="/projects/:id" element={<AppLayout><ProjectDetail /></AppLayout>} />
+              <Route path="/about" element={<AppLayout><About /></AppLayout>} />
+              <Route path="/contact" element={<AppLayout><Contact /></AppLayout>} />
+              <Route path="/agents" element={<AppLayout><Agents /></AppLayout>} />
+              <Route path="/login" element={<Login />} /> {/* No footer on login */}
+              <Route path="/register" element={<Register />} /> {/* No footer on register */}
+              <Route path="/investment-schemes/:id" element={<AppLayout><InvestmentSchemes /></AppLayout>} />
+              <Route path="/faq" element={<AppLayout><FAQ /></AppLayout>} />
 
               {/* Protected Routes */}
               <Route
                 path="/profile"
                 element={
                   <ProtectedRoute>
-                    <Profile />
+                    <AppLayout><Profile /></AppLayout>
                   </ProtectedRoute>
                 }
               />
@@ -103,7 +114,7 @@ const App = () => (
                 path="/purchase/:id"
                 element={
                   <ProtectedRoute>
-                    <PurchaseFlow />
+                    <AppLayout><PurchaseFlow /></AppLayout>
                   </ProtectedRoute>
                 }
               />
@@ -111,7 +122,7 @@ const App = () => (
                 path="/my-units"
                 element={
                   <ProtectedRoute>
-                    <MyUnits />
+                    <AppLayout><MyUnits /></AppLayout>
                   </ProtectedRoute>
                 }
               />
@@ -119,7 +130,7 @@ const App = () => (
                 path="/sip"
                 element={
                   <ProtectedRoute>
-                    <SipTracker />
+                    <AppLayout><SipTracker /></AppLayout>
                   </ProtectedRoute>
                 }
               />
@@ -127,13 +138,13 @@ const App = () => (
                 path="/agreements"
                 element={
                   <ProtectedRoute>
-                    <Agreements />
+                    <AppLayout><Agreements /></AppLayout>
                   </ProtectedRoute>
                 }
               />
 
               {/* Catch-all route for 404 */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
             </Routes>
           </BrowserRouter>
         </ErrorBoundary>
