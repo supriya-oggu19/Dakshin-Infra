@@ -21,6 +21,8 @@ export const ENDPOINTS = {
     CREATE: "/projects/create",
     UPDATE: (id: string) => `/projects/${id}`,
     DELETE: (id: string) => `/projects/${id}`,
+    LIST: "/projects/all",
+    GET_BY_ID: (id: string) => `/projects/${id}`, // if you have a single project endpoint
   },
   SCHEMES: {
     CREATE: "/schemes/create",
