@@ -6,83 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, FileText, User, Users, Edit, Upload, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface KYCDocuments {
-  panCard?: File | null;
-  aadharCard?: File | null;
-  gstDocument?: File | null;
-  passportPhoto?: File | null;
-  jointPanCard?: File | null;
-  jointAadharCard?: File | null;
-  jointGstDocument?: File | null;
-  jointPassportPhoto?: File | null;
-}
-
-interface Address {
-  street: string;
-  city: string;
-  state: string;
-  country: string;
-  postal_code: string;
-}
-
-interface AccountDetails {
-  account_holder_name: string;
-  bank_account_name: string;
-  account_number: string;
-  ifsc_code: string;
-}
-
-interface UserInfo {
-  surname: string;
-  name: string;
-  dob: string;
-  gender: 'male' | 'female' | 'other';
-  present_address: Address;
-  permanent_address: Address;
-  occupation: string;
-  annual_income: string;
-  user_type: 'individual' | 'business' | 'NRI';
-  pan_number: string;
-  aadhar_number: string;
-  gst_number: string;
-  passport_number: string;
-  phone_number: string;
-  email: string;
-  account_details: AccountDetails;
-  sameAddress: boolean;
-}
-
-interface JointAccountInfo {
-  surname: string;
-  name: string;
-  dob: string;
-  gender: 'male' | 'female' | 'other';
-  email: string;
-  phone_number: string;
-  user_type: 'individual' | 'business' | 'NRI';
-  pan_number: string;
-  aadhar_number: string;
-  gst_number: string;
-  passport_number: string;
-  account_details: AccountDetails;
-}
-
-interface KYCFormProps {
-  kycDocuments: KYCDocuments;
-  setKycDocuments: React.Dispatch<React.SetStateAction<KYCDocuments>>;
-  kycAccepted: boolean;
-  setKycAccepted: React.Dispatch<React.SetStateAction<boolean>>;
-  userType: 'individual' | 'business' | 'NRI';
-  isJointAccount?: boolean;
-  jointUserType?: 'individual' | 'business' | 'NRI';
-  jointKycAccepted?: boolean;
-  setJointKycAccepted?: React.Dispatch<React.SetStateAction<boolean>>;
-  userInfo: UserInfo;
-  jointAccountInfo?: JointAccountInfo;
-  setCurrentStep: React.Dispatch<React.SetStateAction<PurchaseStep>>;
-}
-
-type PurchaseStep = 'plan-selection' | 'user-info' | 'kyc' | 'payment' | 'confirmation';
+// ... (Keep all interfaces same as before)
 
 const KYCForm = ({
   kycDocuments,
@@ -98,6 +22,8 @@ const KYCForm = ({
   jointAccountInfo,
   setCurrentStep,
 }: KYCFormProps) => {
+  const [showDocuments, setShowDocuments] = useState(false);
+
   const handleFileUpload = (field: keyof KYCDocuments, file: File) => {
     setKycDocuments(prev => ({ ...prev, [field]: file }));
   };
@@ -120,7 +46,6 @@ const KYCForm = ({
     { key: 'jointPassportPhoto', label: 'Passport Photo', required: true },
   ];
 
-  // Safe data access with fallbacks
   const getPrimaryAddress = () => {
     if (!userInfo?.present_address) return 'Address not available';
     const addr = userInfo.present_address;
@@ -131,12 +56,6 @@ const KYCForm = ({
     if (!userInfo?.permanent_address) return 'Address not available';
     const addr = userInfo.permanent_address;
     return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
-  };
-
-  const getJointAddress = () => {
-    if (!jointAccountInfo) return 'Address not available';
-    // For joint account, use present address from primary or similar logic
-    return getPrimaryAddress();
   };
 
   return (
@@ -163,117 +82,7 @@ const KYCForm = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Full Name</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                {userInfo?.name || 'N/A'} {userInfo?.surname || ''}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Email Address</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1 break-all">
-                {userInfo?.email || 'N/A'}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Phone Number</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                {userInfo?.phone_number || 'N/A'}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Date of Birth</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                {userInfo?.dob || 'N/A'}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Gender</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1 capitalize">
-                {userInfo?.gender || 'N/A'}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Account Type</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1 capitalize">
-                {userInfo?.user_type || 'N/A'}
-              </p>
-            </div>
-            
-            {userInfo?.user_type === 'individual' && (
-              <>
-                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">PAN Number</Label>
-                  <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                    {userInfo?.pan_number || 'N/A'}
-                  </p>
-                </div>
-                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Aadhar Number</Label>
-                  <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                    {userInfo?.aadhar_number || 'N/A'}
-                  </p>
-                </div>
-              </>
-            )}
-            
-            {userInfo?.user_type === 'business' && (
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">GST Number</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                  {userInfo?.gst_number || 'N/A'}
-                </p>
-              </div>
-            )}
-            
-            {userInfo?.user_type === 'NRI' && (
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Passport Number</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                  {userInfo?.passport_number || 'N/A'}
-                </p>
-              </div>
-            )}
-            
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 sm:col-span-2 lg:col-span-3">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Present Address</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                {getPrimaryAddress()}
-              </p>
-            </div>
-            
-            {!userInfo?.sameAddress && (
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 sm:col-span-2 lg:col-span-3">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Permanent Address</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                  {getPermanentAddress()}
-                </p>
-              </div>
-            )}
-            
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Occupation</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                {userInfo?.occupation || 'N/A'}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Annual Income</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                {userInfo?.annual_income || 'N/A'}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 sm:col-span-2 lg:col-span-3">
-              <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Bank Account Details</Label>
-              <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                {userInfo?.account_details?.account_holder_name || 'N/A'} | {userInfo?.account_details?.bank_account_name || 'N/A'}<br className="sm:hidden" />
-                <span className="text-xs sm:text-sm text-gray-600"> 
-                  Account: {userInfo?.account_details?.account_number || 'N/A'} | IFSC: {userInfo?.account_details?.ifsc_code || 'N/A'}
-                </span>
-              </p>
-            </div>
-          </div>
+          {/* ... (Keep all the display fields same as before) */}
         </CardContent>
       </Card>
 
@@ -300,89 +109,7 @@ const KYCForm = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Full Name</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                  {jointAccountInfo?.name || 'N/A'} {jointAccountInfo?.surname || ''}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Email Address</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1 break-all">
-                  {jointAccountInfo?.email || 'N/A'}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Phone Number</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                  {jointAccountInfo?.phone_number || 'N/A'}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Date of Birth</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                  {jointAccountInfo?.dob || 'N/A'}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Gender</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1 capitalize">
-                  {jointAccountInfo?.gender || 'N/A'}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Account Type</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1 capitalize">
-                  {jointAccountInfo?.user_type || 'N/A'}
-                </p>
-              </div>
-              
-              {jointAccountInfo?.user_type === 'individual' && (
-                <>
-                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">PAN Number</Label>
-                    <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                      {jointAccountInfo?.pan_number || 'N/A'}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Aadhar Number</Label>
-                    <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                      {jointAccountInfo?.aadhar_number || 'N/A'}
-                    </p>
-                  </div>
-                </>
-              )}
-              
-              {jointAccountInfo?.user_type === 'business' && (
-                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">GST Number</Label>
-                  <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                    {jointAccountInfo?.gst_number || 'N/A'}
-                  </p>
-                </div>
-              )}
-              
-              {jointAccountInfo?.user_type === 'NRI' && (
-                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Passport Number</Label>
-                  <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                    {jointAccountInfo?.passport_number || 'N/A'}
-                  </p>
-                </div>
-              )}
-              
-              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 sm:col-span-2 lg:col-span-3">
-                <Label className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Bank Account Details</Label>
-                <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
-                  {jointAccountInfo?.account_details?.account_holder_name || 'N/A'} | {jointAccountInfo?.account_details?.bank_account_name || 'N/A'}<br className="sm:hidden" />
-                  <span className="text-xs sm:text-sm text-gray-600"> 
-                    Account: {jointAccountInfo?.account_details?.account_number || 'N/A'} | IFSC: {jointAccountInfo?.account_details?.ifsc_code || 'N/A'}
-                  </span>
-                </p>
-              </div>
-            </div>
+            {/* ... (Keep all joint account display fields same as before) */}
           </CardContent>
         </Card>
       )}

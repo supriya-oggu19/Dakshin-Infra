@@ -3,15 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building, FileText, Users, IndianRupee, CheckCircle, AlertCircle } from "lucide-react";
+import { Building, FileText, Users, IndianRupee, CheckCircle, AlertCircle, Shield } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PurchaseUnitConfirmationProps {
   projectId: string;
   schemeId: string;
   isJointOwnership: boolean;
   numberOfUnits: number;
-  onConfirm: () => void;
-  userProfileId?: string;
+  onPurchaseSuccess: (data: any) => void;
+  userProfileId: string | null;
   schemeData?: any;
   paymentAmount: number;
   projectName?: string;
@@ -28,7 +30,7 @@ const PurchaseUnitConfirmation = ({
   schemeId,
   isJointOwnership,
   numberOfUnits,
-  onConfirm,
+  onPurchaseSuccess,
   userProfileId,
   schemeData,
   paymentAmount,
@@ -44,8 +46,10 @@ const PurchaseUnitConfirmation = ({
     email: '',
     phone: ''
   });
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const { getToken } = useAuth();
 
-  // Format currency function
   const formatCurrency = (amount: number) => {
     if (!amount || isNaN(amount)) {
       return "₹0";
@@ -57,7 +61,6 @@ const PurchaseUnitConfirmation = ({
     }).format(amount);
   };
 
-  // Calculate total investment for display
   const getTotalInvestment = () => {
     if (!schemeData) return 0;
     
@@ -71,7 +74,6 @@ const PurchaseUnitConfirmation = ({
     }
   };
 
-  // Validation functions
   const validateName = (name: string): string => {
     if (!name.trim()) return 'Name is required';
     if (name.trim().length < 2) return 'Name must be at least 2 characters';
@@ -87,7 +89,7 @@ const PurchaseUnitConfirmation = ({
 
   const validatePhone = (phone: string): string => {
     if (!phone.trim()) return 'Phone number is required';
-    const phoneRegex = /^[6-9]\d{9}$/; // Indian phone number validation
+    const phoneRegex = /^[6-9]\d{9}$/;
     if (!phoneRegex.test(phone.replace(/\D/g, ''))) return 'Please enter a valid 10-digit phone number';
     return '';
   };
@@ -95,7 +97,6 @@ const PurchaseUnitConfirmation = ({
   const handleInputChange = (field: keyof UserInfo, value: string) => {
     setUserInfo(prev => ({ ...prev, [field]: value }));
     
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -115,9 +116,69 @@ const PurchaseUnitConfirmation = ({
     return !nameError && !emailError && !phoneError;
   };
 
-  const handleConfirm = () => {
-    if (validateForm()) {
-      onConfirm();
+  const handlePurchase = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!userProfileId) {
+      toast({
+        title: "Error",
+        description: "User profile not found. Please complete previous steps.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const token = getToken();
+      const purchaseData = {
+        project_id: projectId,
+        scheme_id: schemeId,
+        user_profile_id: userProfileId,
+        number_of_units: numberOfUnits,
+        is_joint_ownership: isJointOwnership,
+        payment_amount: paymentAmount,
+        customer_name: userInfo.name,
+        customer_email: userInfo.email,
+        customer_phone: userInfo.phone
+      };
+
+      const response = await fetch('http://127.0.0.1:8001/api/purchase/units', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(purchaseData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Purchase failed');
+      }
+
+      if (data.message === 'Unit purchased successfully' || data.status === 'success') {
+        toast({
+          title: "Success",
+          description: "Purchase completed successfully!",
+        });
+        onPurchaseSuccess(data);
+      } else {
+        throw new Error(data.message || 'Purchase failed');
+      }
+    } catch (error: any) {
+      console.error('Purchase error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete purchase. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -134,9 +195,7 @@ const PurchaseUnitConfirmation = ({
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
-        {/* Selected Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Project & Scheme Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Building className="w-5 h-5 text-blue-600" />
@@ -165,7 +224,6 @@ const PurchaseUnitConfirmation = ({
             </div>
           </div>
 
-          {/* Ownership & Payment Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-orange-600" />
@@ -190,7 +248,6 @@ const PurchaseUnitConfirmation = ({
                 </span>
               </div>
               
-              {/* Payment Breakdown */}
               {isInstallment ? (
                 <>
                   <div className="flex justify-between text-green-600">
@@ -211,8 +268,8 @@ const PurchaseUnitConfirmation = ({
               ) : (
                 <>
                   <div className="flex justify-between text-green-600">
-                    {/* <span className="font-medium">Amount to Pay (Now):</span> */}
-                    {/* <span className="font-semibold">{formatCurrency(paymentAmount)}</span> */}
+                    <span className="font-medium">Amount to Pay (Now):</span>
+                    <span className="font-semibold">{formatCurrency(paymentAmount)}</span>
                   </div>
                   {paymentAmount < totalInvestment && (
                     <div className="flex justify-between text-orange-600">
@@ -237,7 +294,6 @@ const PurchaseUnitConfirmation = ({
           </div>
         </div>
 
-        {/* User Information Form */}
         <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="text-lg font-semibold text-blue-800 flex items-center gap-2">
             <CheckCircle className="w-5 h-5" />
@@ -248,7 +304,6 @@ const PurchaseUnitConfirmation = ({
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Name Field */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-gray-700">
                 Full Name *
@@ -268,7 +323,6 @@ const PurchaseUnitConfirmation = ({
               )}
             </div>
 
-            {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-700">
                 Email Address *
@@ -289,7 +343,6 @@ const PurchaseUnitConfirmation = ({
               )}
             </div>
 
-            {/* Phone Field */}
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="phone" className="text-gray-700">
                 Phone Number *
@@ -312,7 +365,6 @@ const PurchaseUnitConfirmation = ({
           </div>
         </div>
 
-        {/* Next Steps Information */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -320,25 +372,45 @@ const PurchaseUnitConfirmation = ({
               <h4 className="font-semibold text-green-800 mb-2">Ready to Proceed</h4>
               <p className="text-sm text-green-700">
                 Review your selection and provide your information above. When you click "Confirm & Continue", 
-                you will be redirected to the payment gateway to complete your purchase.
+                you will be redirected to complete your purchase.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Confirm Button */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-semibold text-blue-800 mb-2">Secure Transaction</h4>
+              <p className="text-sm text-blue-700">
+                Your payment information is secure and encrypted. We use industry-standard security measures to protect your data.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex justify-center pt-4">
           <Button
-            onClick={handleConfirm}
+            onClick={handlePurchase}
+            disabled={loading}
             className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-semibold"
             size="lg"
           >
-            <CheckCircle className="w-5 h-5 mr-2" />
-            Confirm & Continue to Payment
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Processing...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-5 h-5 mr-2" />
+                Confirm & Complete Purchase
+              </>
+            )}
           </Button>
         </div>
 
-        {/* Security Notice */}
         <div className="text-center text-xs text-gray-500">
           <p>Your information is secure and will only be used for purchase processing</p>
         </div>

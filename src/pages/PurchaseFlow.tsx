@@ -27,63 +27,12 @@ import UserInfoForm from "@/pages/UserInfoForm";
 import KYCForm from "./KYCForm";
 import { useToast } from "@/components/ui/use-toast";
 import PurchaseUnitConfirmation from "./PurchaseUnitConfirmation";
+import { purchaseApi } from "@/api/purchaseApi";
+import { userProfileApi } from "@/api/userProfileApi";
+import { Scheme, PurchaseUnitRequest } from "@/api/models/purchase.model";
+import { CreateUserProfileRequest } from "@/api/models/userProfile.model";
 
 type PurchaseStep = "plan-selection" | "user-info" | "kyc" | "payment" | "confirmation";
-
-// Validation patterns matching backend
-const VALIDATION_PATTERNS = {
-  PAN: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
-  AADHAAR: /^\d{12}$/,
-  GSTIN: /^[0-9A-Z]{15}$/,
-  PASSPORT: /^[A-Z0-9]{6,12}$/,
-  PHONE: /^\+?\d{1,3}[-.\s]?\d{6,10}$/,
-  ACCOUNT_NUMBER: /^\d{9,18}$/,
-  IFSC: /^[A-Z]{4}0[A-Z0-9]{6}$/,
-};
-
-// Validation functions
-const validatePAN = (pan: string): boolean => {
-  return VALIDATION_PATTERNS.PAN.test(pan);
-};
-
-const validateAadhaar = (aadhaar: string): boolean => {
-  return VALIDATION_PATTERNS.AADHAAR.test(aadhaar);
-};
-
-const validateGSTIN = (gstin: string): boolean => {
-  return VALIDATION_PATTERNS.GSTIN.test(gstin);
-};
-
-const validatePassport = (passport: string): boolean => {
-  return VALIDATION_PATTERNS.PASSPORT.test(passport);
-};
-
-const validatePhone = (phone: string): boolean => {
-  return VALIDATION_PATTERNS.PHONE.test(phone);
-};
-
-const validateAccountNumber = (accountNumber: string): boolean => {
-  return VALIDATION_PATTERNS.ACCOUNT_NUMBER.test(accountNumber);
-};
-
-const validateIFSC = (ifsc: string): boolean => {
-  return VALIDATION_PATTERNS.IFSC.test(ifsc);
-};
-
-interface Scheme {
-  id: string;
-  project_id: string;
-  scheme_type: "single_payment" | "installment";
-  scheme_name: string;
-  area_sqft: number;
-  booking_advance: number;
-  balance_payment_days: number | null;
-  total_installments: number | null;
-  monthly_installment_amount: number | null;
-  rental_start_month: number | null;
-  start_date: string;
-  end_date: string | null;
-}
 
 interface PlanSelection {
   type: "single" | "installment";
@@ -278,15 +227,18 @@ const PurchaseFlow = () => {
       try {
         setLoading(true);
         console.log(`Fetching schemes for project_id: ${id}`);
-        const response = await fetch(
-          `http://127.0.0.1:8001/api/investment-schemes/project?project_id=${id}&page=1&limit=5`
-        );
-        const data = await response.json();
-        console.log("API response:", data);
+        
+        const response = await purchaseApi.getInvestmentSchemes({
+          project_id: id,
+          page: 1,
+          limit: 10
+        });
 
-        if (response.ok && data.message === "Investment schemes for project retrieved successfully") {
-          setSchemes(data.schemes || []);
-          if (!data.schemes || data.schemes.length === 0) {
+        console.log("API response:", response.data);
+
+        if (response.data.message === "Investment schemes for project retrieved successfully") {
+          setSchemes(response.data.schemes || []);
+          if (!response.data.schemes || response.data.schemes.length === 0) {
             setFetchError("No investment schemes available for this project");
             toast({
               title: "No Schemes",
@@ -295,19 +247,19 @@ const PurchaseFlow = () => {
             });
           }
         } else {
-          setFetchError(data.message || "Failed to fetch investment schemes");
+          setFetchError(response.data.message || "Failed to fetch investment schemes");
           toast({
             title: "Error",
-            description: data.message || "Failed to fetch investment schemes",
+            description: response.data.message || "Failed to fetch investment schemes",
             variant: "destructive",
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Fetch error:", error);
-        setFetchError("Error fetching schemes. Please try again.");
+        setFetchError(error.response?.data?.message || "Error fetching schemes. Please try again.");
         toast({
           title: "Error",
-          description: "Error fetching schemes. Please try again.",
+          description: error.response?.data?.message || "Error fetching schemes. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -410,20 +362,16 @@ const PurchaseFlow = () => {
     // Bank validation with pattern matching
     const isBankValid = bankRequired.every((field) =>
       userInfo.account_details[field as keyof UserInfo["account_details"]].trim() !== ""
-    ) &&
-      validateAccountNumber(userInfo.account_details.account_number) &&
-      validateIFSC(userInfo.account_details.ifsc_code);
+    );
 
     // User type specific validation
     let isTypeValid = false;
     if (userInfo.user_type === "individual") {
-      isTypeValid = !!userInfo.pan_number && !!userInfo.aadhar_number &&
-        validatePAN(userInfo.pan_number) && validateAadhaar(userInfo.aadhar_number) &&
-        verified.pan && verified.aadhar;
+      isTypeValid = !!userInfo.pan_number && !!userInfo.aadhar_number && verified.pan && verified.aadhar;
     } else if (userInfo.user_type === "business") {
-      isTypeValid = !!userInfo.gst_number && validateGSTIN(userInfo.gst_number) && verified.gst;
+      isTypeValid = !!userInfo.gst_number && verified.gst;
     } else if (userInfo.user_type === "NRI") {
-      isTypeValid = !!userInfo.passport_number && validatePassport(userInfo.passport_number) && verified.passport;
+      isTypeValid = !!userInfo.passport_number && verified.passport;
     }
 
     // Joint account validation
@@ -439,15 +387,11 @@ const PurchaseFlow = () => {
         jointBankRequired.every((field) =>
           jointAccountInfo.account_details[field as keyof JointAccountInfo["account_details"]].trim() !== ""
         ) &&
-        validateAccountNumber(jointAccountInfo.account_details.account_number) &&
-        validateIFSC(jointAccountInfo.account_details.ifsc_code) &&
         (jointAccountInfo.user_type === "individual"
-          ? !!jointAccountInfo.pan_number && !!jointAccountInfo.aadhar_number &&
-          validatePAN(jointAccountInfo.pan_number) && validateAadhaar(jointAccountInfo.aadhar_number) &&
-          verified.jointPan && verified.jointAadhar
+          ? !!jointAccountInfo.pan_number && !!jointAccountInfo.aadhar_number && verified.jointPan && verified.jointAadhar
           : jointAccountInfo.user_type === "business"
-            ? !!jointAccountInfo.gst_number && validateGSTIN(jointAccountInfo.gst_number) && verified.jointGst
-            : !!jointAccountInfo.passport_number && validatePassport(jointAccountInfo.passport_number) && verified.jointPassport) &&
+            ? !!jointAccountInfo.gst_number && verified.jointGst
+            : !!jointAccountInfo.passport_number && verified.jointPassport) &&
         jointTermsAccepted;
     }
 
@@ -458,61 +402,35 @@ const PurchaseFlow = () => {
     let requiredDocs = false;
     if (userInfo.user_type === "individual") {
       requiredDocs = !!kycDocuments.panCard && !!kycDocuments.aadharCard;
-      console.log('Individual docs:', { panCard: !!kycDocuments.panCard, aadharCard: !!kycDocuments.aadharCard });
     } else if (userInfo.user_type === "business") {
       requiredDocs = !!kycDocuments.gstDocument;
-      console.log('Business doc:', { gstDocument: !!kycDocuments.gstDocument });
     } else {
       requiredDocs = !!kycDocuments.passportPhoto;
-      console.log('NRI doc:', { passportPhoto: !!kycDocuments.passportPhoto });
     }
+    
     let jointRequiredDocs = true;
     if (isJointAccount) {
       if (jointAccountInfo.user_type === "individual") {
         jointRequiredDocs = !!kycDocuments.jointPanCard && !!kycDocuments.jointAadharCard;
-        console.log('Joint Individual docs:', { jointPanCard: !!kycDocuments.jointPanCard, jointAadharCard: !!kycDocuments.jointAadharCard });
       } else if (jointAccountInfo.user_type === "business") {
         jointRequiredDocs = !!kycDocuments.jointGstDocument;
-        console.log('Joint Business doc:', { jointGstDocument: !!kycDocuments.jointGstDocument });
       } else {
         jointRequiredDocs = !!kycDocuments.jointPassportPhoto;
-        console.log('Joint NRI doc:', { jointPassportPhoto: !!kycDocuments.jointPassportPhoto });
       }
     }
+    
     const result = requiredDocs && kycAccepted && jointRequiredDocs && (isJointAccount ? jointKycAccepted : true);
-    console.log('Validate KYC result:', result);
     return result;
   };
 
-  const updateUserProfile = async () => {
-    if (!userProfileId) {
-      throw new Error("User profile ID not found");
-    }
-
-    const token = sessionStorage.getItem("auth_token");
-    if (!token) {
-      throw new Error("Authentication token not found");
-    }
-
-    const profileData = {
+  const createUserProfile = async (): Promise<string> => {
+    const profileData: CreateUserProfileRequest = {
       surname: userInfo.surname,
       name: userInfo.name,
       dob: userInfo.dob,
       gender: userInfo.gender,
-      present_address: {
-        street: userInfo.present_address.street,
-        city: userInfo.present_address.city,
-        state: userInfo.present_address.state,
-        country: "India",
-        postal_code: userInfo.present_address.postal_code,
-      },
-      permanent_address: {
-        street: userInfo.sameAddress ? userInfo.present_address.street : userInfo.permanent_address.street,
-        city: userInfo.sameAddress ? userInfo.present_address.city : userInfo.permanent_address.city,
-        state: userInfo.sameAddress ? userInfo.present_address.state : userInfo.permanent_address.state,
-        country: "India",
-        postal_code: userInfo.sameAddress ? userInfo.present_address.postal_code : userInfo.permanent_address.postal_code,
-      },
+      present_address: userInfo.present_address,
+      permanent_address: userInfo.sameAddress ? userInfo.present_address : userInfo.permanent_address,
       occupation: userInfo.occupation,
       annual_income: userInfo.annual_income,
       user_type: userInfo.user_type,
@@ -522,66 +440,61 @@ const PurchaseFlow = () => {
       passport_number: userInfo.user_type === "NRI" ? userInfo.passport_number : null,
       phone_number: userInfo.phone_number,
       email: userInfo.email,
-      account_details: {
-        account_holder_name: userInfo.account_details.account_holder_name,
-        bank_account_name: userInfo.account_details.bank_account_name,
-        account_number: userInfo.account_details.account_number,
-        ifsc_code: userInfo.account_details.ifsc_code,
-      },
+      account_details: userInfo.account_details,
       joint_account: isJointAccount
         ? {
-          surname: jointAccountInfo.surname,
-          name: jointAccountInfo.name,
-          dob: jointAccountInfo.dob,
-          gender: jointAccountInfo.gender,
-          email: jointAccountInfo.email,
-          phone_number: jointAccountInfo.phone_number,
-          user_type: jointAccountInfo.user_type,
-          pan_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.pan_number : null,
-          aadhar_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.aadhar_number : null,
-          gst_number: jointAccountInfo.user_type === "business" ? jointAccountInfo.gst_number : null,
-          passport_number: jointAccountInfo.user_type === "NRI" ? jointAccountInfo.passport_number : null,
-          account_details: {
-            account_holder_name: jointAccountInfo.account_details.account_holder_name,
-            bank_account_name: jointAccountInfo.account_details.bank_account_name,
-            account_number: jointAccountInfo.account_details.account_number,
-            ifsc_code: jointAccountInfo.account_details.ifsc_code,
-          },
-        }
+            surname: jointAccountInfo.surname,
+            name: jointAccountInfo.name,
+            dob: jointAccountInfo.dob,
+            gender: jointAccountInfo.gender,
+            email: jointAccountInfo.email,
+            phone_number: jointAccountInfo.phone_number,
+            user_type: jointAccountInfo.user_type,
+            pan_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.pan_number : null,
+            aadhar_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.aadhar_number : null,
+            gst_number: jointAccountInfo.user_type === "business" ? jointAccountInfo.gst_number : null,
+            passport_number: jointAccountInfo.user_type === "NRI" ? jointAccountInfo.passport_number : null,
+            account_details: jointAccountInfo.account_details,
+          }
         : null,
     };
 
     const formData = new FormData();
     formData.append("profile_data", JSON.stringify(profileData));
 
-    if (kycDocuments.panCard) formData.append("document1", kycDocuments.panCard);
-    if (kycDocuments.aadharCard) formData.append("document2", kycDocuments.aadharCard);
-    if (kycDocuments.gstDocument) formData.append("document1", kycDocuments.gstDocument);
-    if (kycDocuments.passportPhoto) formData.append("document1", kycDocuments.passportPhoto);
+    // Add primary user documents
+    if (userInfo.user_type === "individual") {
+      if (kycDocuments.panCard) formData.append("document1", kycDocuments.panCard);
+      if (kycDocuments.aadharCard) formData.append("document2", kycDocuments.aadharCard);
+    } else if (userInfo.user_type === "business") {
+      if (kycDocuments.gstDocument) formData.append("document1", kycDocuments.gstDocument);
+    } else if (userInfo.user_type === "NRI") {
+      if (kycDocuments.passportPhoto) formData.append("document1", kycDocuments.passportPhoto);
+    }
+
+    // Add joint account documents
     if (isJointAccount) {
-      if (kycDocuments.jointPanCard) formData.append("joint_document1", kycDocuments.jointPanCard);
-      if (kycDocuments.jointAadharCard) formData.append("joint_document2", kycDocuments.jointAadharCard);
-      if (kycDocuments.jointGstDocument) formData.append("joint_document1", kycDocuments.jointGstDocument);
-      if (kycDocuments.jointPassportPhoto) formData.append("joint_document1", kycDocuments.jointPassportPhoto);
+      if (jointAccountInfo.user_type === "individual") {
+        if (kycDocuments.jointPanCard) formData.append("joint_document1", kycDocuments.jointPanCard);
+        if (kycDocuments.jointAadharCard) formData.append("joint_document2", kycDocuments.jointAadharCard);
+      } else if (jointAccountInfo.user_type === "business") {
+        if (kycDocuments.jointGstDocument) formData.append("joint_document1", kycDocuments.jointGstDocument);
+      } else if (jointAccountInfo.user_type === "NRI") {
+        if (kycDocuments.jointPassportPhoto) formData.append("joint_document1", kycDocuments.jointPassportPhoto);
+      }
     }
 
-    const response = await fetch(`http://127.0.0.1:8000/api/user_profile/update/${userProfileId}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    const responseData = await response.json();
-    if (!response.ok) {
-      throw new Error(responseData.message || "Failed to update user profile");
+    try {
+      const response = await userProfileApi.createUserProfile(formData);
+      
+      if (response.data.user_profile_id) {
+        return response.data.user_profile_id;
+      } else {
+        throw new Error("No user profile ID returned from server");
+      }
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to create user profile");
     }
-
-    toast({
-      title: "Success",
-      description: "User profile updated successfully",
-    });
   };
 
   const nextStep = async () => {
@@ -593,111 +506,8 @@ const PurchaseFlow = () => {
       } else if (currentStep === "user-info" && validateUserInfo()) {
         setCurrentStep("kyc");
       } else if (currentStep === "kyc" && validateKYC()) {
-        const token = sessionStorage.getItem("auth_token");
-        if (!token) {
-          throw new Error("Authentication token not found");
-        }
-
-        const profileData = {
-          surname: userInfo.surname,
-          name: userInfo.name,
-          dob: userInfo.dob,
-          gender: userInfo.gender,
-          present_address: {
-            street: userInfo.present_address.street,
-            city: userInfo.present_address.city,
-            state: userInfo.present_address.state,
-            country: "India",
-            postal_code: userInfo.present_address.postal_code,
-          },
-          permanent_address: {
-            street: userInfo.sameAddress ? userInfo.present_address.street : userInfo.permanent_address.street,
-            city: userInfo.sameAddress ? userInfo.present_address.city : userInfo.permanent_address.city,
-            state: userInfo.sameAddress ? userInfo.present_address.state : userInfo.permanent_address.state,
-            country: "India",
-            postal_code: userInfo.sameAddress ? userInfo.present_address.postal_code : userInfo.permanent_address.postal_code,
-          },
-          occupation: userInfo.occupation,
-          annual_income: userInfo.annual_income,
-          user_type: userInfo.user_type,
-          pan_number: userInfo.user_type === "individual" ? userInfo.pan_number : null,
-          aadhar_number: userInfo.user_type === "individual" ? userInfo.aadhar_number : null,
-          gst_number: userInfo.user_type === "business" ? userInfo.gst_number : null,
-          passport_number: userInfo.user_type === "NRI" ? userInfo.passport_number : null,
-          phone_number: userInfo.phone_number,
-          email: userInfo.email,
-          account_details: {
-            account_holder_name: userInfo.account_details.account_holder_name,
-            bank_account_name: userInfo.account_details.bank_account_name,
-            account_number: userInfo.account_details.account_number,
-            ifsc_code: userInfo.account_details.ifsc_code,
-          },
-          joint_account: isJointAccount
-            ? {
-              surname: jointAccountInfo.surname,
-              name: jointAccountInfo.name,
-              dob: jointAccountInfo.dob,
-              gender: jointAccountInfo.gender,
-              email: jointAccountInfo.email,
-              phone_number: jointAccountInfo.phone_number,
-              user_type: jointAccountInfo.user_type,
-              pan_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.pan_number : null,
-              aadhar_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.aadhar_number : null,
-              gst_number: jointAccountInfo.user_type === "business" ? jointAccountInfo.gst_number : null,
-              passport_number: jointAccountInfo.user_type === "NRI" ? jointAccountInfo.passport_number : null,
-              account_details: {
-                account_holder_name: jointAccountInfo.account_details.account_holder_name,
-                bank_account_name: jointAccountInfo.account_details.bank_account_name,
-                account_number: jointAccountInfo.account_details.account_number,
-                ifsc_code: jointAccountInfo.account_details.ifsc_code,
-              },
-            }
-            : null,
-        };
-
-        const formData = new FormData();
-        formData.append("profile_data", JSON.stringify(profileData));
-
-        if (userInfo.user_type === "individual") {
-          if (kycDocuments.panCard) formData.append("document1", kycDocuments.panCard);
-          if (kycDocuments.aadharCard) formData.append("document2", kycDocuments.aadharCard);
-        } else if (userInfo.user_type === "business") {
-          if (kycDocuments.gstDocument) formData.append("document1", kycDocuments.gstDocument);
-        } else if (userInfo.user_type === "NRI") {
-          if (kycDocuments.passportPhoto) formData.append("document1", kycDocuments.passportPhoto);
-        }
-
-        if (isJointAccount) {
-          if (jointAccountInfo.user_type === "individual") {
-            if (kycDocuments.jointPanCard) formData.append("joint_document1", kycDocuments.jointPanCard);
-            if (kycDocuments.jointAadharCard) formData.append("joint_document2", kycDocuments.jointAadharCard);
-          } else if (jointAccountInfo.user_type === "business") {
-            if (kycDocuments.jointGstDocument) formData.append("joint_document1", kycDocuments.jointGstDocument);
-          } else if (jointAccountInfo.user_type === "NRI") {
-            if (kycDocuments.jointPassportPhoto) formData.append("joint_document1", kycDocuments.jointPassportPhoto);
-          }
-        }
-
-        const response = await fetch("http://127.0.0.1:8000/api/user_profile/create", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
-
-        const responseData = await response.json();
-        if (!response.ok) {
-          throw new Error(responseData.message || "Failed to create user profile");
-        }
-
-        const userProfileIdFromResponse = responseData.user_profile_id;
-        if (!userProfileIdFromResponse) {
-          console.warn("No user_profile_id in response, using hardcoded ID as fallback");
-          setUserProfileId("abbb3392-3c6a-4361-9957-1ecc44b825d3");
-        } else {
-          setUserProfileId(userProfileIdFromResponse);
-        }
+        const userProfileId = await createUserProfile();
+        setUserProfileId(userProfileId);
 
         toast({
           title: "Success",
@@ -705,6 +515,8 @@ const PurchaseFlow = () => {
         });
         setCurrentStep("payment");
       } else if (currentStep === "payment") {
+        // Payment is handled in PurchaseUnitConfirmation component
+        // This step will be triggered by the onPurchaseSuccess callback
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setCurrentStep("confirmation");
         toast({
@@ -712,12 +524,12 @@ const PurchaseFlow = () => {
           description: "Your investment has been confirmed!",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Next step error:", error);
-      setFetchError((error as Error).message || "An error occurred");
+      setFetchError(error.message || "An error occurred");
       toast({
         title: "Error",
-        description: (error as Error).message || "An error occurred",
+        description: error.message || "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -730,23 +542,6 @@ const PurchaseFlow = () => {
       setCurrentStep("plan-selection");
     } else if (currentStep === "kyc") {
       setCurrentStep("user-info");
-      if (userProfileId) {
-        updateUserProfile().catch((error) => {
-          console.error("Update profile error:", error);
-          toast({
-            title: "Error",
-            description: (error as Error).message || "Failed to update user profile",
-            variant: "destructive",
-          });
-        });
-      } else {
-        console.warn("No userProfileId available, skipping profile update");
-        toast({
-          title: "Warning",
-          description: "User profile ID not found. Please ensure the profile was created successfully.",
-          variant: "default",
-        });
-      }
     } else if (currentStep === "payment") {
       setCurrentStep("kyc");
     }
@@ -778,6 +573,15 @@ const PurchaseFlow = () => {
     } else {
       return selectedPlan.paymentAmount || getMinPayment();
     }
+  };
+
+  const handlePurchaseSuccess = (data: any) => {
+    console.log('Purchase successful:', data);
+    setCurrentStep("confirmation");
+    toast({
+      title: "Payment Successful",
+      description: "Your investment has been confirmed!",
+    });
   };
 
   return (
@@ -894,7 +698,7 @@ const PurchaseFlow = () => {
                           <p className="text-sm text-muted-foreground mt-2">Loading schemes...</p>
                         </div>
                       )}
-                      {!loading && schemes.length === 0 && (
+                      {!loading && schemes.length === 0 && !fetchError && (
                         <Alert>
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>No investment schemes available for this project. Please contact support.</AlertDescription>
@@ -1069,12 +873,10 @@ const PurchaseFlow = () => {
                     schemeId={selectedPlan.planId}
                     isJointOwnership={isJointAccount}
                     numberOfUnits={selectedUnits}
-                    onPurchaseSuccess={(data) => {
-                      console.log('Purchase successful:', data);
-                      // Don't move to next page, stay on payment step
-                    }}
+                    onPurchaseSuccess={handlePurchaseSuccess}
                     userProfileId={userProfileId}
-                    schemeData={schemes.find(s => s.id === selectedPlan.planId)} // Pass the scheme data
+                    schemeData={schemes.find(s => s.id === selectedPlan.planId)}
+                    paymentAmount={getCurrentPaymentAmount()}
                   />
                 </div>
               )}
@@ -1082,22 +884,54 @@ const PurchaseFlow = () => {
               {currentStep === "confirmation" && (
                 <div className="space-y-6">
                   <Card>
-                    <CardContent className="text-center py-12">
-                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                      <h2 className="text-2xl font-bold mb-2">Payment Successful!</h2>
-                      <p className="text-muted-foreground mb-6">Your investment in Kapil Business Park has been confirmed.</p>
-                      <div className="bg-muted/30 p-4 rounded-lg mb-6">
-                        <div className="text-sm text-muted-foreground">Transaction ID</div>
-                        <div className="font-mono text-lg">KBP{Date.now()}</div>
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-green-600">
+                        <CheckCircle className="w-6 h-6 mr-2" />
+                        Investment Confirmed!
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <p className="text-green-800">
+                          Thank you for your investment! Your purchase has been successfully processed.
+                        </p>
                       </div>
-                      <div className="space-y-2">
-                        <Button className="w-full" onClick={() => navigate("/my-units")}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View My Investment Dashboard
-                        </Button>
-                        <Button variant="outline" className="w-full">
-                          <Download className="w-4 h-4 mr-2" />
-                          Download Draft Purchase Agreement
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold">Investment Details</h4>
+                          <div className="text-sm">
+                            <div className="flex justify-between">
+                              <span>Project:</span>
+                              <span className="font-medium">{id}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Units:</span>
+                              <span className="font-medium">{selectedPlan?.units}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total Area:</span>
+                              <span className="font-medium">{selectedPlan?.area * selectedPlan?.units!} sqft</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Total Investment:</span>
+                              <span className="font-medium">{formatCurrency(selectedPlan?.price || 0)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="font-semibold">Next Steps</h4>
+                          <ul className="text-sm space-y-1">
+                            <li>• You will receive a confirmation email shortly</li>
+                            <li>• Legal documents will be processed within 3-5 business days</li>
+                            <li>• Monthly rental payments will begin as per the selected plan</li>
+                            <li>• You can track your investment in your dashboard</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex space-x-4 pt-4">
+                        <Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>
+                        <Button variant="outline" onClick={() => navigate(`/projects/${id}`)}>
+                          View Project Details
                         </Button>
                       </div>
                     </CardContent>
@@ -1107,131 +941,135 @@ const PurchaseFlow = () => {
             </div>
 
             <div className="space-y-6">
-              {selectedPlan && (
-                <Card className="sticky top-24">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Order Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                   
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Plan Type</span>
-                        <span className="text-sm font-medium">{selectedPlan.type === "single" ? "Single Payment" : "Installment"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Number of Units</span>
-                        <span className="text-sm font-medium">{selectedPlan.units}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Area per Unit</span>
-                        <span className="text-sm font-medium">{selectedPlan.area} sq ft</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Total Area</span>
-                        <span className="text-sm font-medium">{selectedPlan.area * selectedPlan.units} sq ft</span>
-                      </div>
-                      {selectedPlan.type === "installment" && (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Installments</span>
-                            <span className="text-sm font-medium">{selectedPlan.installments}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Monthly Amount</span>
-                            <span className="text-sm font-medium">{formatCurrency(selectedPlan.monthlyAmount!)}</span>
-                          </div>
-                        </>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-sm">Total Monthly Rental</span>
-                        <span className="text-sm font-medium">{formatCurrency(selectedPlan.monthlyRental)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Rental Starts</span>
-                        <span className="text-sm font-medium">{selectedPlan.rentalStart}</span>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      {/* <div className="flex justify-between">
-                        <span className="text-sm">Total Investment</span>
-                        <span className="text-sm">{formatCurrency(selectedPlan.price)}</span>
-                      </div> */}
-                      {selectedPlan.type === "single" && (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Advance Amount</span>
-                            <span className="text-sm">{formatCurrency(getMinPayment())}</span>
-                          </div>
-                          {getCurrentPaymentAmount() > getMinPayment() && (
-                            <div className="flex justify-between">
-                              <span className="text-sm">Additional Payment</span>
-                              <span className="text-sm">{formatCurrency(getCurrentPaymentAmount() - getMinPayment())}</span>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {selectedPlan ? (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Plan Type</span>
+                          <span className="font-medium capitalize">{selectedPlan.type}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Units</span>
+                          <span className="font-medium">{selectedPlan.units}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Area per Unit</span>
+                          <span className="font-medium">{selectedPlan.area} sqft</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Total Area</span>
+                          <span className="font-medium">{selectedPlan.area * selectedPlan.units} sqft</span>
+                        </div>
+                        <Separator />
+                        {selectedPlan.type === "installment" && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Monthly Installment</span>
+                              <span className="font-medium">{formatCurrency(selectedPlan.monthlyAmount!)}</span>
                             </div>
-                          )}
-                          <div className="flex justify-between text-orange-600">
-                            <span className="text-sm">Balance Due (90 days)</span>
-                            <span className="text-sm font-medium">{formatCurrency(selectedPlan.price - getCurrentPaymentAmount())}</span>
-                          </div>
-                        </>
-                      )}
-                      <div className="flex justify-between text-lg font-bold">
-                        <span>{currentStep === "plan-selection" || currentStep === "user-info" ? (selectedPlan.type === "single" ? "Payment Now" : "First Installment") : "Total Amount"}</span>
-                        <span className="text-primary">{formatCurrency(getCurrentPaymentAmount())}</span>
-                      </div>
-                    </div>
-
-                    {selectedPlan.type === "single" && currentStep !== "confirmation" && getCurrentPaymentAmount() < selectedPlan.price && (
-                      <div className="text-xs text-orange-700 p-3 bg-orange-50 rounded border-l-4 border-orange-400">
-                        <div className="font-medium mb-1">Payment Schedule:</div>
-                        <div>• Now: {formatCurrency(getCurrentPaymentAmount())}</div>
-                        <div>• Within {schemes.find((s) => s.id === selectedPlan.planId)?.balance_payment_days || 90} days: {formatCurrency(selectedPlan.price - getCurrentPaymentAmount())}</div>
-                        <div className="mt-1 text-orange-600">
-                          * Balance payment is mandatory within {schemes.find((s) => s.id === selectedPlan.planId)?.balance_payment_days || 90} days
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Total Installments</span>
+                              <span className="font-medium">{selectedPlan.installments}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Rental Starts</span>
+                              <span className="font-medium">{selectedPlan.rentalStart}</span>
+                            </div>
+                          </>
+                        )}
+                        {selectedPlan.type === "single" && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Payment Amount</span>
+                              <span className="font-medium">{formatCurrency(selectedPlan.paymentAmount || getMinPayment())}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Balance Due</span>
+                              <span className="font-medium text-orange-600">
+                                {formatCurrency(selectedPlan.price - (selectedPlan.paymentAmount || getMinPayment()))}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Future Monthly Rental</span>
+                          <span className="font-medium text-green-600">{formatCurrency(selectedPlan.monthlyRental)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between text-lg font-bold">
+                          <span>Total Investment</span>
+                          <span>{formatCurrency(selectedPlan.price)}</span>
                         </div>
                       </div>
-                    )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center">No plan selected</p>
+                  )}
+                </CardContent>
+              </Card>
 
-                    {currentStep !== "confirmation" && (
-                      <div className="pt-4 space-y-2">
-                        {currentStep !== "plan-selection" && (
-                          <Button variant="outline" onClick={prevStep} className="w-full" disabled={loading}>
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Previous Step
-                          </Button>
-                        )}
-                        <Button
-                          onClick={nextStep}
-                          className="w-full"
-                          disabled={
-                            loading ||
-                            (currentStep === "plan-selection" && (!selectedPlan || (selectedPlan.type === "single" && !isValidPaymentAmount()))) ||
-                            (currentStep === "user-info" && !validateUserInfo()) ||
-                            (currentStep === "kyc" && !validateKYC())
-                          }
-                        >
-                          {loading ? (
-                            <div className="flex items-center">
-                              <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                              Processing...
-                            </div>
-                          ) : (
-                            <>
-                              {currentStep === "payment" ? "Complete Payment" : "Continue"}
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </>
-                          )}
-                        </Button>
-                      </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-sm">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Secure Payment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-xs text-muted-foreground">
+                  <p>Your personal and payment information is encrypted and secure.</p>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-5 bg-green-600 rounded flex items-center justify-center">
+                      <CheckCircle className="w-3 h-3 text-white" />
+                    </div>
+                    <span>256-bit SSL Encryption</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-5 bg-blue-600 rounded flex items-center justify-center">
+                      <Shield className="w-3 h-3 text-white" />
+                    </div>
+                    <span>PCI DSS Compliant</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {currentStep !== "confirmation" && currentStep !== "payment" && (
+                <div className="flex space-x-3">
+                  {currentStep !== "plan-selection" && (
+                    <Button variant="outline" onClick={prevStep} className="flex-1" disabled={loading}>
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back
+                    </Button>
+                  )}
+                  <Button
+                    onClick={nextStep}
+                    className="flex-1"
+                    disabled={
+                      loading ||
+                      !selectedPlan ||
+                      (currentStep === "user-info" && !validateUserInfo()) ||
+                      (currentStep === "kyc" && !validateKYC()) ||
+                      (currentStep === "plan-selection" && selectedPlan?.type === "single" && !isValidPaymentAmount())
+                    }
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        {currentStep === "confirmation" ? "Complete" : "Continue"}
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </>
                     )}
-                  </CardContent>
-                </Card>
+                  </Button>
+                </div>
               )}
             </div>
           </div>

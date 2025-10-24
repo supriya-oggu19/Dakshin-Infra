@@ -47,4 +47,24 @@ export const ENDPOINTS = {
   PURCHASED_UNITS: {
     CREATE: "/purchased-unit/create",
   },
+  
+ PURCHASE: {
+    INVESTMENT_SCHEMES: "/investment-schemes/project", // Removed /api prefix
+    PURCHASE_UNITS: "/purchase/units", // Removed /api prefix
+  },
+  
+  DOCUMENTS: {
+    VERIFY_PAN: "/documents/verify-pan", // Removed /api prefix
+    VERIFY_AADHAAR: "/documents/verify-aadhaar", // Removed /api prefix
+    VERIFY_GSTIN: "/documents/verify-gstin", // Removed /api prefix
+    VERIFY_PASSPORT: "/documents/verify-passport", // Removed /api prefix
+  },
+
+  USER_PROFILE: {
+    CREATE: "/user_profile/create",
+    UPDATE: (id: string) => `/user_profile/update/${id}`,
+    DELETE: (id: string) => `/user_profile/delete/${id}`,
+    GET: (id: string) => `/user_profile/${id}`,
+  },
+
 };
