@@ -12,11 +12,7 @@ export const ENDPOINTS = {
     LOGIN: "/user/login",
     UPDATE: "/user/update",
   },
-  CONTACT_INFO: {
-    ADD: "/contactInfo/add",
-    UPDATE: (id: string) => `/contactInfo/edit/${id}`,
-    DELETE: (id: string) => `/contactInfo/delete/${id}`,
-  },
+ 
   PROJECTS: {
     CREATE: "/projects/create",
     UPDATE: (id: string) => `/projects/${id}`,
@@ -61,5 +57,11 @@ export const ENDPOINTS = {
     VERIFY_AADHAAR: "/documents/verify-aadhaar", // Removed /api prefix
     VERIFY_GSTIN: "/documents/verify-gstin", // Removed /api prefix
     VERIFY_PASSPORT: "/documents/verify-passport", // Removed /api prefix
+  },
+  CONTACT: {
+    CREATE: "http://localhost:8000/api/contact-inquiry/create",
+  },
+  CONTACT_INFO: {
+    ALL: "http://127.0.0.1:8001/api/contactInfo/all",
   },
 };

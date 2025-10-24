@@ -3,10 +3,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Phone, Mail, Clock, MessageCircle, Send } from "lucide-react";
+import { MapPin, Phone, Mail, Send, MessageCircle } from "lucide-react";
 import Navigation from "@/components/Navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
+import { contactApi } from "@/api/contactApi";
+import { contactInfoApi } from "@/api/contactInfoApi";
+import { ContactInfo } from "@/api/models/contactInfo.model";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -17,26 +20,76 @@ const Contact = () => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactInfo, setContactInfo] = useState([{
+    icon: MapPin,
+    title: "Visit Our Office",
+    details: ["40-14-3/1, Chandramoulipuram", "Near Benz Circle, Vijayawada", "Andhra Pradesh, India - 520010"],
+  },
+  {
+    icon: Phone,
+    title: "Call Us",
+    details: [],
+    phoneNumbers: [],
+  },
+  {
+    icon: Mail,
+    title: "Email Us",
+    details: [],
+    emails: [],
+  },
+  ]);
 
-  const contactInfo = [
-    {
-      icon: MapPin,
-      title: "Visit Our Office",
-      details: ["40-14-3/1, Chandramoulipuram", "Near Benz Circle, Vijayawada", "Andhra Pradesh, India - 520010"],
-    },
-    {
-      icon: Phone,
-      title: "Call Us",
-      details: ["+91 9876543210", "+91 8765432109", "Available 9 AM - 8 PM"],
-      phoneNumbers: ["+91 9876543210", "+91 8765432109"]
-    },
-    {
-      icon: Mail,
-      title: "Email Us",
-      details: ["investments@kapilbusinesspark.com", "support@kapilbusinesspark.com", "Quick response guaranteed"],
-      emails: ["investments@kapilbusinesspark.com", "support@kapilbusinesspark.com"]
-    }
-  ];
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const response = await contactInfoApi.getAll();
+        const fetchedContacts: ContactInfo[] = response.data;
+
+        const activePhones = fetchedContacts
+          .filter((contact) => contact.contact_type === "phone" && contact.is_active)
+          .map((contact) => ({
+            value: contact.contact_value,
+            label: contact.label || "Phone",
+          }));
+
+        const activeEmails = fetchedContacts
+          .filter((contact) => contact.contact_type === "email" && contact.is_active)
+          .map((contact) => ({
+            value: contact.contact_value,
+            label: contact.label || "Email",
+          }));
+
+        setContactInfo([
+          {
+            icon: MapPin,
+            title: "Visit Our Office",
+            details: ["40-14-3/1, Chandramoulipuram", "Near Benz Circle, Vijayawada", "Andhra Pradesh, India - 520010"],
+          },
+          {
+            icon: Phone,
+            title: "Call Us",
+            details: [...activePhones.map((phone) => phone.value), "Available 9 AM - 8 PM"],
+            phoneNumbers: activePhones.map((phone) => phone.value),
+          },
+          {
+            icon: Mail,
+            title: "Email Us",
+            details: [...activeEmails.map((email) => email.value), "Quick response guaranteed"],
+            emails: activeEmails.map((email) => email.value),
+          },
+        ]);
+      } catch (error) {
+        console.error("Error fetching contact info:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load contact information.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchContactInfo();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -47,7 +100,6 @@ const Contact = () => {
     e.preventDefault();
     if (isSubmitting) return;
 
-    // Basic validation
     if (!formData.full_name || !formData.email || !formData.phone) {
       toast({ title: "Error", description: "Please fill in all required fields.", variant: "destructive" });
       return;
@@ -55,32 +107,15 @@ const Contact = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8000/api/contact-inquiry/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit inquiry");
-      }
-
-      const result = await response.json();
-      console.log("Inquiry submitted:", result);
+      const response = await contactApi.createInquiry(formData);
       toast({ title: "Success", description: "Your inquiry has been submitted successfully!" });
-
-      // Reset form
-      setFormData({
-        full_name: "",
-        email: "",
-        phone: "",
-        message: "",
-      });
+      setFormData({ full_name: "", email: "", phone: "", message: "" });
     } catch (error) {
-      console.error("Error submitting form:", error);
-      toast({ title: "Error", description: "There was an issue submitting your inquiry. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to submit. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -97,227 +132,243 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      <div className="pt-20 pb-12">
+
+      <div className="pt-16 md:pt-20">
         {/* Hero Section */}
-        <section className="py-20 px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
+        <section className="py-16 md:py-24 px-4 md:px-6 text-center">
+          <div className="max-w-4xl mx-auto">
+            <Badge className="mb-4 text-sm md:text-base bg-primary/20 text-primary border-primary/30 px-4 py-1.5">
               Get In Touch
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 glow-text">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5 leading-tight">
               Ready to Invest?
-              <span className="text-primary block">Connect With Us!</span>
+              <span className="block text-primary mt-2">Let’s Connect!</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Own your smart income-generating asset today. Benefit from personalized guidance 
-              by our support team remotely. Make your aspirational move today!
+            <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Secure your income-generating asset with expert guidance. Our team is here to help you every step of the way.
             </p>
           </div>
         </section>
 
-        {/* Contact Information */}
-        <section className="py-16 px-4">
+        {/* Contact Info Cards */}
+        <section className="py-12 md:py-16 px-4 md:px-6 bg-muted/30">
           <div className="max-w-7xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
               {contactInfo.map((info, index) => {
                 const Icon = info.icon;
                 return (
-                  <div key={index} className={`card-luxury p-8 text-center animate-fade-in`} style={{animationDelay: `${index * 200}ms`}}>
-                    <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Card
+                    key={index}
+                    className="card-luxury border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] text-center p-6 md:p-8"
+                  >
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-5">
                       <Icon className="w-8 h-8 text-primary-foreground" />
                     </div>
                     <h3 className="text-xl font-semibold mb-4 text-foreground">{info.title}</h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-sm md:text-base">
                       {info.details.map((detail, idx) => {
-                        // Check if this detail is a phone number
-                        if (info.phoneNumbers && info.phoneNumbers.includes(detail)) {
+                        const isPhone = info.phoneNumbers?.includes(detail);
+                        const isEmail = info.emails?.includes(detail);
+
+                        if (isPhone) {
                           return (
-                            <p key={idx} className="text-muted-foreground">
-                              <button 
-                                onClick={() => handlePhoneClick(detail)}
-                                className="text-primary hover:text-primary/80 underline transition-colors"
-                              >
-                                {detail}
-                              </button>
-                            </p>
+                            <button
+                              key={idx}
+                              onClick={() => handlePhoneClick(detail)}
+                              className="block w-full text-primary hover:text-primary/80 underline font-medium transition-colors"
+                            >
+                              {detail}
+                            </button>
                           );
                         }
-                        // Check if this detail is an email
-                        if (info.emails && info.emails.includes(detail)) {
+                        if (isEmail) {
                           return (
-                            <p key={idx} className="text-muted-foreground">
-                              <button 
-                                onClick={() => handleEmailClick(detail)}
-                                className="text-primary hover:text-primary/80 underline transition-colors"
-                              >
-                                {detail}
-                              </button>
-                            </p>
+                            <button
+                              key={idx}
+                              onClick={() => handleEmailClick(detail)}
+                              className="block w-full text-primary hover:text-primary/80 underline font-medium transition-colors break-all"
+                            >
+                              {detail}
+                            </button>
                           );
                         }
-                        // Regular text
                         return (
                           <p key={idx} className="text-muted-foreground">{detail}</p>
                         );
                       })}
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
             </div>
           </div>
         </section>
 
-        {/* Contact Form & Map */}
-        <section className="py-16 px-4">
+        {/* Form + Sidebar */}
+        <section className="py-16 md:py-20 px-4 md:px-6">
           <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12">
+            <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">
               {/* Contact Form */}
-              <div className="animate-fade-in">
-                <Card className="card-luxury border-0 shadow-none">
-                  <CardHeader>
-                    <CardTitle className="text-2xl font-bold glow-text">
-                      Explore Investment Plans
+              <div className="lg:col-span-3">
+                <Card className="card-luxury border-0 shadow-lg">
+                  <CardHeader className="text-center md:text-left pb-6">
+                    <CardTitle className="relative inline-block text-2xl md:text-3xl font-bold mb-3">
+                      <span className="relative z-10 bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                        Explore Investment Plans
+                      </span>
+
+                      {/* Glowing Underline */}
+                      <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-accent to-primary/50 rounded-full blur-md"></span>
+                      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary to-accent rounded-full"></span>
                     </CardTitle>
-                    <p className="text-muted-foreground">
-                      Fill out the form below and we'll get back to you within 24 hours with detailed investment information.
+
+                    <p className="text-muted-foreground text-sm md:text-base">
+                      Submit your details and receive personalized investment options within 24 hours.
                     </p>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-foreground mb-2 block">
-                            Full Name *
+                      <div className="grid md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground flex items-center">
+                            Full Name <span className="text-destructive ml-1">*</span>
                           </label>
                           <Input
                             name="full_name"
-                            placeholder="Enter your full name"
-                            className="bg-background border-border"
-                            required
+                            placeholder="John Doe"
+                            className="h-12 bg-background"
                             value={formData.full_name}
                             onChange={handleInputChange}
+                            required
                           />
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-foreground mb-2 block">
-                            Email Id *
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground flex items-center">
+                            Email <span className="text-destructive ml-1">*</span>
                           </label>
                           <Input
                             name="email"
                             type="email"
-                            placeholder="Enter your email"
-                            className="bg-background border-border"
-                            required
+                            placeholder="john@example.com"
+                            className="h-12 bg-background"
                             value={formData.email}
                             onChange={handleInputChange}
+                            required
                           />
                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-2 block">
-                          Country code & Phone number *
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground flex items-center">
+                          Phone Number <span className="text-destructive ml-1">*</span>
                         </label>
                         <Input
                           name="phone"
                           type="tel"
-                          placeholder="e.g., +91 98765 43210"
-                          className="bg-background border-border"
-                          required
+                          placeholder="+91 98765 43210"
+                          className="h-12 bg-background"
                           value={formData.phone}
                           onChange={handleInputChange}
+                          required
                         />
                       </div>
 
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-2 block">
-                          Message
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">
+                          Message (Optional)
                         </label>
                         <Textarea
                           name="message"
-                          placeholder="Tell us about your investment goals and any questions you have about Kapil Business Park..."
-                          rows={5}
-                          className="bg-background border-border resize-none"
+                          placeholder="Tell us about your investment goals..."
+                          rows={4}
+                          className="resize-none bg-background"
                           value={formData.message}
                           onChange={handleInputChange}
                         />
                       </div>
 
-                      <Button type="submit" variant="luxury" className="w-full" disabled={isSubmitting}>
-                        <Send className="w-4 h-4 mr-2" />
-                        {isSubmitting ? "Submitting..." : "Send Inquiry"}
+                      <Button
+                        type="submit"
+                        variant="luxury"
+                        className="w-full h-14 text-lg font-semibold"
+                        disabled={isSubmitting}
+                      >
+                        <Send className="w-5 h-5 mr-2" />
+                        {isSubmitting ? "Sending..." : "Send Inquiry"}
                       </Button>
                     </form>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Information & Quick Contact */}
-              <div className="space-y-8 animate-fade-in" style={{animationDelay: "400ms"}}>
-                {/* Investment Info */}
-                <Card className="card-luxury border-0 shadow-none">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold mb-4 text-foreground">Investment Summary</h3>
-                    <div className="space-y-4">
-                      <div className="bg-primary/10 p-4 rounded-lg">
-                        <h4 className="font-medium text-primary mb-2">Starting Investment</h4>
-                        <p className="text-2xl font-bold text-primary">₹36,00,000</p>
-                        <p className="text-sm text-muted-foreground">Minimum booking advance: ₹2,00,000</p>
+              {/* Investment Sidebar */}
+              <div className="lg:col-span-2">
+                <Card className="card-luxury border-0 shadow-lg lg:sticky lg:top-24">
+                  <CardContent className="p-6 space-y-7">
+                    <div>
+                      <h3 className="text-xl md:text-2xl font-bold mb-5 text-center md:text-left">Investment Summary</h3>
+                      <div className="space-y-4">
+                        <div className="bg-primary/10 p-5 rounded-xl border border-primary/20 text-center md:text-left">
+                          <p className="text-sm font-medium text-primary">Starting Investment</p>
+                          <p className="text-3xl font-bold text-primary mt-1">₹36,00,000</p>
+                          <p className="text-xs text-muted-foreground mt-1">Min. advance: ₹2,00,000</p>
+                        </div>
+
+                        <div className="bg-accent/10 p-5 rounded-xl border border-accent/20 text-center md:text-left">
+                          <p className="text-sm font-medium text-accent">Expected Returns</p>
+                          <p className="text-3xl font-bold text-accent mt-1">Up to 18% p.a.</p>
+                          <p className="text-xs text-muted-foreground mt-1">*T&C apply</p>
+                        </div>
+
+                        <div className="bg-secondary/10 p-5 rounded-xl border border-secondary/20 text-center md:text-left">
+                          <p className="text-sm font-medium text-secondary">Rental Yield</p>
+                          <p className="text-2xl font-bold text-secondary mt-1">₹225/sq.ft</p>
+                          <p className="text-xs text-muted-foreground mt-1">Monthly calculation</p>
+                        </div>
                       </div>
-                      
-                      <div className="bg-accent/10 p-4 rounded-lg">
-                        <h4 className="font-medium text-accent mb-2">Expected Returns</h4>
-                        <p className="text-2xl font-bold text-accent">Up to 18%* p.a.</p>
-                        <p className="text-sm text-muted-foreground">*Terms and conditions apply</p>
-                      </div>
-                      
-                      <div className="bg-secondary/10 p-4 rounded-lg">
-                        <h4 className="font-medium text-secondary mb-2">Rental Formula</h4>
-                        <p className="text-lg font-bold text-secondary">₹225 × sq.ft</p>
-                        <p className="text-sm text-muted-foreground">Monthly rental calculation</p>
+                    </div>
+
+                    <div className="pt-4 border-t border-border">
+                      <h4 className="font-semibold text-foreground mb-4 text-center md:text-left">Quick Actions</h4>
+                      <div className="space-y-3">
+                        {contactInfo
+                          .find((i) => i.title === "Call Us")
+                          ?.phoneNumbers?.[0] && (
+                            <Button
+                              variant="outline-luxury"
+                              className="w-full justify-start h-12"
+                              onClick={() => handlePhoneClick(contactInfo.find(i => i.title === "Call Us")!.phoneNumbers![0])}
+                            >
+                              <Phone className="w-5 h-5 mr-3" />
+                              Call Now
+                            </Button>
+                          )}
+
+                        <Button
+                          variant="outline-luxury"
+                          className="w-full justify-start h-12"
+                          onClick={() => window.open("https://wa.me/+919876543210", "_blank")}
+                        >
+                          <MessageCircle className="w-5 h-5 mr-3" />
+                          WhatsApp
+                        </Button>
+
+                        {contactInfo
+                          .find((i) => i.title === "Email Us")
+                          ?.emails?.[0] && (
+                            <Button
+                              variant="outline-luxury"
+                              className="w-full justify-start h-12"
+                              onClick={() => handleEmailClick(contactInfo.find(i => i.title === "Email Us")!.emails![0])}
+                            >
+                              <Mail className="w-5 h-5 mr-3" />
+                              Send Email
+                            </Button>
+                          )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Quick Contact Options */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-foreground">Quick Contact</h3>
-                  
-                  <div className="space-y-3">
-                    <Button 
-                      variant="outline-luxury" 
-                      className="w-full justify-start" 
-                      size="lg"
-                      onClick={() => handlePhoneClick("+91 9876543210")}
-                    >
-                      <Phone className="w-5 h-5 mr-3" />
-                      Call for Investment Details
-                    </Button>
-                    
-                    <Button 
-                      variant="outline-luxury" 
-                      className="w-full justify-start" 
-                      size="lg"
-                      onClick={() => window.open("https://wa.me/+919876543210", "_blank")}
-                    >
-                      <MessageCircle className="w-5 h-5 mr-3" />
-                      WhatsApp Inquiry
-                    </Button>
-                    
-                    <Button 
-                      variant="outline-luxury" 
-                      className="w-full justify-start" 
-                      size="lg"
-                      onClick={() => handleEmailClick("investments@kapilbusinesspark.com")}
-                    >
-                      <Mail className="w-5 h-5 mr-3" />
-                      Email Investment Team
-                    </Button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
