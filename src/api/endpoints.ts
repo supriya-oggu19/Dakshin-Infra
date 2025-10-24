@@ -27,6 +27,7 @@ export const ENDPOINTS = {
   SCHEMES: {
     CREATE: "/schemes/create",
     UPDATE: (id: string) => `/schemes/${id}`,
+    LIST_BY_PROJECT: "/investment-schemes/project",
   },
   AGENTS: {
     CREATE: "/agents/create",
@@ -52,8 +53,7 @@ export const ENDPOINTS = {
   },
   
  PURCHASE: {
-    INVESTMENT_SCHEMES: "/investment-schemes/project", // Removed /api prefix
-    PURCHASE_UNITS: "/purchase/units", // Removed /api prefix
+    CREATE: "/purchase/create",
   },
   
   DOCUMENTS: {

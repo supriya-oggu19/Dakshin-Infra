@@ -1,28 +1,20 @@
-import {mainAxiosClient,getAxiosClient} from "./axiosClient";
+// api/purchaseApi.ts
+import { getAxiosClient, mainAxiosClient } from "./axiosClient";
 import { ENDPOINTS } from "./endpoints";
-import {
+import { 
+  SchemeListRequest, 
+  SchemeListResponse,
   PurchaseUnitRequest,
-  PurchaseUnitResponse,
-  InvestmentSchemeRequest,
-  InvestmentSchemeResponse,
-} from "./models/purchase.model";
+  PurchaseUnitResponse 
+} from "@/api/models/purchase.model";
 
 export const purchaseApi = {
-  // Get investment schemes for a project
-  getInvestmentSchemes: (params: InvestmentSchemeRequest) =>
-    getAxiosClient.get<InvestmentSchemeResponse>(ENDPOINTS.PURCHASE.INVESTMENT_SCHEMES, { params }),
+  // GET operations using getAxiosClient
+  getInvestmentSchemes: (params: SchemeListRequest): Promise<SchemeListResponse> =>
+    getAxiosClient.get(ENDPOINTS.SCHEMES.LIST_BY_PROJECT, { params })
+      .then(response => response.data),
 
-  // Purchase units
-  purchaseUnits: (data: PurchaseUnitRequest) =>
-    mainAxiosClient.post<PurchaseUnitResponse>(ENDPOINTS.PURCHASE.PURCHASE_UNITS, data),
-
-  // Download agreement
-  downloadAgreement: (projectId: string, schemeId: string) =>
-    getAxiosClient.get(`/agreements/${projectId}/${schemeId}`, {
-      responseType: 'blob'
-    }),
-
-  // Get project documents
-  getProjectDocuments: (projectId: string) =>
-    getAxiosClient.get(`/projects/${projectId}/documents`),
+  // POST operations using mainAxiosClient
+  purchaseUnit: (data: PurchaseUnitRequest): Promise<PurchaseUnitResponse> =>
+    mainAxiosClient.post(ENDPOINTS.PURCHASE.CREATE, data),
 };

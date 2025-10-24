@@ -18,46 +18,21 @@ import {
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface InvestmentScheme {
-  base_price: number;
-  id: string;
-  project_id: string;
-  scheme_type: string;
-  scheme_name: string;
-  area_sqft: number;
-  booking_advance: number | null;
-  balance_payment_days: number | null;
-  total_installments: number | null;
-  monthly_installment_amount: number | null;
-  rental_start_month: number | null;
-  start_date: string;
-  end_date: string | null;
-  created_at: string;
-  updated_at: string;
-
-}
-
-interface InvestmentSchemeListResponse {
-  message: string;
-  page: number;
-  limit: number;
-  total_pages: number;
-  is_previous: boolean;
-  is_next: boolean;
-  total_schemes: number;
-  schemes: InvestmentScheme[];
-}
+import { projectApi } from '@/api/projectApi';
+import { schemeApi } from '@/api/schemeApi';
+import { InvestmentSchemeData, SchemeType } from '@/api/models/schemeModels';
+import { ProjectResponse } from '@/api/models/projectModels';
 
 interface InvestmentSchemesProps {
   projectName?: string;
+  projectId?: string;
 }
 
-const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) => {
-  const { id } = useParams<{ id?: string }>();
+const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, projectId }) => {
+  const id = projectId;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [schemes, setSchemes] = useState<InvestmentScheme[]>([]);
+  const [schemes, setSchemes] = useState<InvestmentSchemeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchedProjectName, setFetchedProjectName] = useState<string>('');
@@ -72,25 +47,19 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
       try {
         setLoading(true);
 
-        // Fetch project details if projectName is not provided
-        if (!projectName) {
-          const projectResponse = await fetch(`http://localhost:8001/api/projects/${id}`);
-          const projectData = await projectResponse.json();
-          setFetchedProjectName(projectData.data.title);
-        }
-
-        const response = await fetch(`http://127.0.0.1:8001/api/investment-schemes/project?project_id=${id}`);
-        const data: InvestmentSchemeListResponse = await response.json();
-        setSchemes(data.schemes);
+        // Fetch schemes using the new API service
+        const response = await schemeApi.listByProject({ project_id: id });
+        setSchemes(response?.data.schemes ?? []);
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching schemes:', err);
         setError('Failed to fetch investment schemes. Please check your connection and try again.');
         setLoading(false);
       }
     };
 
     fetchSchemes();
-  }, [id, projectName]);
+  }, [id]);
 
   const formatCurrency = (amount: number | null) => {
     if (!amount) return 'N/A';
@@ -100,30 +69,27 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName }) =>
       : `₹${lakhs.toFixed(2)} L`;
   };
 
-  const getSchemeTypeColor = (schemeType: string) => {
+  const getSchemeTypeColor = (schemeType: SchemeType) => {
     switch (schemeType) {
-      case 'single_payment':
+      case SchemeType.SINGLE_PAYMENT:
         return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white';
-      case 'installment':
+      case SchemeType.INSTALLMENT:
         return 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white';
       default:
         return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white';
     }
   };
 
-  // CORRECTED: Calculate total payment based on scheme type
-  // CORRECT: Use base_price from backend for total investment for BOTH scheme types
- // Use only fields that actually exist in backend response
-const calculateTotalPayment = (scheme: InvestmentScheme) => {
-  if (scheme.scheme_type === 'single_payment') {
-    // For single payment, use booking_advance since base_price doesn't exist
-    return scheme.booking_advance || 0;
-  } else {
-    // For installment, use (total_installments * monthly_installment_amount)
-    const installmentsTotal = (scheme.total_installments || 0) * (scheme.monthly_installment_amount || 0);
-    return installmentsTotal;
-  }
-};
+  const getSchemeTypeDisplayName = (schemeType: SchemeType) => {
+    switch (schemeType) {
+      case SchemeType.SINGLE_PAYMENT:
+        return 'One-Time';
+      case SchemeType.INSTALLMENT:
+        return 'EMI';
+      default:
+        return schemeType;
+    }
+  };
 
   const handleInvestNow = (schemeId: string) => {
     if (isAuthenticated) {
@@ -133,7 +99,7 @@ const calculateTotalPayment = (scheme: InvestmentScheme) => {
     }
   };
 
-  const displayProjectName = projectName || fetchedProjectName;
+  const displayProjectName = projectName || 'Project';
 
   if (loading) {
     return (
@@ -266,7 +232,7 @@ const calculateTotalPayment = (scheme: InvestmentScheme) => {
                       {scheme.scheme_name}
                     </CardTitle>
                     <Badge className={`${getSchemeTypeColor(scheme.scheme_type)} px-2.5 py-0.5 text-xs font-semibold`}>
-                      {scheme.scheme_type === 'single_payment' ? 'One-Time' : 'EMI'}
+                      {getSchemeTypeDisplayName(scheme.scheme_type)}
                     </Badge>
                   </div>
 
@@ -283,63 +249,59 @@ const calculateTotalPayment = (scheme: InvestmentScheme) => {
                 </CardHeader>
 
                 <CardContent className="space-y-3 pt-0">
-<div className="grid grid-cols-2 gap-3">
-  {/* Booking Advance - Show for both types if available */}
-  {(scheme.booking_advance && scheme.booking_advance > 0) && (
-    <div className="bg-background p-3 rounded-lg border border-border">
-      <div className="flex items-center gap-1.5 mb-1">
-        <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">
-          {scheme.scheme_type === 'single_payment' ? 'Booking Advance' : 'Booking Advance'}
-        </span>
-      </div>
-      <span className="text-base font-bold text-emerald-600">
-        {formatCurrency(scheme.booking_advance)}
-      </span>
-    </div>
-  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Booking Advance - Show for both types if available */}
+                    {(scheme.booking_advance && scheme.booking_advance > 0) && (
+                      <div className="bg-background p-3 rounded-lg border border-border">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {scheme.scheme_type === SchemeType.SINGLE_PAYMENT ? 'Booking Advance' : 'Booking Advance'}
+                          </span>
+                        </div>
+                        <span className="text-base font-bold text-emerald-600">
+                          {formatCurrency(scheme.booking_advance)}
+                        </span>
+                      </div>
+                    )}
 
-  {/* Monthly EMI for installment plans */}
-  {scheme.scheme_type === 'installment' && (
-    <div className="bg-background p-3 rounded-lg border border-border">
-      <div className="flex items-center gap-1.5 mb-1">
-        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
-      </div>
-      <span className="text-base font-bold text-foreground">
-        {formatCurrency(scheme.monthly_installment_amount)}
-      </span>
-    </div>
-  )}
+                    {/* Monthly EMI for installment plans */}
+                    {scheme.scheme_type === SchemeType.INSTALLMENT && (
+                      <div className="bg-background p-3 rounded-lg border border-border">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
+                        </div>
+                        <span className="text-base font-bold text-foreground">
+                          {formatCurrency(scheme.monthly_installment_amount)}
+                        </span>
+                      </div>
+                    )}
 
-  {/* Balance Payment Days for single payment */}
-  {scheme.scheme_type === 'single_payment' && scheme.balance_payment_days && (
-    <div className="bg-background p-3 rounded-lg border border-border">
-      <div className="flex items-center gap-1.5 mb-1">
-        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
-      </div>
-      <span className="text-base font-bold text-foreground">
-        {scheme.balance_payment_days} days
-      </span>
-    </div>
-  )}
+                    {/* Balance Payment Days for single payment */}
+                    {scheme.scheme_type === SchemeType.SINGLE_PAYMENT && scheme.balance_payment_days && (
+                      <div className="bg-background p-3 rounded-lg border border-border">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
+                        </div>
+                        <span className="text-base font-bold text-foreground">
+                          {scheme.balance_payment_days} days
+                        </span>
+                      </div>
+                    )}
 
-  {/* Duration for installment plans */}
-  {scheme.scheme_type === 'installment' && (
-    <div className="bg-background p-3 rounded-lg border border-border">
-      <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
-      <span className="text-base font-bold text-foreground">
-        {scheme.total_installments || 'N/A'} months
-      </span>
-    </div>
-  )}
+                    {/* Duration for installment plans */}
+                    {scheme.scheme_type === SchemeType.INSTALLMENT && (
+                      <div className="bg-background p-3 rounded-lg border border-border">
+                        <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
+                        <span className="text-base font-bold text-foreground">
+                          {scheme.total_installments || 'N/A'} months
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-  {/* REMOVED: Total Investment box completely */}
-</div>
-
-
-                  {/* Rental Information */}
                   {/* Rental Information */}
                   {scheme.rental_start_month && (
                     <div className="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30">
@@ -351,10 +313,6 @@ const calculateTotalPayment = (scheme: InvestmentScheme) => {
                         <span className="text-sm font-bold text-emerald-500">
                           Month {scheme.rental_start_month}
                         </span>
-                      </div>
-                      {/* Optional: Show estimated rental based on base_price */}
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Estimated Monthly Rental: {formatCurrency(scheme.base_price * 0.01)}
                       </div>
                     </div>
                   )}
