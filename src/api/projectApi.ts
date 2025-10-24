@@ -1,16 +1,18 @@
-import axiosClient from "./axiosClient";
+import { AxiosResponse } from "axios";
+import { mainAxiosClient, getAxiosClient } from "./axiosClient";
 import { ENDPOINTS } from "./endpoints";
+import { 
+  ListProjectsRequest, 
+  ListProjectResponse,
+  ProjectResponse 
+} from "./models/projectModels";
 
 export const projectApi = {
-  create: (formData: FormData) =>
-    axiosClient.post(ENDPOINTS.PROJECTS.CREATE, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  // GET operations using getAxiosClient
+  list: (params?: ListProjectsRequest): Promise<AxiosResponse<ListProjectResponse>> =>
+    getAxiosClient.get(ENDPOINTS.PROJECTS.LIST, { params }),
 
-  update: (id: string, formData: FormData) =>
-    axiosClient.put(ENDPOINTS.PROJECTS.UPDATE(id), formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  getById: (id: string): Promise<AxiosResponse<ProjectResponse>> =>
+    getAxiosClient.get(ENDPOINTS.PROJECTS.GET_BY_ID(id)),
 
-  delete: (id: string) => axiosClient.delete(ENDPOINTS.PROJECTS.DELETE(id)),
 };

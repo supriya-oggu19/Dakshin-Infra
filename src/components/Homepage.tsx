@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import ProjectCard from "@/components/ProjectCard";
 import heroImage from "@/assets/hero-skyline.jpg";
 import { Link } from "react-router-dom";
+import { projectApi } from "@/api/projectApi";
 
 const Homepage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -19,8 +20,8 @@ const Homepage = () => {
 
   const fetchFeaturedProjects = async () => {
     try {
-      const response = await fetch('http://localhost:8001/api/projects/all?page=1&limit=3');
-      const data = await response.json();
+      const response = await projectApi.list({ page: 1, limit: 3 });
+      const data = response.data;
       
       const formattedProjects = data.projects.map((project: any) => ({
         ...project,

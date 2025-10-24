@@ -1,38 +1,88 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Search, Filter, Grid, List, Menu } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import ProjectCard from "@/components/ProjectCard";
+import { projectApi } from "@/api/projectApi";
+import { ListProjectsRequest, ProjectStatus, PropertyType } from "@/api/models/projectModels";
+
+// Debounce hook
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 const Projects = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [priceFilter, setPriceFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [locations, setLocations] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProjects, setTotalProjects] = useState(0);
 
+  // Use debounced search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 800);
+
+  // Fetch projects when any filter or page changes
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [currentPage, debouncedSearchTerm, statusFilter, priceFilter, typeFilter]);
 
-  // Update filtered projects when search or filters change
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, priceFilter, locationFilter, statusFilter, typeFilter, projects]);
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
-const response = await fetch('http://localhost:8001/api/projects/all?page=1&limit=100');
-      const data = await response.json();
+      setLoading(true);
+      
+      const params: ListProjectsRequest = {
+        page: currentPage,
+        limit: 9,
+        ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
+        ...(statusFilter && statusFilter !== "all-status" && { 
+          status_filter: statusFilter.toLowerCase().replace(' ', '_') as ProjectStatus 
+        }),
+        ...(typeFilter && typeFilter !== "all-types" && { 
+          property_type: typeFilter.toLowerCase() as PropertyType 
+        }),
+        ...(priceFilter && priceFilter !== "all-prices" && getPriceRangeFilter(priceFilter))
+      };
+
+      const response = await projectApi.list(params);
+      const data = response.data;
+      
+      if (!data || !data.projects || !Array.isArray(data.projects)) {
+        console.warn("Invalid response data:", data);
+        setProjects([]);
+        setTotalPages(1);
+        setTotalProjects(0);
+        setLoading(false);
+        return;
+      }
       
       const formattedProjects = data.projects.map((project: any) => ({
         ...project,
@@ -45,19 +95,25 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
       }));
       
       setProjects(formattedProjects);
-      setFilteredProjects(formattedProjects);
-      
-      // Extract unique locations
-      const uniqueLocations = Array.from(
-        new Set(formattedProjects.map((p: any) => p.location))
-      ) as string[];
-      setLocations(uniqueLocations.sort());
-      
+      setTotalPages(data.total_pages || 1);
+      setTotalProjects(data.total_projects || formattedProjects.length);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching projects:', error);
       setLoading(false);
     }
+  }, [currentPage, debouncedSearchTerm, statusFilter, typeFilter, priceFilter]);
+
+  const getPriceRangeFilter = (priceRange: string) => {
+    const ranges: { [key: string]: { min_price?: number; max_price?: number } } = {
+      "15-20": { min_price: 1500000, max_price: 2000000 },
+      "60-70": { min_price: 6000000, max_price: 7000000 },
+      "70-80": { min_price: 7000000, max_price: 8000000 },
+      "80-90": { min_price: 8000000, max_price: 9000000 },
+      "90-100": { min_price: 9000000, max_price: 10000000 },
+      "100+": { min_price: 10000000 }
+    };
+    return ranges[priceRange] || {};
   };
 
   const formatStatus = (status: string): "Available" | "Sold Out" | "Coming Soon" => {
@@ -77,37 +133,96 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
     return "100+";
   };
 
-  const applyFilters = () => {
-    const filtered = projects.filter(project => {
-      const matchesSearch = 
-        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.location.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesLocation = 
-        locationFilter === "" || 
-        locationFilter === "all-locations" || 
-        project.location.toLowerCase() === locationFilter.toLowerCase();
-      
-      const matchesStatus = 
-        statusFilter === "" || 
-        statusFilter === "all-status" || 
-        project.status === statusFilter;
-      
-      const matchesPrice = 
-        priceFilter === "" || 
-        priceFilter === "all-prices" || 
-        project.priceRange === priceFilter;
-      
-      const matchesType = 
-        typeFilter === "" || 
-        typeFilter === "all-types" || 
-        project.type === typeFilter;
-      
-      return matchesSearch && matchesLocation && matchesStatus && matchesPrice && matchesType;
-    });
-    
-    setFilteredProjects(filtered);
+  // Handle filter changes - reset to page 1
+  const handleFilterChange = (filterType: string, value: string) => {
+    setCurrentPage(1);
+    switch (filterType) {
+      case 'status':
+        setStatusFilter(value);
+        break;
+      case 'price':
+        setPriceFilter(value);
+        break;
+      case 'type':
+        setTypeFilter(value);
+        break;
+    }
   };
+
+  const generatePaginationItems = () => {
+  const items = [];
+  const maxVisiblePages = 5;
+  
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  
+  // Adjust start page if we're near the end
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+  
+  // First page
+  if (startPage > 1) {
+    items.push(
+      <PaginationItem key={1}>
+        <PaginationLink 
+          onClick={() => setCurrentPage(1)}
+          className={currentPage === 1 ? "bg-amber-500 text-white hover:bg-amber-600" : ""}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+    if (startPage > 2) {
+      items.push(
+        <PaginationItem key="ellipsis1">
+          <PaginationLink className="cursor-default">...</PaginationLink>
+        </PaginationItem>
+      );
+    }
+  }
+  
+  // Page numbers
+  for (let page = startPage; page <= endPage; page++) {
+    items.push(
+      <PaginationItem key={page}>
+        <PaginationLink
+          onClick={() => setCurrentPage(page)}
+          className={
+            page === currentPage 
+              ? "bg-amber-500 text-white hover:bg-amber-600" 
+              : ""
+          }
+        >
+          {page}
+        </PaginationLink>
+      </PaginationItem>
+    );
+  }
+  
+  // Last page
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      items.push(
+        <PaginationItem key="ellipsis2">
+          <PaginationLink className="cursor-default">...</PaginationLink>
+        </PaginationItem>
+      );
+    }
+    items.push(
+      <PaginationItem key={totalPages}>
+        <PaginationLink 
+          onClick={() => setCurrentPage(totalPages)}
+          className={currentPage === totalPages ? "bg-amber-500 text-white hover:bg-amber-600" : ""}
+        >
+          {totalPages}
+        </PaginationLink>
+      </PaginationItem>
+    );
+  }
+  
+  return items;
+};
 
   if (loading) {
     return (
@@ -148,7 +263,7 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search projects or locations..."
+                  placeholder="Search projects by title or location..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-background border-border h-10 sm:h-auto"
@@ -190,21 +305,10 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
             <div className={`${showFilters ? 'block' : 'hidden'} sm:block`}>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
                 <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4 flex-1">
-                  <Select value={locationFilter} onValueChange={setLocationFilter}>
-                    <SelectTrigger className="bg-background border-border focus:border-amber-500 text-sm">
-                      <SelectValue placeholder="All Locations" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border-border">
-                      <SelectItem value="all-locations">All Locations</SelectItem>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc} value={loc}>
-                          {loc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select 
+                    value={statusFilter} 
+                    onValueChange={(value) => handleFilterChange('status', value)}
+                  >
                     <SelectTrigger className="bg-background border-border focus:border-amber-500 text-sm">
                       <SelectValue placeholder="All Status" />
                     </SelectTrigger>
@@ -216,7 +320,10 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
                     </SelectContent>
                   </Select>
 
-                  <Select value={priceFilter} onValueChange={setPriceFilter}>
+                  <Select 
+                    value={priceFilter} 
+                    onValueChange={(value) => handleFilterChange('price', value)}
+                  >
                     <SelectTrigger className="bg-background border-border focus:border-amber-500 text-sm">
                       <SelectValue placeholder="Price Range" />
                     </SelectTrigger>
@@ -231,7 +338,10 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
                     </SelectContent>
                   </Select>
 
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <Select 
+                    value={typeFilter} 
+                    onValueChange={(value) => handleFilterChange('type', value)}
+                  >
                     <SelectTrigger className="bg-background border-border focus:border-amber-500 text-sm">
                       <SelectValue placeholder="Property Type" />
                     </SelectTrigger>
@@ -239,6 +349,8 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
                       <SelectItem value="all-types">All Types</SelectItem>
                       <SelectItem value="Commercial">Commercial</SelectItem>
                       <SelectItem value="Residential">Residential</SelectItem>
+                      <SelectItem value="Plot">Plot</SelectItem>
+                      <SelectItem value="Land">Land</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -269,7 +381,7 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
           {/* Results */}
           <div className="flex justify-between items-center mb-4 sm:mb-6 px-1">
             <p className="text-sm sm:text-base text-gray-600">
-              Showing {filteredProjects.length} of {projects.length} projects
+              Showing {projects.length} of {totalProjects} projects
             </p>
           </div>
 
@@ -279,7 +391,7 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
               ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" 
               : "grid-cols-1"
           }`}>
-            {filteredProjects.map((project, index) => (
+            {projects.map((project, index) => (
               <div
                 key={project.id}
                 className="animate-fade-in"
@@ -290,7 +402,30 @@ const response = await fetch('http://localhost:8001/api/projects/all?page=1&limi
             ))}
           </div>
 
-          {filteredProjects.length === 0 && (
+          {/* Bottom Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8 sm:mt-12">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  {generatePaginationItems()}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+
+          {projects.length === 0 && (
             <div className="text-center py-8 sm:py-12">
               <div className="bg-white p-6 sm:p-12 rounded-xl border border-gray-200 shadow-md mx-4">
                 <Filter className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />

@@ -29,14 +29,28 @@ import {
 import Navigation from "@/components/Navigation";
 import InvestmentSchemes from "@/pages/InvestmentSchemes";
 import { useAuth } from "@/contexts/AuthContext";
+import { projectApi } from "@/api/projectApi";
+import { ProjectData, ProjectStatus, PropertyType } from "@/api/models/projectModels";
+
+interface FormattedProject extends Omit<ProjectData, 'status' | 'property_type'> {
+  status: "Available" | "Sold Out" | "Coming Soon";
+  type: string;
+  price: string;
+  area: string;
+  gallery: string[];
+  highlights: string[];
+  amenities: any[];
+  investmentHighlights: any[];
+}
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [project, setProject] = useState<any>(null);
+  const [project, setProject] = useState<FormattedProject | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -45,37 +59,54 @@ const ProjectDetail = () => {
   }, [id]);
 
   const fetchProject = async (projectId: string) => {
-    try {
-      const response = await fetch(`http://localhost:8001/api/projects/${projectId}`);
-      const data = await response.json();
-      
-      const formattedProject = {
-        ...data.data,
-        status: formatStatus(data.data.status),
-        price: `₹${(data.data.base_price / 100000).toFixed(0)} Lakhs`,
-        area: data.data.pricing_details?.sqft ? `${data.data.pricing_details.sqft} sqft onwards` : 'N/A',
-        gallery: data.data.gallery_images?.map((img: any) => img.url) || [],
-        highlights: data.data.key_highlights || [],
-        amenities: data.data.amenities?.map((amenity: any) => ({
-          ...amenity,
-          icon: getIconComponent(amenity.icon),
-        })) || [],
-        investmentHighlights: data.data.investment_highlights?.map((highlight: string) => {
-          const [title, ...valueParts] = highlight.split(': ');
-          return { 
-            title: title.trim(), 
-            value: valueParts.join(': ').trim(), 
-            subtitle: '' 
-          };
-        }) || [],
-      };
-      
-      setProject(formattedProject);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching project:', error);
-      setLoading(false);
+  try {
+    setLoading(true);
+    setError(null);
+    
+    const response = await projectApi.getById(projectId);
+    const data = response.data;
+    
+    if (!data) {
+      throw new Error("No project data received");
     }
+
+    const projectData = data.data;
+
+    if (!projectData) {
+      throw new Error("No project details found");
+    }
+
+    const formattedProject: FormattedProject = {
+      ...projectData,
+      status: formatStatus(projectData.status),
+      type: projectData.property_type ? 
+        projectData.property_type.charAt(0).toUpperCase() + projectData.property_type.slice(1) : 
+        'Unknown',
+      price: projectData.base_price ? `₹${(projectData.base_price / 100000).toFixed(0)} Lakhs` : 'Price not available',
+      area: projectData.available_units ? `${projectData.available_units} sqft` : 'N/A',
+      gallery: projectData.gallery_images?.map((img: any) => img.url) || [],
+      highlights: projectData.key_highlights || [],
+      amenities: projectData.amenities?.map((amenity: any) => ({
+        ...amenity,
+        icon: getIconComponent(amenity.icon),
+      })) || [],
+      investmentHighlights: projectData.investment_highlights?.map((highlight: string) => {
+        const [title, ...valueParts] = highlight.split(': ');
+        return { 
+          title: title.trim(), 
+          value: valueParts.join(': ').trim(), 
+          subtitle: '' 
+        };
+      }) || [],
+    };
+    
+    setProject(formattedProject);
+    setLoading(false);
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    setError('Failed to load project details. Please try again later.');
+    setLoading(false);
+  }
   };
 
   const formatStatus = (status: string): "Available" | "Sold Out" | "Coming Soon" => {
@@ -103,6 +134,23 @@ const ProjectDetail = () => {
         <Navigation />
         <div className="pt-20 flex items-center justify-center min-h-screen">
           <Loader className="w-8 h-8 animate-spin text-yellow-500" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="pt-20 flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Error Loading Project</h1>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Link to="/projects">
+              <Button variant="luxury">Back to Projects</Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -230,7 +278,7 @@ const ProjectDetail = () => {
                       </div>
                       <div className="flex items-center">
                         <TrendingUp className="w-5 h-5 mr-2" />
-                        <span>{project.property_type.charAt(0).toUpperCase() + project.property_type.slice(1)}</span>
+                        <span>{project.type}</span>
                       </div>
                     </div>
                   </div>
@@ -442,7 +490,7 @@ const ProjectDetail = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Property Type</span>
-                      <span className="text-foreground">{project.property_type.charAt(0).toUpperCase() + project.property_type.slice(1)}</span>
+                      <span className="text-foreground">{project.type}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">RERA Number</span>
