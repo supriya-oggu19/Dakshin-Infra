@@ -1,7 +1,14 @@
-import axiosClient from "./axiosClient";
+import { getAxiosClient } from "./axiosClient";
 import { ENDPOINTS } from "./endpoints";
+import { AxiosResponse } from "axios";
+import { 
+  InvestmentSchemeListRequest, 
+  InvestmentSchemeListResponse,
+  InvestmentSchemeResponse 
+} from "@/api/models/schemeModels";
 
 export const schemeApi = {
-  create: (data: any) => axiosClient.post(ENDPOINTS.SCHEMES.CREATE, data),
-  update: (id: string, data: any) => axiosClient.put(ENDPOINTS.SCHEMES.UPDATE(id), data),
+  // GET operations using getAxiosClient
+  listByProject: (params: InvestmentSchemeListRequest): Promise<AxiosResponse<InvestmentSchemeListResponse>> =>
+    getAxiosClient.get(ENDPOINTS.SCHEMES.LIST_BY_PROJECT, { params }),
 };
