@@ -76,14 +76,6 @@ const UserInfoPage = ({ accounts: initialAccounts, onSubmit, onAccountsChange }:
   ]);
 
   const addAccount = () => {
-    if (accounts.length >= 2) {
-      toast({
-        title: "Limit Reached",
-        description: "Only one joint account holder allowed",
-        variant: "destructive",
-      });
-      return;
-    }
     const newAccount: Account = {
       id: Date.now().toString(),
       type: 'joint',

@@ -1,4 +1,4 @@
-export interface Address {
+export interface Address { 
   street: string;
   city: string;
   state: string;
@@ -163,4 +163,20 @@ export interface LegacyUserInfoFormProps {
       jointPassport: boolean;
     }>
   >;
+}
+
+export type PurchaseStep = "plan-selection" | "user-info" | "kyc" | "payment" | "confirmation";
+
+export interface KYCFormProps {
+  kycDocuments: KYCDocuments;
+  setKycDocuments: React.Dispatch<React.SetStateAction<KYCDocuments>>;
+  kycAccepted: boolean;
+  setKycAccepted: React.Dispatch<React.SetStateAction<boolean>>;
+  userType: 'individual' | 'business' | 'NRI';
+  isJointAccount?: boolean;
+  jointAccounts?: JointAccountInfo[]; // Changed from single jointAccountInfo to array
+  jointKycAccepted?: boolean[];
+  setJointKycAccepted?: React.Dispatch<React.SetStateAction<boolean[]>>;
+  userInfo?: UserInfo;
+  setCurrentStep: (step: PurchaseStep) => void; // Fixed: Changed string to PurchaseStep
 }

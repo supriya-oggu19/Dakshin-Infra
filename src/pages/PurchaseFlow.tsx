@@ -53,11 +53,17 @@ const PurchaseFlow = () => {
   ]);
   const [kycDocuments, setKycDocuments] = useState<KYCDocuments>({});
   const [kycAccepted, setKycAccepted] = useState(false);
-  const [jointKycAccepted, setJointKycAccepted] = useState(false);
+  const [jointKycAccepted, setJointKycAccepted] = useState<boolean[]>([]);
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
+
+  // Update when accounts change
+  useEffect(() => {
+    const jointCount = accounts.filter(account => account.type === 'joint').length;
+    setJointKycAccepted(Array(jointCount).fill(false));
+  }, [accounts]);
 
   // Helper functions for initial state
   function getInitialUserInfo(user: any): UserInfo {
@@ -454,7 +460,12 @@ const PurchaseFlow = () => {
           </div>
         );
 
+      // In your PurchaseFlow component, update the KYC form usage:
       case "kyc":
+        const jointAccounts = accounts
+          .filter(account => account.type === 'joint')
+          .map(account => account.data as JointAccountInfo);
+        
         return (
           <div className="space-y-6">
             <KYCForm
@@ -463,12 +474,11 @@ const PurchaseFlow = () => {
               kycAccepted={kycAccepted}
               setKycAccepted={setKycAccepted}
               userType={(accounts[0]?.data as UserInfo)?.user_type || "individual"}
-              isJointAccount={accounts.length > 1}
-              jointUserType={(accounts[1]?.data as JointAccountInfo)?.user_type || "individual"}
+              isJointAccount={jointAccounts.length > 0}
+              jointAccounts={jointAccounts}
               jointKycAccepted={jointKycAccepted}
               setJointKycAccepted={setJointKycAccepted}
               userInfo={accounts[0]?.data as UserInfo}
-              jointAccountInfo={accounts[1]?.data as JointAccountInfo}
               setCurrentStep={setCurrentStep}
             />
           </div>
