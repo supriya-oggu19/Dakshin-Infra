@@ -13,7 +13,7 @@ interface PurchaseUnitConfirmationProps {
   isJointOwnership: boolean;
   numberOfUnits: number;
   onPurchaseSuccess: (data: any) => void;
-  userProfileId: string | null;
+  userProfileIds: string[];
   schemeData?: any;
   paymentAmount: number;
   projectName?: string;
@@ -31,7 +31,7 @@ const PurchaseUnitConfirmation = ({
   isJointOwnership,
   numberOfUnits,
   onPurchaseSuccess,
-  userProfileId,
+  userProfileIds,
   schemeData,
   paymentAmount,
   projectName = projectId
@@ -121,10 +121,10 @@ const PurchaseUnitConfirmation = ({
       return;
     }
 
-    if (!userProfileId) {
+    if (!userProfileIds || userProfileIds.length === 0) {
       toast({
         title: "Error",
-        description: "User profile not found. Please complete previous steps.",
+        description: "User profiles not found. Please complete previous steps.",
         variant: "destructive",
       });
       return;
@@ -137,7 +137,7 @@ const PurchaseUnitConfirmation = ({
       const purchaseData = {
         project_id: projectId,
         scheme_id: schemeId,
-        user_profile_id: userProfileId,
+        user_profile_ids: userProfileIds,
         number_of_units: numberOfUnits,
         is_joint_ownership: isJointOwnership,
         payment_amount: paymentAmount,
