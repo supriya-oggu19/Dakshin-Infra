@@ -48,13 +48,12 @@ const UserInfoForm = ({
   };
 
   const handleAddressChange = (type: 'present' | 'permanent', field: keyof Address, value: string) => {
-    if (!isPrimary) return;
     const addressField = `${type}_address` as const;
     const currentAddress = (account.data as UserInfo)[addressField];
     onUpdate({
       ...account.data,
       [addressField]: { ...currentAddress, [field]: value }
-    } as UserInfo);
+    } as UserInfo | JointAccountInfo);
   };
 
   const handleBankDetailsChange = (field: keyof AccountDetails, value: string) => {
@@ -68,13 +67,12 @@ const UserInfoForm = ({
   };
 
   const handleSameAddressChange = (checked: boolean) => {
-    if (!isPrimary) return;
     const { present_address, permanent_address } = account.data as UserInfo;
     onUpdate({
       ...account.data,
       sameAddress: checked,
       permanent_address: checked ? { ...present_address } : permanent_address,
-    } as UserInfo);
+    } as UserInfo | JointAccountInfo);
   };
 
   const verifyPan = async () => {
@@ -278,7 +276,7 @@ const UserInfoForm = ({
     }
   };
 
-  const hasAddressFields = isPrimary && 'present_address' in account.data && 'permanent_address' in account.data;
+  const hasAddressFields = !!account.data.present_address;
 
   const data = account.data;
   const verified = account.verified;
@@ -352,7 +350,7 @@ const UserInfoForm = ({
           </div>
         </div>
 
-        {/* Address Section - Only for Primary */}
+        {/* Address Section */}
         {hasAddressFields && (
           <>
             <div className="space-y-4">
@@ -470,29 +468,29 @@ const UserInfoForm = ({
                 </>
               )}
             </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor={`occupation-${account.id}`}>Occupation *</Label>
-                <Input
-                  id={`occupation-${account.id}`}
-                  value={data.occupation}
-                  onChange={(e) => handleChange('occupation', e.target.value)}
-                  placeholder="Enter occupation"
-                />
-              </div>
-              <div>
-                <Label htmlFor={`annual_income-${account.id}`}>Annual Income *</Label>
-                <Input
-                  id={`annual_income-${account.id}`}
-                  value={data.annual_income}
-                  onChange={(e) => handleChange('annual_income', e.target.value)}
-                  placeholder="Enter annual income"
-                />
-              </div>
-            </div>
           </>
         )}
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor={`occupation-${account.id}`}>Occupation *</Label>
+            <Input
+              id={`occupation-${account.id}`}
+              value={data.occupation}
+              onChange={(e) => handleChange('occupation', e.target.value)}
+              placeholder="Enter occupation"
+            />
+          </div>
+          <div>
+            <Label htmlFor={`annual_income-${account.id}`}>Annual Income *</Label>
+            <Input
+              id={`annual_income-${account.id}`}
+              value={data.annual_income}
+              onChange={(e) => handleChange('annual_income', e.target.value)}
+              placeholder="Enter annual income"
+            />
+          </div>
+        </div>
 
         {/* Contact Details */}
         <div className="grid md:grid-cols-2 gap-4">

@@ -57,7 +57,7 @@ const PurchaseFlow = () => {
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [userProfileId, setUserProfileId] = useState<string | null>(null);
+  const [userProfileIds, setUserProfileIds] = useState<string[]>([]);
 
   // Update when accounts change
   useEffect(() => {
@@ -113,10 +113,27 @@ const PurchaseFlow = () => {
       gender: "male",
       email: "",
       phone_number: "",
+      present_address: {
+        street: "",
+        city: "",
+        state: "",
+        country: "India",
+        postal_code: "",
+      },
+      permanent_address: {
+        street: "",
+        city: "",
+        state: "",
+        country: "India",
+        postal_code: "",
+      },
+      occupation: "",
+      annual_income: "",
       pan_number: "",
       aadhar_number: "",
       gst_number: "",
       passport_number: "",
+      sameAddress: true,
       user_type: "individual",
       account_details: {
         account_holder_name: "",
@@ -254,18 +271,29 @@ const PurchaseFlow = () => {
   };
 
   const validateUserInfo = () => {
-    const primary = accounts.find(a => a.type === 'primary');
-    if (!primary) return false;
-    const data = primary.data as UserInfo;
-    if (!data.surname || !data.name || !data.dob || !data.email || !primary.termsAccepted) return false;
-    if (!data.phone_number || !validatePhone(data.phone_number)) return false;
-    if (!data.present_address.street || !data.present_address.city) return false;
-    if (!data.account_details.account_number || !data.account_details.ifsc_code) return false;
-    const joint = accounts.find(a => a.type === 'joint');
-    if (joint && (!joint.termsAccepted || !joint.data.surname || !joint.data.name)) return false;
-    if (data.user_type === 'individual' && !primary.verified.pan) return false;
-    if (data.user_type === 'business' && !primary.verified.gst) return false;
-    if (data.user_type === 'NRI' && !primary.verified.passport) return false;
+    for (const account of accounts) {
+      const data = account.data as UserInfo;
+      if (!data.surname || !data.name || !account.termsAccepted) return false;
+
+      if (!data.dob || !data.email) return false;
+      if (!data.phone_number || !validatePhone(data.phone_number)) return false;
+      if (!data.present_address.street || !data.present_address.city) return false;
+      if (!data.occupation || !data.annual_income) return false;
+      if (!data.account_details.account_number || !data.account_details.ifsc_code) return false;
+
+      // verified
+      switch (data.user_type) {
+        case 'individual':
+          if (!account.verified.pan || !account.verified.aadhar) return false;
+          break;
+        case 'business':
+          if (!account.verified.gst) return false;
+          break;
+        case 'NRI':
+          if (!account.verified.passport) return false;
+          break;
+      }
+    }
     return true;
   };
 
@@ -276,18 +304,35 @@ const PurchaseFlow = () => {
     if (primary.user_type === 'individual' && (!kycDocuments.pan || !kycDocuments.aadhar)) return false;
     if (primary.user_type === 'business' && !kycDocuments.gst) return false;
     if (primary.user_type === 'NRI' && !kycDocuments.passport) return false;
-    if (accounts.length > 1 && !jointKycAccepted) return false;
+
+    if (accounts.length > 1 && !jointKycAccepted.every(Boolean)) return false;
+
+    const jointAccounts = accounts
+      .filter(account => account.type === 'joint')
+      .map(account => account.data as JointAccountInfo);
+    jointAccounts.forEach((joint, i) => {
+      const idx = i + 1;
+      const base = `joint${idx}`;
+      if (joint.user_type === 'individual' && (!kycDocuments[`${base}Pan`] || !kycDocuments[`${base}Aadhar`])) return false;
+      if (joint.user_type === 'business' && !kycDocuments[`${base}Gst`]) return false;
+      if (joint.user_type === 'NRI' && !kycDocuments[`${base}Passport`]) return false;
+    });
+
     return true;
   };
 
-  // User profile creation
-  const createUserProfile = async (): Promise<string> => {
-    const primary = accounts.find(a => a.type === 'primary')?.data as UserInfo;
-    const joint = accounts.find(a => a.type === 'joint')?.data as JointAccountInfo;
+  // User profiles creation - one by one
+  const createUserProfiles = async (): Promise<string[]> => {
+    const ids: string[] = [];
+    const jointAccounts = accounts
+      .filter(account => account.type === 'joint')
+      .map(account => account.data as JointAccountInfo);
 
+    // Primary
+    const primary = accounts.find(a => a.type === 'primary')?.data as UserInfo;
     if (!primary) throw new Error("Primary account data missing");
 
-    const profileData: CreateUserProfileRequest = {
+    const primaryData: CreateUserProfileRequest = {
       surname: primary.surname,
       name: primary.name,
       dob: primary.dob,
@@ -304,42 +349,95 @@ const PurchaseFlow = () => {
       phone_number: primary.phone_number,
       email: primary.email,
       account_details: primary.account_details,
-      joint_account: joint ? {
+    };
+
+    const primaryFormData = new FormData();
+    primaryFormData.append("profile_data", JSON.stringify(primaryData));
+
+    let primaryDoc1: File | null = null;
+    let primaryDoc2: File | null = null;
+    if (primary.user_type === 'individual') {
+      primaryDoc1 = kycDocuments.pan as File;
+      primaryDoc2 = kycDocuments.aadhar as File;
+    } else if (primary.user_type === 'business') {
+      primaryDoc1 = kycDocuments.gst as File;
+    } else if (primary.user_type === 'NRI') {
+      primaryDoc1 = kycDocuments.passport as File;
+    }
+
+    if (!primaryDoc1) throw new Error("Missing required document for primary user");
+
+    primaryFormData.append("document1", primaryDoc1);
+    if (primaryDoc2) primaryFormData.append("document2", primaryDoc2);
+
+    try {
+      const primaryResponse = await userProfileApi.createUserProfile(primaryFormData);
+      if (primaryResponse.data.user_profile_id) {
+        ids.push(primaryResponse.data.user_profile_id);
+      } else {
+        throw new Error("No user profile ID returned for primary user");
+      }
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to create primary user profile");
+    }
+
+    // Joints
+    for (let i = 0; i < jointAccounts.length; i++) {
+      const joint = jointAccounts[i] as UserInfo;
+      const jointIndex = i + 1;
+      const baseKey = `joint${jointIndex}`;
+
+      const jointData: CreateUserProfileRequest = {
         surname: joint.surname,
         name: joint.name,
         dob: joint.dob,
         gender: joint.gender,
-        email: joint.email,
-        phone_number: joint.phone_number,
+        present_address: joint.present_address,
+        permanent_address: joint.sameAddress ? joint.present_address : joint.permanent_address,
+        occupation: joint.occupation,
+        annual_income: joint.annual_income,
         user_type: joint.user_type,
         pan_number: joint.user_type === "individual" ? joint.pan_number : null,
         aadhar_number: joint.user_type === "individual" ? joint.aadhar_number : null,
         gst_number: joint.user_type === "business" ? joint.gst_number : null,
         passport_number: joint.user_type === "NRI" ? joint.passport_number : null,
+        phone_number: joint.phone_number,
+        email: joint.email,
         account_details: joint.account_details,
-      } : null,
-    };
+      };
 
-    const formData = new FormData();
-    formData.append("profile_data", JSON.stringify(profileData));
+      const jointFormData = new FormData();
+      jointFormData.append("profile_data", JSON.stringify(jointData));
 
-    Object.entries(kycDocuments).forEach(([key, file]) => {
-      if (file instanceof File) {
-        formData.append(key, file);
+      let jointDoc1: File | null = null;
+      let jointDoc2: File | null = null;
+      if (joint.user_type === 'individual') {
+        jointDoc1 = kycDocuments[`${baseKey}Pan`] as File;
+        jointDoc2 = kycDocuments[`${baseKey}Aadhar`] as File;
+      } else if (joint.user_type === 'business') {
+        jointDoc1 = kycDocuments[`${baseKey}Gst`] as File;
+      } else if (joint.user_type === 'NRI') {
+        jointDoc1 = kycDocuments[`${baseKey}Passport`] as File;
       }
-    });
 
-    try {
-      const response = await userProfileApi.createUserProfile(formData);
-      
-      if (response.data.user_profile_id) {
-        return response.data.user_profile_id;
-      } else {
-        throw new Error("No user profile ID returned from server");
+      if (!jointDoc1) throw new Error(`Missing required document for joint user ${jointIndex}`);
+
+      jointFormData.append("document1", jointDoc1);
+      if (jointDoc2) jointFormData.append("document2", jointDoc2);
+
+      try {
+        const jointResponse = await userProfileApi.createUserProfile(jointFormData);
+        if (jointResponse.data.user_profile_id) {
+          ids.push(jointResponse.data.user_profile_id);
+        } else {
+          throw new Error(`No user profile ID returned for joint user ${jointIndex}`);
+        }
+      } catch (error: any) {
+        throw new Error(error.response?.data?.message || `Failed to create joint user ${jointIndex} profile`);
       }
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to create user profile");
     }
+
+    return ids;
   };
 
   // Navigation handlers
@@ -352,12 +450,12 @@ const PurchaseFlow = () => {
       } else if (currentStep === "user-info" && validateUserInfo()) {
         setCurrentStep("kyc");
       } else if (currentStep === "kyc" && validateKYC()) {
-        const userProfileId = await createUserProfile();
-        setUserProfileId(userProfileId);
+        const userProfileIds = await createUserProfiles();
+        setUserProfileIds(userProfileIds);
 
         toast({
           title: "Success",
-          description: "User profile created successfully",
+          description: "User profiles created successfully",
         });
         setCurrentStep("payment");
       } else if (currentStep === "payment") {
@@ -460,7 +558,6 @@ const PurchaseFlow = () => {
           </div>
         );
 
-      // In your PurchaseFlow component, update the KYC form usage:
       case "kyc":
         const jointAccounts = accounts
           .filter(account => account.type === 'joint')
@@ -493,7 +590,7 @@ const PurchaseFlow = () => {
               isJointOwnership={accounts.length > 1}
               numberOfUnits={selectedUnits}
               onPurchaseSuccess={handlePurchaseSuccess}
-              userProfileId={userProfileId}
+              userProfileIds={userProfileIds}
               schemeData={schemes.find(s => s.id === selectedPlan.planId)}
               paymentAmount={getCurrentPaymentAmount()}
             />

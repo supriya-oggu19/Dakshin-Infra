@@ -22,12 +22,12 @@ const KYCForm = ({
 }: KYCFormProps) => {
   const [showDocuments, setShowDocuments] = useState(false);
 
-  const handleFileUpload = (field: keyof KYCDocuments, file: File) => {
+  const handleFileUpload = (field: string, file: File) => {
     setKycDocuments(prev => ({ ...prev, [field]: file }));
   };
 
-  const handleJointFileUpload = (jointIndex: number, field: keyof KYCDocuments, file: File) => {
-    const jointField = `joint${jointIndex + 1}${field.charAt(0).toUpperCase() + field.slice(1)}` as keyof KYCDocuments;
+  const handleJointFileUpload = (jointIndex: number, field: string, file: File) => {
+    const jointField = `joint${jointIndex + 1}${field.charAt(0).toUpperCase() + field.slice(1)}`;
     setKycDocuments(prev => ({ ...prev, [jointField]: file }));
   };
 
@@ -82,15 +82,15 @@ const KYCForm = ({
     }
   };
 
-  const getPrimaryAddress = () => {
-    if (!userInfo?.present_address) return 'Address not available';
-    const addr = userInfo.present_address;
+  const getPrimaryAddress = (type: 'present' | 'permanent') => {
+    if (!userInfo) return 'Address not available';
+    const addr = userInfo[type + '_address'];
     return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
   };
 
-  const getPermanentAddress = () => {
-    if (!userInfo?.permanent_address) return 'Address not available';
-    const addr = userInfo.permanent_address;
+  const getJointAddress = (jointAccount: JointAccountInfo, type: 'present' | 'permanent') => {
+    const addr = jointAccount[type + '_address'] as any;
+    if (!addr) return 'Address not available';
     return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
   };
 
@@ -148,11 +148,11 @@ const KYCForm = ({
               </div>
               <div className="md:col-span-2">
                 <Label className="text-sm font-medium text-gray-500">Present Address</Label>
-                <p className="text-base font-semibold">{getPrimaryAddress()}</p>
+                <p className="text-base font-semibold">{getPrimaryAddress('present')}</p>
               </div>
               <div className="md:col-span-2">
                 <Label className="text-sm font-medium text-gray-500">Permanent Address</Label>
-                <p className="text-base font-semibold">{getPermanentAddress()}</p>
+                <p className="text-base font-semibold">{getPrimaryAddress('permanent')}</p>
               </div>
               <div>
                 <Label className="text-sm font-medium text-gray-500">Occupation</Label>
@@ -243,6 +243,22 @@ const KYCForm = ({
                 <Label className="text-sm font-medium text-gray-500">User Type</Label>
                 <p className="text-base font-semibold">{jointAccount.user_type}</p>
               </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Occupation</Label>
+                <p className="text-base font-semibold">{jointAccount.occupation}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Annual Income</Label>
+                <p className="text-base font-semibold">{jointAccount.annual_income}</p>
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-sm font-medium text-gray-500">Present Address</Label>
+                <p className="text-base font-semibold">{getJointAddress(jointAccount, 'present')}</p>
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-sm font-medium text-gray-500">Permanent Address</Label>
+                <p className="text-base font-semibold">{getJointAddress(jointAccount, 'permanent')}</p>
+              </div>
               {jointAccount.pan_number && (
                 <div>
                   <Label className="text-sm font-medium text-gray-500">PAN Number</Label>
@@ -301,18 +317,18 @@ const KYCForm = ({
                         accept="image/jpeg,image/png,application/pdf"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handleFileUpload(doc.key as keyof KYCDocuments, file);
+                          if (file) handleFileUpload(doc.key, file);
                         }}
                         className="text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all"
                       />
                       <Upload className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-600 pointer-events-none" />
                     </div>
                     
-                    {kycDocuments[doc.key as keyof KYCDocuments] && (
+                    {kycDocuments[doc.key] && (
                       <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                         <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                         <span className="text-xs sm:text-sm text-green-700 font-medium truncate">
-                          {(kycDocuments[doc.key as keyof KYCDocuments] as File)?.name}
+                          {(kycDocuments[doc.key] as File)?.name}
                         </span>
                       </div>
                     )}
@@ -379,18 +395,18 @@ const KYCForm = ({
                             accept="image/jpeg,image/png,application/pdf"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (file) handleJointFileUpload(index, doc.key as keyof KYCDocuments, file);
+                              if (file) handleJointFileUpload(index, doc.key, file);
                             }}
                             className="text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all"
                           />
                           <Upload className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-yellow-600 pointer-events-none" />
                         </div>
                         
-                        {kycDocuments[`joint${index + 1}${doc.key.charAt(0).toUpperCase() + doc.key.slice(1)}` as keyof KYCDocuments] && (
+                        {kycDocuments[`joint${index + 1}${doc.key.charAt(0).toUpperCase() + doc.key.slice(1)}`] && (
                           <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                             <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                             <span className="text-xs sm:text-sm text-green-700 font-medium truncate">
-                              {(kycDocuments[`joint${index + 1}${doc.key.charAt(0).toUpperCase() + doc.key.slice(1)}` as keyof KYCDocuments] as File)?.name}
+                              {(kycDocuments[`joint${index + 1}${doc.key.charAt(0).toUpperCase() + doc.key.slice(1)}`] as File)?.name}
                             </span>
                           </div>
                         )}
