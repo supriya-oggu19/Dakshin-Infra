@@ -5,23 +5,29 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
+import {
   DollarSign,
   Clock,
   Calendar,
   Building,
   TrendingUp,
-  CheckCircle2,
   AlertCircle,
   Loader2,
   ArrowRight,
-  CreditCard
+  CreditCard,
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { projectApi } from '@/api/projectApi';
 import { schemeApi } from '@/api/schemeApi';
 import { InvestmentSchemeData, SchemeType } from '@/api/models/schemeModels';
-import { ProjectResponse } from '@/api/models/projectModels';
 
 interface InvestmentSchemesProps {
   projectName?: string;
@@ -35,7 +41,11 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
   const [schemes, setSchemes] = useState<InvestmentSchemeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fetchedProjectName, setFetchedProjectName] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const SCHEMES_PER_PAGE = 1;
 
   useEffect(() => {
     const fetchSchemes = async () => {
@@ -47,9 +57,23 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
       try {
         setLoading(true);
 
-        // Fetch schemes using the new API service
-        const response = await schemeApi.listByProject({ project_id: id });
+        const response = await schemeApi.listByProject({
+          project_id: id,
+          page: currentPage,
+          limit: SCHEMES_PER_PAGE
+        });
+
         setSchemes(response?.data.schemes ?? []);
+
+        if (response?.data.total_count) {
+          const total = response.data.total_count;
+          setTotalCount(total);
+          setTotalPages(Math.ceil(total / SCHEMES_PER_PAGE));
+        } else {
+          setTotalCount(schemes.length);
+          setTotalPages(1);
+        }
+
         setLoading(false);
       } catch (err) {
         console.error('Error fetching schemes:', err);
@@ -59,7 +83,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     };
 
     fetchSchemes();
-  }, [id]);
+  }, [id, currentPage]);
 
   const formatCurrency = (amount: number | null) => {
     if (!amount) return 'N/A';
@@ -97,6 +121,30 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     } else {
       navigate('/login', { state: { from: `/purchase/${id}`, selectedSchemeId: schemeId } });
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return pages;
   };
 
   const displayProjectName = projectName || 'Project';
@@ -158,6 +206,15 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Results Count */}
+        {schemes.length > 0 && (
+          <div className="flex justify-between items-center mb-6">
+            <p className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * SCHEMES_PER_PAGE) + 1} to {Math.min(currentPage * SCHEMES_PER_PAGE, totalCount)} of {totalCount} schemes
+            </p>
+          </div>
+        )}
+
         {/* Stats Bar */}
         {schemes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -166,7 +223,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Schemes</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{schemes.length}</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{totalCount}</p>
                   </div>
                   <div className="h-12 w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-yellow-500" />
@@ -221,115 +278,173 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
             </AlertDescription>
           </Alert>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {schemes.map((scheme) => (
-              <Card key={scheme.id} className="border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
-                <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {schemes.map((scheme) => (
+                <Card key={scheme.id} className="border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
+                  <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
 
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <CardTitle className="text-lg font-bold text-foreground">
-                      {scheme.scheme_name}
-                    </CardTitle>
-                    <Badge className={`${getSchemeTypeColor(scheme.scheme_type)} px-2.5 py-0.5 text-xs font-semibold`}>
-                      {getSchemeTypeDisplayName(scheme.scheme_type)}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Building className="w-3.5 h-3.5" />
-                      <span>{scheme.area_sqft} sqft</span>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <CardTitle className="text-lg font-bold text-foreground">
+                        {scheme.scheme_name}
+                      </CardTitle>
+                      <Badge className={`${getSchemeTypeColor(scheme.scheme_type)} px-2.5 py-0.5 text-xs font-semibold`}>
+                        {getSchemeTypeDisplayName(scheme.scheme_type)}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>{new Date(scheme.start_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-                </CardHeader>
 
-                <CardContent className="space-y-3 pt-0">
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Booking Advance - Show for both types if available */}
-                    {(scheme.booking_advance && scheme.booking_advance > 0) && (
-                      <div className="bg-background p-3 rounded-lg border border-border">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {scheme.scheme_type === SchemeType.SINGLE_PAYMENT ? 'Booking Advance' : 'Booking Advance'}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Building className="w-3.5 h-3.5" />
+                        <span>{scheme.area_sqft} sqft</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{new Date(scheme.start_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-3 pt-0">
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Booking Advance - Show for both types if available */}
+                      {(scheme.booking_advance && scheme.booking_advance > 0) && (
+                        <div className="bg-background p-3 rounded-lg border border-border">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {scheme.scheme_type === SchemeType.SINGLE_PAYMENT ? 'Booking Advance' : 'Booking Advance'}
+                            </span>
+                          </div>
+                          <span className="text-base font-bold text-emerald-600">
+                            {formatCurrency(scheme.booking_advance)}
                           </span>
                         </div>
-                        <span className="text-base font-bold text-emerald-600">
-                          {formatCurrency(scheme.booking_advance)}
-                        </span>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Monthly EMI for installment plans */}
-                    {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                      <div className="bg-background p-3 rounded-lg border border-border">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
+                      {/* Monthly EMI for installment plans */}
+                      {scheme.scheme_type === SchemeType.INSTALLMENT && (
+                        <div className="bg-background p-3 rounded-lg border border-border">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
+                          </div>
+                          <span className="text-base font-bold text-foreground">
+                            {formatCurrency(scheme.monthly_installment_amount)}
+                          </span>
                         </div>
-                        <span className="text-base font-bold text-foreground">
-                          {formatCurrency(scheme.monthly_installment_amount)}
-                        </span>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Balance Payment Days for single payment */}
-                    {scheme.scheme_type === SchemeType.SINGLE_PAYMENT && scheme.balance_payment_days && (
-                      <div className="bg-background p-3 rounded-lg border border-border">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
+                      {/* Balance Payment Days for single payment */}
+                      {scheme.scheme_type === SchemeType.SINGLE_PAYMENT && scheme.balance_payment_days && (
+                        <div className="bg-background p-3 rounded-lg border border-border">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
+                          </div>
+                          <span className="text-base font-bold text-foreground">
+                            {scheme.balance_payment_days} days
+                          </span>
                         </div>
-                        <span className="text-base font-bold text-foreground">
-                          {scheme.balance_payment_days} days
-                        </span>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Duration for installment plans */}
-                    {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                      <div className="bg-background p-3 rounded-lg border border-border">
-                        <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
-                        <span className="text-base font-bold text-foreground">
-                          {scheme.total_installments || 'N/A'} months
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Rental Information */}
-                  {scheme.rental_start_month && (
-                    <div className="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                          <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                          Rental Returns Start
-                        </span>
-                        <span className="text-sm font-bold text-emerald-500">
-                          Month {scheme.rental_start_month}
-                        </span>
-                      </div>
+                      {/* Duration for installment plans */}
+                      {scheme.scheme_type === SchemeType.INSTALLMENT && (
+                        <div className="bg-background p-3 rounded-lg border border-border">
+                          <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
+                          <span className="text-base font-bold text-foreground">
+                            {scheme.total_installments || 'N/A'} months
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
 
-                  {/* Action Button */}
-                  <Button
-                    onClick={() => handleInvestNow(scheme.id)}
-                    className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 group"
-                  >
-                    <DollarSign className="w-4 h-4 mr-2" />
-                    Invest Now
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    {/* Rental Information */}
+                    {scheme.rental_start_month && (
+                      <div className="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                            Rental Returns Start
+                          </span>
+                          <span className="text-sm font-bold text-emerald-500">
+                            Month {scheme.rental_start_month}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    <Button
+                      onClick={() => handleInvestNow(scheme.id)}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 group"
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Invest Now
+                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 0 && (
+              <div className="flex flex-col items-center gap-6 mt-12">
+                {/* Page info text */}
+                <div className="text-center">
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                </div>
+
+                {/* Shadcn UI Pagination */}
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) handlePageChange(currentPage - 1);
+                        }}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+
+                    </PaginationItem>
+
+                    {getPageNumbers().map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(page);
+                          }}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                        }}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

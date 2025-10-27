@@ -20,11 +20,11 @@ import NotFound from "./pages/NotFound";
 import InvestmentSchemes from "./pages/InvestmentSchemes";
 import React from "react";
 import FAQ from "./components/FAQ";
-import Footer from "./components/Footer";  // ← ADDED
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
-// Error Boundary Component
+// Error Boundary
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
 
@@ -42,12 +42,14 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
-            <p className="text-muted-foreground mb-4">Please check the console for details or try refreshing the page.</p>
+            <p className="text-muted-foreground mb-4">
+              Please check the console for details or try refreshing the page.
+            </p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
             >
- SCHEDULERefresh Page
+              Refresh Page
             </button>
           </div>
         </div>
@@ -57,7 +59,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
-// Protected Route Component
+// Protected Route
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -73,13 +75,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Layout Component to wrap all pages with Footer
-const AppLayout = ({ children }: { children: React.ReactNode }) => (
-  <>
-    {children}
-    <Footer />  {/* ← FOOTER APPEARS ON EVERY PAGE */}
-  </>
-);
+// ✅ AppLayout: Show footer only on home page
+const AppLayout = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+
+  return (
+    <>
+      {children}
+      {isHome && <Footer />} {/* Footer only on home */}
+    </>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -96,54 +103,34 @@ const App = () => (
               <Route path="/about" element={<AppLayout><About /></AppLayout>} />
               <Route path="/contact" element={<AppLayout><Contact /></AppLayout>} />
               <Route path="/agents" element={<AppLayout><Agents /></AppLayout>} />
-              <Route path="/login" element={<Login />} /> {/* No footer on login */}
-              <Route path="/register" element={<Register />} /> {/* No footer on register */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/investment-schemes/:id" element={<AppLayout><InvestmentSchemes /></AppLayout>} />
               <Route path="/faq" element={<AppLayout><FAQ /></AppLayout>} />
 
               {/* Protected Routes */}
               <Route
                 path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout><Profile /></AppLayout>
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>}
               />
               <Route
                 path="/purchase/:id"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout><PurchaseFlow /></AppLayout>
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><AppLayout><PurchaseFlow /></AppLayout></ProtectedRoute>}
               />
               <Route
                 path="/my-units"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout><MyUnits /></AppLayout>
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><AppLayout><MyUnits /></AppLayout></ProtectedRoute>}
               />
               <Route
                 path="/sip"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout><SipTracker /></AppLayout>
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><AppLayout><SipTracker /></AppLayout></ProtectedRoute>}
               />
               <Route
                 path="/agreements"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout><Agreements /></AppLayout>
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><AppLayout><Agreements /></AppLayout></ProtectedRoute>}
               />
 
-              {/* Catch-all route for 404 */}
+              {/* 404 */}
               <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
             </Routes>
           </BrowserRouter>

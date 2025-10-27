@@ -1,99 +1,269 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  TrendingUp, 
-  Calendar, 
-  IndianRupee, 
-  Award, 
+import {
+  TrendingUp,
+  Award,
   AlertTriangle,
   CheckCircle,
   Clock,
   Target,
   CreditCard,
-  Download
+  Download,
+  Loader2,
+  Building2,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { investmentApi } from "../api/investmentApi";
+import { InvestmentUnit, PaymentListResponse, Payment } from "../api/models/investment.model";
+import { portfolioApi } from "../api/portfolio-api";  // ✅ make sure this import exists!
 
 const SipTracker = () => {
-  const [selectedUnit, setSelectedUnit] = useState("KBP001");
+  const { token } = useAuth();
+  const [selectedUnit, setSelectedUnit] = useState("");
+  const [portfolioData, setPortfolioData] = useState<InvestmentUnit[]>([]);
+  const [paymentData, setPaymentData] = useState<PaymentListResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const sipData = {
-    "KBP001": {
-      projectName: "Kapil Business Park - KBP-2401",
-      scheme: "Single Payment Completed",
-      totalAmount: 3600000,
-      paidAmount: 3600000,
-      remainingAmount: 0,
-      progress: 100,
-      status: "Completed",
-      nextDue: null,
-      payments: [
-        { date: "2024-01-15", amount: 200000, type: "Advance", status: "Paid", receiptId: "RCP001" },
-        { date: "2024-02-01", amount: 3400000, type: "Final Payment", status: "Paid", receiptId: "RCP002" }
-      ],
-      rebate: 0,
-      penalties: 0
-    },
-    "KBP002": {
-      projectName: "Kapil Business Park - KBP-3547",
-      scheme: "100 Installments",
-      totalAmount: 3600000,
-      paidAmount: 72000,
-      remainingAmount: 3528000,
-      progress: 2,
-      status: "Active",
-      nextDue: "10-10-2025",
-      monthlyAmount: 36000,
-      installmentsPaid: 2,
-      totalInstallments: 100,
-      payments: Array.from({ length: 2 }, (_, i) => ({
-        date: new Date(2023, 8 + Math.floor(i / 12), (i % 12) + 1).toISOString().split('T')[0],
-        amount: i === 0 ? 36000 : 36000,
-        type: `Installment ${i + 1}`,
-        status: "Paid",
-        rebate: i === 0 ? 200 : 0,
-        penalty: i === 1 ? -160 : 0,
-        receiptId: `RCP00${i + 3}`
-      })),
-      rebate: 200,
-      penalties: -160
+  useEffect(() => {
+    fetchPortfolioData();
+  }, [token]);
+
+  useEffect(() => {
+    if (selectedUnit) {
+      fetchPaymentData(selectedUnit);
+    }
+  }, [selectedUnit]);
+
+ const fetchPortfolioData = async () => {
+    if (!token) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await portfolioApi.getPortfolio(token);
+const portfolio = response.data.portfolio || response.data.data || response.data || [];
+setPortfolioData(portfolio);
+
+
+      if (response.data.portfolio && response.data.portfolio.length > 0) {
+        setSelectedUnit(response.data.portfolio[0].unit_number);
+      }
+    } catch (err: any) {
+      console.error("Error fetching portfolio data:", err);
+      setError(err.message || "Failed to fetch portfolio data");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const currentSip = sipData[selectedUnit];
+  const fetchPaymentData = async (unitNumber: string) => {
+    if (!token) return;
 
-  const getStatusColor = (status) => {
+    try {
+      setLoading(true);
+      const response = await investmentApi.getPayments(unitNumber, token); // ✅ also fixed
+      setPaymentData(response.data);
+    } catch (err: any) {
+      console.error("Error fetching payment data:", err);
+      setError(err.message || "Failed to fetch payment data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    if (!amount) return "₹0";
+    if (amount >= 10000000) {
+      return `₹${(amount / 10000000).toFixed(2)}Cr`;
+    } else if (amount >= 100000) {
+      return `₹${(amount / 100000).toFixed(1)}L`;
+    } else if (amount >= 1000) {
+      return `₹${(amount / 1000).toFixed(1)}K`;
+    }
+    return `₹${amount}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Not Available";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "Completed":
+      case "completed":
         return "bg-green-100 text-green-800 border-green-200";
-      case "Active":
+      case "pending":
         return "bg-blue-100 text-blue-800 border-blue-200";
-      case "Overdue":
+      case "overdue":
         return "bg-red-100 text-red-800 border-red-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
-  const handleDownloadReceipt = (payment) => {
-    // Simulate receipt download
-    console.log(`Downloading receipt for ${payment.receiptId}`);
-    alert(`Downloading receipt ${payment.receiptId} for ${payment.type}`);
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "Completed";
+      case "pending":
+        return "Pending";
+      case "overdue":
+        return "Overdue";
+      default:
+        return "Unknown";
+    }
   };
+
+  const getTransactionTypeText = (type: string) => {
+    switch (type) {
+      case "advance":
+        return "Advance Payment";
+      case "installment":
+        return "Monthly Installment";
+      case "penalty":
+        return "Penalty Payment";
+      case "rebate":
+        return "Rebate Adjustment";
+      default:
+        return type;
+    }
+  };
+
+  const calculatePaymentProgress = () => {
+    if (!paymentData || !selectedUnit) return 0;
+
+    const unit = portfolioData.find((u) => u.unit_number === selectedUnit);
+    if (!unit || !unit.total_investment) return 0;
+
+    const totalPaid =
+      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
+      0;
+    return (totalPaid / unit.total_investment) * 100;
+  };
+
+  const calculateTotals = () => {
+    if (!paymentData)
+      return { totalRebates: 0, totalPenalties: 0, totalPaid: 0 };
+
+    const totalRebates =
+      paymentData.payments?.reduce(
+        (sum, payment) => sum + (payment.rebate_amount || 0),
+        0
+      ) || 0;
+    const totalPenalties =
+      paymentData.payments?.reduce(
+        (sum, payment) => sum + (payment.penalty_amount || 0),
+        0
+      ) || 0;
+    const totalPaid =
+      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
+      0;
+
+    return { totalRebates, totalPenalties, totalPaid };
+  };
+
+  const handleDownloadReceipt = (payment: Payment) => {
+    console.log(`Downloading receipt for ${payment.receipt_id}`);
+    alert(
+      `Downloading receipt ${payment.receipt_id} for ${getTransactionTypeText(
+        payment.transaction_type
+      )}`
+    );
+  };
+
+  const handlePayNow = () => {
+    if (paymentData?.next_installment) {
+      alert(
+        `Initiating payment for installment ${paymentData.next_installment.installment_number}`
+      );
+    }
+  };
+
+  if (loading && !paymentData) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="pt-20 pb-12">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <span className="ml-2 text-lg">Loading investment data...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="pt-20 pb-12">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="text-center text-red-600">
+              <p>Error: {error}</p>
+              <Button onClick={fetchPortfolioData} className="mt-4">
+                Retry
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!portfolioData.length) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="pt-20 pb-12">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="text-center">
+              <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                No Investment Units Found
+              </h3>
+              <p className="text-muted-foreground">
+                You haven't purchased any units yet. Explore our projects to get
+                started.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentUnit = portfolioData.find((u) => u.unit_number === selectedUnit);
+  const { totalRebates, totalPenalties, totalPaid } = calculateTotals();
+  const progress = calculatePaymentProgress();
+  const balanceAmount = currentUnit
+    ? currentUnit.total_investment - totalPaid
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Investment Tracker</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Investment Tracker
+            </h1>
             <p className="text-muted-foreground">
               Track your installment payments, rebates, and penalties
             </p>
@@ -102,78 +272,89 @@ const SipTracker = () => {
           {/* Unit Selector */}
           <div className="mb-8">
             <div className="flex flex-wrap gap-3">
-              {Object.keys(sipData).map((unitId) => (
+              {portfolioData.map((unit) => (
                 <button
-                  key={unitId}
-                  onClick={() => setSelectedUnit(unitId)}
-                  className={`px-4 py-2 rounded-lg border transition-colors ${
-                    selectedUnit === unitId
+                  key={unit.unit_id}
+                  onClick={() => setSelectedUnit(unit.unit_number)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${selectedUnit === unit.unit_number
                       ? "bg-primary/10 border-primary text-primary"
                       : "bg-card border-border text-card-foreground hover:bg-accent"
-                  }`}
+                    }`}
                 >
-                  {sipData[unitId].projectName}
+                  {unit.project.project_name} - {unit.unit_number}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Summary Cards */}
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 shadow-md card-luxury">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
-                    <p className="text-xl font-bold text-foreground">
-                      ₹{(currentSip.totalAmount / 100000).toFixed(1)}L
-                    </p>
+          {currentUnit && (
+            <div className="grid md:grid-cols-4 gap-6 mb-8">
+              <Card className="border-0 shadow-md card-luxury">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Total Amount
+                      </p>
+                      <p className="text-xl font-bold text-foreground">
+                        {formatCurrency(currentUnit.total_investment)}
+                      </p>
+                    </div>
+                    <Target className="w-8 h-8 text-primary" />
                   </div>
-                  <Target className="w-8 h-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-md card-luxury">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Paid Amount</p>
-                    <p className="text-xl font-bold text-primary">
-                      ₹{(currentSip.paidAmount / 100000).toFixed(1)}L
-                    </p>
+              <Card className="border-0 shadow-md card-luxury">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Paid Amount
+                      </p>
+                      <p className="text-xl font-bold text-primary">
+                        {formatCurrency(totalPaid)}
+                      </p>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-primary" />
                   </div>
-                  <CheckCircle className="w-8 h-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-md card-luxury">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Balance Amount</p>
-                    <p className="text-xl font-bold text-foreground">
-                      ₹{(currentSip.remainingAmount / 100000).toFixed(1)}L
-                    </p>
+              <Card className="border-0 shadow-md card-luxury">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Balance Amount
+                      </p>
+                      <p className="text-xl font-bold text-foreground">
+                        {formatCurrency(balanceAmount)}
+                      </p>
+                    </div>
+                    <Clock className="w-8 h-8 text-secondary" />
                   </div>
-                  <Clock className="w-8 h-8 text-secondary" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-md card-luxury">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Progress</p>
-                    <p className="text-xl font-bold text-primary">{currentSip.progress}%</p>
+              <Card className="border-0 shadow-md card-luxury">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Progress
+                      </p>
+                      <p className="text-xl font-bold text-primary">
+                        {progress.toFixed(1)}%
+                      </p>
+                    </div>
+                    <TrendingUp className="w-8 h-8 text-primary" />
                   </div>
-                  <TrendingUp className="w-8 h-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Main Content */}
           <div className="grid lg:grid-cols-3 gap-8">
@@ -185,9 +366,13 @@ const SipTracker = () => {
                     <CardTitle className="text-xl text-card-foreground">
                       Payment Progress
                     </CardTitle>
-                    <Badge className={getStatusColor(currentSip.status)}>
-                      {currentSip.status}
-                    </Badge>
+                    {currentUnit && (
+                      <Badge
+                        className={getStatusColor(currentUnit.payment_status)}
+                      >
+                        {getStatusText(currentUnit.payment_status)}
+                      </Badge>
+                    )}
                   </div>
                 </CardHeader>
 
@@ -200,30 +385,46 @@ const SipTracker = () => {
                           Overall Progress
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          {currentSip.scheme.includes("Installments") && 
-                            `${currentSip.installmentsPaid}/${currentSip.totalInstallments}`
-                          }
+                          {paymentData?.total_payments || 0} payments
                         </span>
                       </div>
-                      <Progress value={currentSip.progress} className="h-4 mb-4" />
+                      <Progress value={progress} className="h-4 mb-4" />
                       <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>₹{(currentSip.paidAmount / 100000).toFixed(1)}L paid</span>
-                        <span>₹{(currentSip.totalAmount / 100000).toFixed(1)}L total</span>
+                        <span>{formatCurrency(totalPaid)} paid</span>
+                        <span>
+                          {formatCurrency(currentUnit?.total_investment)} total
+                        </span>
                       </div>
                     </div>
 
                     {/* Next Payment */}
-                    {currentSip.nextDue && (
+                    {paymentData?.next_installment && (
                       <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="font-medium text-amber-800 mb-1">Next Payment Due</p>
-                            <p className="text-sm text-amber-700">{currentSip.nextDue}</p>
+                            <p className="font-medium text-amber-800 mb-1">
+                              Next Payment Due
+                            </p>
+                            <p className="text-sm text-amber-700">
+                              {formatDate(
+                                paymentData.next_installment.due_date
+                              )}
+                            </p>
                             <p className="text-lg font-bold text-amber-900 mt-2">
-                              ₹{(currentSip.monthlyAmount / 1000).toFixed(0)}K
+                              {formatCurrency(
+                                paymentData.next_installment.amount
+                              )}
+                            </p>
+                            <p className="text-sm text-amber-700 mt-1">
+                              Installment #
+                              {paymentData.next_installment.installment_number}
                             </p>
                           </div>
-                          <Button size="sm" variant="luxury">
+                          <Button
+                            size="sm"
+                            variant="luxury"
+                            onClick={handlePayNow}
+                          >
                             <CreditCard className="w-4 h-4 mr-2" />
                             Pay Now
                           </Button>
@@ -236,9 +437,11 @@ const SipTracker = () => {
                       <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-green-600 mb-1">Total Rebates</p>
+                            <p className="text-sm text-green-600 mb-1">
+                              Total Rebates
+                            </p>
                             <p className="text-xl font-bold text-green-800">
-                              +₹{Math.abs(currentSip.rebate).toLocaleString()}
+                              +{formatCurrency(totalRebates)}
                             </p>
                           </div>
                           <Award className="w-6 h-6 text-green-500" />
@@ -248,9 +451,11 @@ const SipTracker = () => {
                       <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-red-600 mb-1">Total Penalties</p>
+                            <p className="text-sm text-red-600 mb-1">
+                              Total Penalties
+                            </p>
                             <p className="text-xl font-bold text-red-800">
-                              ₹{Math.abs(currentSip.penalties).toLocaleString()}
+                              {formatCurrency(totalPenalties)}
                             </p>
                           </div>
                           <AlertTriangle className="w-6 h-6 text-red-500" />
@@ -266,22 +471,32 @@ const SipTracker = () => {
             <div className="space-y-6">
               <Card className="border-0 shadow-md card-luxury">
                 <CardHeader className="border-b bg-card">
-                  <CardTitle className="text-lg text-foreground">Payment Rules</CardTitle>
+                  <CardTitle className="text-lg text-foreground">
+                    Payment Rules
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <Award className="w-5 h-5 text-green-500 mt-0.5" />
                       <div>
-                        <p className="font-medium text-foreground text-sm">Early Payment Rebates</p>
-                        <p className="text-xs text-muted-foreground">+1% rebate for advance payments</p>
+                        <p className="font-medium text-foreground text-sm">
+                          Early Payment Rebates
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Rebates for timely payments
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
                       <div>
-                        <p className="font-medium text-foreground text-sm">Late Payment Penalty</p>
-                        <p className="text-xs text-muted-foreground">-1% penalty for delayed payments</p>
+                        <p className="font-medium text-foreground text-sm">
+                          Late Payment Penalty
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Penalties for delayed payments
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -290,33 +505,48 @@ const SipTracker = () => {
 
               <Card className="border-0 shadow-md card-luxury">
                 <CardHeader className="border-b bg-card">
-                  <CardTitle className="text-lg text-foreground">Quick Stats</CardTitle>
+                  <CardTitle className="text-lg text-foreground">
+                    Quick Stats
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Scheme</span>
-                      <span className="text-sm font-medium text-foreground">
-                        {currentSip.scheme}
-                      </span>
-                    </div>
-                    {currentSip.monthlyAmount && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Monthly Amount</span>
-                        <span className="text-sm font-medium text-foreground">
-                          ₹{(currentSip.monthlyAmount / 1000).toFixed(0)}K
-                        </span>
-                      </div>
+                    {currentUnit && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            Scheme
+                          </span>
+                          <span className="text-sm font-medium text-foreground">
+                            {currentUnit.scheme.scheme_name}
+                          </span>
+                        </div>
+                        {currentUnit.scheme.monthly_installment_amount > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">
+                              Monthly Amount
+                            </span>
+                            <span className="text-sm font-medium text-foreground">
+                              {formatCurrency(
+                                currentUnit.scheme.monthly_installment_amount
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Net Adjustment</span>
-                      <span className={`text-sm font-medium ${
-                        (currentSip.rebate + currentSip.penalties) >= 0 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`}>
-                        {(currentSip.rebate + currentSip.penalties) >= 0 ? '+' : ''}
-                        ₹{(currentSip.rebate + currentSip.penalties).toLocaleString()}
+                      <span className="text-sm text-muted-foreground">
+                        Net Adjustment
+                      </span>
+                      <span
+                        className={`text-sm font-medium ${totalRebates + totalPenalties >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                          }`}
+                      >
+                        {totalRebates + totalPenalties >= 0 ? "+" : ""}
+                        {formatCurrency(totalRebates + totalPenalties)}
                       </span>
                     </div>
                   </div>
@@ -329,45 +559,95 @@ const SipTracker = () => {
           <div className="mt-8">
             <Card className="border-0 shadow-md card-luxury">
               <CardHeader className="border-b bg-card">
-                <CardTitle className="text-xl text-foreground">Payment History</CardTitle>
+                <CardTitle className="text-xl text-foreground">
+                  Payment History
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {currentSip.payments.slice().reverse().map((payment, index) => (
-                    <div 
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-3 h-3 rounded-full ${
-                          payment.status === "Paid" ? "bg-green-500" : "bg-muted"
-                        }`} />
-                        <div>
-                          <p className="font-medium text-foreground">{payment.type}</p>
-                          <p className="text-sm text-muted-foreground">{payment.date}</p>
-                          <p className="text-xs text-muted-foreground">Receipt: {payment.receiptId}</p>
+                  {paymentData?.payments && paymentData.payments.length > 0 ? (
+                    paymentData.payments
+                      .slice()
+                      .reverse()
+                      .map((payment, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className={`w-3 h-3 rounded-full ${payment.payment_status === "completed"
+                                  ? "bg-green-500"
+                                  : "bg-muted"
+                                }`}
+                            />
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {getTransactionTypeText(
+                                  payment.transaction_type
+                                )}
+                                {payment.installment_number && payment.installment_number > 0 &&
+                                  ` #${payment.installment_number}`}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatDate(payment.payment_date)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Receipt: {payment.receipt_id}
+                              </p>
+                              {(payment.rebate_amount && payment.rebate_amount > 0 ||
+                                payment.penalty_amount && payment.penalty_amount > 0) && (
+                                  <div className="flex gap-2 mt-1">
+                                    {payment.rebate_amount && payment.rebate_amount > 0 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-green-600 border-green-200 text-xs"
+                                      >
+                                        Rebate: +
+                                        {formatCurrency(payment.rebate_amount)}
+                                      </Badge>
+                                    )}
+                                    {payment.penalty_amount && payment.penalty_amount > 0 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-red-600 border-red-200 text-xs"
+                                      >
+                                        Penalty: -
+                                        {formatCurrency(payment.penalty_amount)}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="font-medium text-foreground">
+                                {formatCurrency(payment.amount)}
+                              </p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {payment.payment_method}
+                              </p>
+                            </div>
+                            {payment.payment_status === "completed" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDownloadReceipt(payment)}
+                                className="text-xs"
+                              >
+                                <Download className="w-3 h-3 mr-1" />
+                                Receipt
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="font-medium text-foreground">
-                            ₹{payment.amount.toLocaleString()}
-                          </p>
-                        </div>
-                        {payment.status === "Paid" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDownloadReceipt(payment)}
-                            className="text-xs"
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Receipt
-                          </Button>
-                        )}
-                      </div>
+                      ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No payment history available
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

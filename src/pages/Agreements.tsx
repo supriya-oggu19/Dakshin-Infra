@@ -1,320 +1,542 @@
+// Agreements.tsx
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Download, 
-  Eye, 
-  FileText, 
+import {
+  Download,
+  Eye,
+  FileText,
   Calendar,
   Search,
   Filter,
   CheckCircle,
-  Clock
+  Clock,
+  AlertCircle,
+  XCircle,
+  Users,
+  FileSignature,
+  HelpCircle,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import { useState, useEffect } from "react";
+import { Agreement } from "@/api/models/agreement.model";
+import { agreementService } from "@/api/agreementApi";
 
 const Agreements = () => {
-  const agreements = [
-    {
-      id: "KBP001",
-      projectName: "Kapil Business Park",
-      unitNumber: "KBP-2401",
-      agreementType: "Sale Agreement",
-      date: "2025-01-15",
-      status: "Signed",
-      fileSize: "2.4 MB",
-      lastModified: "2025-01-15",
-      description: "Complete sale agreement for unit KBP-2401 including payment terms and possession details.",
-      signatories: ["Sasank", "Kapil Business Park Pvt Ltd"],
-      validUntil: "2029-01-15",
-      documents: {
-        mou: { available: true, fileName: "MOU_KBP2401.pdf" },
-        agreementOfSale: { available: true, fileName: "AOS_KBP2401.pdf" },
-        saleDeed: { available: true, fileName: "SaleDeed_KBP2401.pdf" },
-        rentalAgreement: { available: true, fileName: "RentalAgreement_KBP2401.pdf" }
-      }
-    },
-    {
-      id: "KT002",
-      projectName: "Kapil Business Park",
-      unitNumber: "KBP-3547",
-      agreementType: "Installment Agreement",
-      date: "2025-08-20",
-      status: "Active",
-      fileSize: "1.8 MB",
-      lastModified: "2025-09-10",
-      description: "100-installment payment agreement with bonus/penalty clauses and rental timeline.",
-      signatories: ["Ram", "Kapil Towers"],
-      validUntil: "2031-08-20",
-      documents: {
-        mou: { available: true, fileName: "MOU_KBP3547.pdf" },
-        agreementOfSale: { available: true, fileName: "AOS_KBP3547.pdf" },
-        saleDeed: { available: false, fileName: "SaleDeed_KBP3547.pdf" },
-        rentalAgreement: { available: false, fileName: "RentalAgreement_KBP3547.pdf" }
-      }
-    }
-  ];
+  const [agreements, setAgreements] = useState<Agreement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Signed":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "Active":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "Pending":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+  const loadAgreements = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await agreementService.fetchAgreements();
+      setAgreements(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Error fetching agreements:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Signed":
-        return <CheckCircle className="w-4 h-4" />;
-      case "Active":
-        return <Clock className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
-    }
+  useEffect(() => {
+    loadAgreements();
+  }, []);
+
+  const getStatusConfig = (status: string) => {
+    const configs = {
+      Signed: {
+        color: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        icon: CheckCircle,
+        bgColor: "bg-emerald-500",
+      },
+      Active: {
+        color: "border-blue-200 bg-blue-50 text-blue-700",
+        icon: Clock,
+        bgColor: "bg-blue-500",
+      },
+      Pending: {
+        color: "border-amber-200 bg-amber-50 text-amber-700",
+        icon: AlertCircle,
+        bgColor: "bg-amber-500",
+      },
+      Draft: {
+        color: "border-slate-200 bg-slate-50 text-slate-700",
+        icon: FileText,
+        bgColor: "bg-slate-500",
+      },
+      Expired: {
+        color: "border-rose-200 bg-rose-50 text-rose-700",
+        icon: XCircle,
+        bgColor: "bg-rose-500",
+      },
+    };
+    return (
+      configs[status] || {
+        color: "border-slate-200 bg-slate-50 text-slate-700",
+        icon: FileText,
+        bgColor: "bg-slate-500",
+      }
+    );
   };
 
-  const handleDownloadDocument = (docType, fileName, available) => {
+  const handleDownloadDocument = async (
+    docType: string,
+    fileName: string,
+    filePath: string,
+    available: boolean
+  ) => {
     if (!available) {
-      alert("This document is not yet available. Please contact support for more information.");
+      alert(
+        "This document is not yet available. Please contact support for more information."
+      );
       return;
     }
-    console.log(`Downloading ${docType}: ${fileName}`);
-    alert(`Downloading ${docType}: ${fileName}`);
+
+    try {
+      await agreementService.downloadDocument(filePath, fileName);
+      console.log(`Downloading ${docType}: ${fileName}`);
+    } catch (err) {
+      console.error("Error downloading document:", err);
+      alert(`Failed to download ${docType}. Please try again.`);
+    }
   };
 
+  const filteredAgreements = agreements.filter((agreement) => {
+    const matchesSearch =
+      agreement.unitNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agreement.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agreement.agreementType.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesType = !filterType || agreement.agreementType === filterType;
+    const matchesStatus = !filterStatus || agreement.status === filterStatus;
+
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const uniqueAgreementTypes = Array.from(
+    new Set(agreements.map((a) => a.agreementType))
+  );
+
+  const uniqueStatuses = Array.from(
+    new Set(agreements.map((a) => a.status))
+  );
+
+  const stats = {
+    total: agreements.length,
+    active: agreements.filter((a) => a.status === "Active").length,
+    completed: agreements.filter((a) => a.status === "Signed").length,
+    pending: agreements.filter((a) => a.status === "Pending").length,
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+        <Navigation />
+        <div className="pt-20 pb-12 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-center items-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-slate-600 font-medium">Loading agreements...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+        <Navigation />
+        <div className="pt-20 pb-12 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex justify-center items-center h-64">
+              <div className="text-center max-w-md">
+                <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <XCircle className="w-8 h-8 text-rose-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Unable to Load Agreements</h3>
+                <p className="text-slate-600 mb-4">{error}</p>
+                <Button 
+                  onClick={loadAgreements} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
       <Navigation />
-      
-      <div className="pt-20 pb-12">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Legal Agreements</h1>
-            <p className="text-muted-foreground">
-              View, download, and manage all your property-related legal documents
+
+      <div className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8 text-center sm:text-left">
+            <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-4 py-2.5 border border-slate-200/60 shadow-sm mb-4">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                <FileSignature className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-sm font-medium text-slate-700">Legal Agreements</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-3">
+              Your Documents
+            </h1>
+            <p className="text-base sm:text-lg text-slate-600 max-w-2xl">
+              Manage all your property-related legal agreements in one place. Download, preview, and track your documents.
             </p>
           </div>
 
-          {/* Summary Stats */}
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 shadow-md card-luxury">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+            <Card className="border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Agreements</p>
-                    <p className="text-2xl font-bold text-foreground">2</p>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Total Agreements</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {stats.total}
+                    </p>
                   </div>
-                  <FileText className="w-8 h-8 text-primary" />
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-md card-luxury">
+            <Card className="border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Active</p>
-                    <p className="text-2xl font-bold text-primary">1</p>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Active</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {stats.active}
+                    </p>
                   </div>
-                  <Clock className="w-8 h-8 text-primary" />
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-md card-luxury">
+            <Card className="border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Completed</p>
-                    <p className="text-2xl font-bold text-primary">1</p>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Signed</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {stats.completed}
+                    </p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-primary" />
+                  <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-emerald-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-md card-luxury">
+            <Card className="border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Documents</p>
-                    <p className="text-2xl font-bold text-primary">6</p>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Pending</p>
+                    <p className="text-2xl font-bold text-amber-600">
+                      {stats.pending}
+                    </p>
                   </div>
-                  <Download className="w-8 h-8 text-primary" />
+                  <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-amber-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Filters */}
-          <Card className="border-0 shadow-md card-luxury mb-8">
+          <Card className="border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm mb-8">
             <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Search agreements..."
-                    className="pl-10 bg-background border-border"
-                  />
+              <div className="flex flex-col lg:flex-row gap-4 items-end">
+                <div className="flex-1 w-full">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Search Agreements
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search by unit number, project name, or agreement type..."
+                      className="pl-10 border-slate-300 focus:border-blue-500 focus:ring-blue-500 h-11"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <Button variant="outline" className="flex items-center">
+                
+                <div className="w-full lg:w-48">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Agreement Type
+                  </label>
+                  <select
+                    className="flex h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                  >
+                    <option value="">All Types</option>
+                    {uniqueAgreementTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="w-full lg:w-48">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Status
+                  </label>
+                  <select
+                    className="flex h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="">All Statuses</option>
+                    {uniqueStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="flex items-center justify-center border-slate-300 hover:bg-slate-100 h-11 px-6"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterType("");
+                    setFilterStatus("");
+                  }}
+                >
                   <Filter className="w-4 h-4 mr-2" />
-                  Filter by Type
+                  Clear All
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Agreements List */}
-          <div className="space-y-4">
-            {agreements.map((agreement) => (
-              <Card key={agreement.id} className="border-0 shadow-md hover:shadow-lg transition-shadow card-luxury">
-                <CardHeader className="border-b bg-card">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-background/50 rounded-lg flex items-center justify-center">
-                        <FileText className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <div className="mb-1">
-                          <div className="text-sm text-muted-foreground">Project</div>
-                          <div className="text-lg font-semibold text-foreground">{agreement.projectName}</div>
-                        </div>
-                        <div className="mb-2">
-                          <div className="text-sm text-muted-foreground">Unit</div>
-                          <div className="text-lg font-bold text-primary">{agreement.unitNumber}</div>
-                        </div>
-                        <p className="text-muted-foreground text-sm mb-2">{agreement.agreementType}</p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{agreement.fileSize}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 mt-4 md:mt-0">
-                      <Badge className={getStatusColor(agreement.status)}>
-                        <div className="flex items-center gap-1">
-                          {getStatusIcon(agreement.status)}
-                          {agreement.status}
-                        </div>
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-6">
-                  <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <h4 className="font-medium text-foreground mb-2">Agreement Details</h4>
-                      <p className="text-sm text-muted-foreground mb-4">{agreement.description}</p>
-                    
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground mb-2">Available Documents</h4>
-                      <div className="grid grid-cols-1 gap-2">
-                        <div className={`flex items-center justify-between p-2 rounded border ${
-                          agreement.documents.mou.available ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
-                        }`}>
-                          <span className="text-sm">MOU</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={agreement.documents.mou.available ? 'text-green-700' : 'text-gray-500'}
-                            onClick={() => handleDownloadDocument('MOU', agreement.documents.mou.fileName, agreement.documents.mou.available)}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Download
-                          </Button>
-                        </div>
-                        <div className={`flex items-center justify-between p-2 rounded border ${
-                          agreement.documents.agreementOfSale.available ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
-                        }`}>
-                          <span className="text-sm">Agreement of Sale</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={agreement.documents.agreementOfSale.available ? 'text-green-700' : 'text-gray-500'}
-                            onClick={() => handleDownloadDocument('Agreement of Sale', agreement.documents.agreementOfSale.fileName, agreement.documents.agreementOfSale.available)}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Download
-                          </Button>
-                        </div>
-                        <div className={`flex items-center justify-between p-2 rounded border ${
-                          agreement.documents.saleDeed.available ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
-                        }`}>
-                          <span className="text-sm">Sale Deed</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={agreement.documents.saleDeed.available ? 'text-green-700' : 'text-gray-500'}
-                            onClick={() => handleDownloadDocument('Sale Deed', agreement.documents.saleDeed.fileName, agreement.documents.saleDeed.available)}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            {agreement.documents.saleDeed.available ? 'Download' : 'Pending'}
-                          </Button>
-                        </div>
-                        <div className={`flex items-center justify-between p-2 rounded border ${
-                          agreement.documents.rentalAgreement.available ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
-                        }`}>
-                          <span className="text-sm">Rental Agreement</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={agreement.documents.rentalAgreement.available ? 'text-green-700' : 'text-gray-500'}
-                            onClick={() => handleDownloadDocument('Rental Agreement', agreement.documents.rentalAgreement.fileName, agreement.documents.rentalAgreement.available)}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            {agreement.documents.rentalAgreement.available ? 'Download' : 'Pending'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3 pt-4 border-t border-border">
-                    <Button variant="outline" size="sm">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview Documents
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      View Timeline
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Agreements ({filteredAgreements.length})
+            </h2>
+            <div className="text-sm text-slate-500">
+              Showing {filteredAgreements.length} of {agreements.length} agreements
+            </div>
           </div>
 
-          {/* Help Section */}
-          <Card className="border-0 shadow-md mt-8 card-luxury">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground mb-2">Need Help with Agreements?</h3>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    Our legal team is available to help you understand your agreements, request modifications, 
-                    or answer any questions about your property investments.
+          <div className="space-y-6">
+            {filteredAgreements.length === 0 ? (
+              <Card className="border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm">
+                <CardContent className="p-12 text-center">
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    No agreements found
+                  </h3>
+                  <p className="text-slate-600 mb-6 max-w-sm mx-auto">
+                    {agreements.length === 0
+                      ? "You don't have any legal agreements yet. They will appear here once available."
+                      : "Try adjusting your search criteria or filters to find what you're looking for."}
                   </p>
-                  <Button size="sm" variant="outline-luxury">
-                    Contact Legal Support
+                  <Button 
+                    onClick={() => { setSearchTerm(""); setFilterType(""); setFilterStatus(""); }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Clear Filters
                   </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredAgreements.map((agreement) => {
+                const statusConfig = getStatusConfig(agreement.status);
+                const StatusIcon = statusConfig.icon;
+
+                return (
+                  <Card
+                    key={agreement.id}
+                    className="border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-300 group"
+                  >
+                    <CardHeader className="border-b border-slate-100 p-6">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                            <FileText className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                              <h3 className="text-lg font-semibold text-slate-900 truncate">
+                                {agreement.projectName}
+                              </h3>
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-0">
+                                  {agreement.agreementType}
+                                </Badge>
+                                <Badge className={`${statusConfig.color} border flex-shrink-0`}>
+                                  <div className="flex items-center gap-1.5">
+                                    <StatusIcon className="w-3.5 h-3.5" />
+                                    <span className="text-xs font-medium">{agreement.status}</span>
+                                  </div>
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                                  <Users className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div>
+                                  <div className="text-xs text-slate-500">Unit Number</div>
+                                  <div className="font-semibold text-slate-900">{agreement.unitNumber}</div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center">
+                                  <Calendar className="w-4 h-4 text-slate-600" />
+                                </div>
+                                <div>
+                                  <div className="text-xs text-slate-500">Date Created</div>
+                                  <div className="font-medium text-slate-900">
+                                    {new Date(agreement.date).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                                  <CheckCircle 
+                                    className="w-4 h-4 text-emerald-600" />
+                                </div>
+                                <div>
+                                  <div className="text-xs text-slate-500">Valid Until</div>
+                                  <div className="font-medium text-slate-900">
+                                    {new Date(agreement.validUntil).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                                  <FileText className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <div>
+                                  <div className="text-xs text-slate-500">File Size</div>
+                                  <div className="font-medium text-slate-900">{agreement.fileSize}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="p-6">
+                      <div className="grid lg:grid-cols-2 gap-8 mb-6">
+                        <div>
+                          <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            Agreement Details
+                          </h4>
+                          <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+                            {agreement.description}
+                          </p>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm py-2 border-b border-slate-100">
+                              <span className="text-slate-600">Signatories:</span>
+                              <span className="text-slate-900 font-medium text-right max-w-xs">
+                                {agreement.signatories.join(", ")}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                            Available Documents
+                          </h4>
+                          <div className="space-y-3">
+                            {Object.entries(agreement.documents).map(([docKey, doc]) => (
+                              <div
+                                key={docKey}
+                                className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-200 ${
+                                  doc.available
+                                    ? "border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50"
+                                    : "border-slate-200 bg-slate-50/50 hover:bg-slate-50"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                    doc.available ? "bg-emerald-100" : "bg-slate-100"
+                                  }`}>
+                                    <FileText className={`w-5 h-5 ${
+                                      doc.available ? "text-emerald-600" : "text-slate-400"
+                                    }`} />
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-slate-900 capitalize">
+                                      {docKey.replace(/([A-Z])/g, " $1").trim()}
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                      {doc.available ? "Ready to download" : "Processing..."}
+                                    </div>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className={`${
+                                    doc.available
+                                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                      : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                                  } flex-shrink-0 text-xs h-9 px-4`}
+                                  onClick={() =>
+                                    handleDownloadDocument(
+                                      docKey.replace(/([A-Z])/g, " $1").trim(),
+                                      doc.fileName,
+                                      doc.filePath,
+                                      doc.available
+                                    )
+                                  }
+                                  disabled={!doc.available}
+                                >
+                                  <Download className="w-3.5 h-3.5 mr-1.5" />
+                                  {doc.available ? "Download" : "Pending"}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>
