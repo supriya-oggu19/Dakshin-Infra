@@ -41,7 +41,7 @@ const PurchaseFlow = () => {
   const [currentStep, setCurrentStep] = useState<PurchaseStep>("plan-selection");
   const [selectedPlan, setSelectedPlan] = useState<PlanSelection | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<number>(1);
-  const [customPayment, setCustomPayment] = useState<string>("");
+  const [customPayment, setCustomPayment] = useState<number>(0);
   const [accounts, setAccounts] = useState<Account[]>([
     {
       id: 'primary',
@@ -56,6 +56,7 @@ const PurchaseFlow = () => {
   const [jointKycAccepted, setJointKycAccepted] = useState<boolean[]>([]);
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState<Scheme[]>([]);
+  const [totalInvestment, setTotalInvestment] = useState<number>(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userProfileIds, setUserProfileIds] = useState<string[]>([]);
 
@@ -180,6 +181,7 @@ const PurchaseFlow = () => {
 
         if (response.schemes && response.schemes.length > 0) {
           setSchemes(response.schemes);
+          setTotalInvestment(response.total_invertment_amount);
         } else {
           setSchemes([]);
           setFetchError("No investment schemes available for this project");
@@ -212,28 +214,26 @@ const PurchaseFlow = () => {
       type === "single"
         ? scheme.booking_advance * units
         : scheme.total_installments! * scheme.monthly_installment_amount! * units;
-    const minPayment = scheme.booking_advance * units;
+    const basePerUnit = scheme.booking_advance || (type === "installment" ? scheme.monthly_installment_amount! : 0);
+    const minPayment = Math.max(basePerUnit * units, 50000);
 
     setSelectedPlan({
       type,
       planId: scheme.id,
       area: scheme.area_sqft,
       price: totalPrice,
+      totalInvestment: totalInvestment,
       monthlyAmount: type === "installment" ? scheme.monthly_installment_amount! * units : undefined,
       installments: type === "installment" ? scheme.total_installments! : undefined,
       rentalStart: scheme.rental_start_month
         ? `${scheme.rental_start_month}th Month`
         : "Next month after last installment",
-      monthlyRental: scheme.monthly_installment_amount
-        ? scheme.monthly_installment_amount * units * 0.3
-        : scheme.booking_advance * units * 0.01,
+      monthlyRental: (scheme.monthly_rental_income || (type === "installment" ? scheme.monthly_installment_amount! * 0.3 : scheme.booking_advance * 0.01)) * units,
       units: units,
-      paymentAmount: type === "single" ? minPayment : undefined,
+      paymentAmount: minPayment,
     });
 
-    if (type === "single") {
-      setCustomPayment(minPayment.toString());
-    }
+    setCustomPayment(minPayment);
   };
 
   const handleUnitsChange = (increment: boolean) => {
@@ -249,25 +249,29 @@ const PurchaseFlow = () => {
   };
 
   const handleCustomPaymentChange = (value: string) => {
-    setCustomPayment(value);
-    if (selectedPlan && selectedPlan.type === "single") {
-      const paymentAmount = parseInt(value) || 0;
+    const numValue = parseInt(value) || 0;
+    setCustomPayment(numValue);
+    if (selectedPlan) {
       setSelectedPlan({
         ...selectedPlan,
-        paymentAmount,
+        paymentAmount: numValue,
       });
     }
   };
 
   // Validation helpers
   const getMinPayment = () => {
-    return selectedPlan ? schemes.find((s) => s.id === selectedPlan.planId)?.booking_advance! * selectedPlan.units : 200000;
+    if (!selectedPlan) return 50000;
+    const scheme = schemes.find((s) => s.id === selectedPlan.planId);
+    if (!scheme) return 50000;
+    const type = scheme.scheme_type === "single_payment" ? "single" : "installment";
+    const basePerUnit = scheme.booking_advance || (type === "installment" ? scheme.monthly_installment_amount! : 0);
+    return Math.max(basePerUnit * selectedPlan.units, 50000);
   };
 
   const isValidPaymentAmount = () => {
-    if (!selectedPlan || selectedPlan.type !== "single") return true;
-    const paymentAmount = parseInt(customPayment) || 0;
-    return paymentAmount >= getMinPayment();
+    if (!selectedPlan) return false;
+    return customPayment >= getMinPayment();
   };
 
   const validateUserInfo = () => {
@@ -499,13 +503,7 @@ const PurchaseFlow = () => {
   };
 
   const getCurrentPaymentAmount = () => {
-    if (!selectedPlan) return 0;
-
-    if (selectedPlan.type === "installment") {
-      return selectedPlan.monthlyAmount!;
-    } else {
-      return selectedPlan.paymentAmount || getMinPayment();
-    }
+    return selectedPlan ? selectedPlan.paymentAmount! : 0;
   };
 
   const handlePurchaseSuccess = (data: any) => {
@@ -533,6 +531,7 @@ const PurchaseFlow = () => {
         return (
           <PlanSelectionStep
             schemes={schemes}
+            totalInvestment={totalInvestment}
             selectedPlan={selectedPlan}
             selectedUnits={selectedUnits}
             customPayment={customPayment}
@@ -587,6 +586,7 @@ const PurchaseFlow = () => {
             <PurchaseUnitConfirmation
               projectId={id!}
               schemeId={selectedPlan.planId}
+              totalInvestmentOfProject={totalInvestment}
               isJointOwnership={accounts.length > 1}
               numberOfUnits={selectedUnits}
               onPurchaseSuccess={handlePurchaseSuccess}

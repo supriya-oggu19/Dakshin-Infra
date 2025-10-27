@@ -22,6 +22,7 @@ export interface InvestmentSchemeData {
   // Installment specific fields
   total_installments: number | null;
   monthly_installment_amount: number | null;
+  monthly_rental_income: number | null;
   
   // Rental-specific fields (only for commercial properties)
   rental_start_month: number | null;

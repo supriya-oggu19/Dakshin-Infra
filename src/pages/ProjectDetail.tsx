@@ -407,7 +407,7 @@ const ProjectDetail = () => {
                   
                   <TabsContent value="investment">
                     <div className="card-luxury p-8">
-                      <InvestmentSchemes projectName={project.title} projectId={project.id} />
+                      <InvestmentSchemes projectName={project.title} projectId={project.id} minInvestmentAmount={project.base_price} />
                     </div>
                   </TabsContent>
                   

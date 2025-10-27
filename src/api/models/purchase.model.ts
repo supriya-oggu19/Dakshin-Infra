@@ -10,6 +10,7 @@ export interface Scheme {
   scheme_name: string;
   area_sqft: number;
   booking_advance: number;
+  monthly_rental_income: number | null;
   balance_payment_days: number | null;
   total_installments: number | null;
   monthly_installment_amount: number | null;
@@ -34,7 +35,7 @@ export interface SchemeListResponse {
   is_previous: boolean;
   is_next: boolean;
   total_schemes: number;
-  total_investment_amount: number;
+  total_invertment_amount: number;
   schemes: Scheme[];
 }
 
@@ -60,6 +61,7 @@ export interface PlanSelection {
   planId: string;
   area: number;
   price: number;
+  totalInvestment: number;
   monthlyAmount?: number;
   installments?: number;
   rentalStart?: string;

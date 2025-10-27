@@ -10,9 +10,10 @@ import { Scheme, PlanSelection, SchemeType } from '@/api/models/purchase.model';
 
 interface PlanSelectionStepProps {
   schemes: Scheme[];
+  totalInvestment: number;
   selectedPlan: PlanSelection | null;
   selectedUnits: number;
-  customPayment: string;
+  customPayment: number;
   loading: boolean;
   fetchError: string | null;
   onPlanSelect: (scheme: Scheme, units: number) => void;
@@ -25,6 +26,7 @@ interface PlanSelectionStepProps {
 
 const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
   schemes,
+  totalInvestment,
   selectedPlan,
   selectedUnits,
   customPayment,
@@ -102,6 +104,7 @@ const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
             <>
               <SinglePaymentSchemes
                 schemes={schemes}
+                totalInvestment={totalInvestment}
                 selectedPlan={selectedPlan}
                 selectedUnits={selectedUnits}
                 customPayment={customPayment}
@@ -113,9 +116,14 @@ const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
               />
               <InstallmentSchemes
                 schemes={schemes}
+                totalInvestment={totalInvestment}
                 selectedPlan={selectedPlan}
                 selectedUnits={selectedUnits}
+                customPayment={customPayment}
                 onPlanSelect={onPlanSelect}
+                onCustomPaymentChange={onCustomPaymentChange}
+                isValidPaymentAmount={isValidPaymentAmount}
+                getMinPayment={getMinPayment}
                 formatCurrency={formatCurrency}
               />
             </>
@@ -129,6 +137,7 @@ const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
 // Single Payment Schemes Sub-component
 const SinglePaymentSchemes: React.FC<any> = ({
   schemes,
+  totalInvestment,
   selectedPlan,
   selectedUnits,
   customPayment,
@@ -150,6 +159,7 @@ const SinglePaymentSchemes: React.FC<any> = ({
           <SchemeCard
             key={scheme.id}
             scheme={scheme}
+            totalInvestment={totalInvestment}
             selectedPlan={selectedPlan}
             selectedUnits={selectedUnits}
             onPlanSelect={onPlanSelect}
@@ -159,11 +169,12 @@ const SinglePaymentSchemes: React.FC<any> = ({
         {selectedPlan?.type === "single" && (
           <PaymentInputSection
             customPayment={customPayment}
+            selectedPlan={selectedPlan}
+            totalInvestment={totalInvestment}
             onCustomPaymentChange={onCustomPaymentChange}
             isValidPaymentAmount={isValidPaymentAmount}
             getMinPayment={getMinPayment}
             formatCurrency={formatCurrency}
-            selectedPlan={selectedPlan}
             schemes={schemes}
           />
         )}
@@ -175,9 +186,14 @@ const SinglePaymentSchemes: React.FC<any> = ({
 // Installment Schemes Sub-component
 const InstallmentSchemes: React.FC<any> = ({
   schemes,
+  totalInvestment,
   selectedPlan,
   selectedUnits,
+  customPayment,
   onPlanSelect,
+  onCustomPaymentChange,
+  isValidPaymentAmount,
+  getMinPayment,
   formatCurrency,
 }) => {
   const installmentSchemes = schemes.filter((s: Scheme) => s.scheme_type === SchemeType.INSTALLMENT);
@@ -191,6 +207,7 @@ const InstallmentSchemes: React.FC<any> = ({
         {installmentSchemes.map((scheme: Scheme) => (
           <SchemeCard
             key={scheme.id}
+            totalInvestment={totalInvestment}
             scheme={scheme}
             selectedPlan={selectedPlan}
             selectedUnits={selectedUnits}
@@ -198,15 +215,28 @@ const InstallmentSchemes: React.FC<any> = ({
             formatCurrency={formatCurrency}
           />
         ))}
+        {selectedPlan?.type === "installment" && (
+          <PaymentInputSection
+            customPayment={customPayment}
+            totalInvestment={totalInvestment}
+            selectedPlan={selectedPlan}
+            onCustomPaymentChange={onCustomPaymentChange}
+            isValidPaymentAmount={isValidPaymentAmount}
+            getMinPayment={getMinPayment}
+            formatCurrency={formatCurrency}
+            schemes={schemes}
+          />
+        )}
       </div>
     </div>
   );
 };
 
 // Reusable Scheme Card Component
-const SchemeCard: React.FC<any> = ({ scheme, selectedPlan, selectedUnits, onPlanSelect, formatCurrency }) => {
+const SchemeCard: React.FC<any> = ({ scheme,totalInvestment, selectedPlan, selectedUnits, onPlanSelect, formatCurrency }) => {
   const isSelected = selectedPlan?.planId === scheme.id;
   const isSinglePayment = scheme.scheme_type === SchemeType.SINGLE_PAYMENT;
+  const totalPerUnit = isSinglePayment ? scheme.booking_advance : (scheme.total_installments! * (scheme.monthly_installment_amount || 0));
 
   return (
     <div
@@ -234,19 +264,12 @@ const SchemeCard: React.FC<any> = ({ scheme, selectedPlan, selectedUnits, onPlan
         ) : (
           <InstallmentDetails scheme={scheme} formatCurrency={formatCurrency} />
         )}
-        
         <div className="text-sm font-medium">
-          Total per unit: {formatCurrency(
-            isSinglePayment 
-              ? scheme.booking_advance 
-              : scheme.total_installments! * scheme.monthly_installment_amount!
-          )}
+          Total per unit: {formatCurrency(totalInvestment)}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
           Total for {selectedUnits} unit{selectedUnits > 1 ? "s" : ""}: {formatCurrency(
-            isSinglePayment
-              ? scheme.booking_advance * selectedUnits
-              : scheme.total_installments! * scheme.monthly_installment_amount! * selectedUnits
+            totalInvestment * selectedUnits
           )}
         </div>
       </div>
@@ -258,7 +281,7 @@ const SinglePaymentDetails: React.FC<any> = ({ scheme, formatCurrency }) => (
   <div className="bg-primary/10 p-2 rounded mb-3">
     <div className="text-xs text-muted-foreground">Monthly Rental (per unit)</div>
     <div className="text-lg font-bold text-primary">
-      {formatCurrency(scheme.monthly_installment_amount ? scheme.monthly_installment_amount * 0.3 : scheme.booking_advance * 0.01)}
+      {formatCurrency(scheme.monthly_rental_income)}
     </div>
     <div className="text-xs text-muted-foreground mt-1">
       Rental starts: {scheme.rental_start_month ? `${scheme.rental_start_month}th Month` : "N/A"}
@@ -277,7 +300,8 @@ const InstallmentDetails: React.FC<any> = ({ scheme, formatCurrency }) => (
     <div className="bg-primary/10 p-2 rounded mb-2">
       <div className="text-xs text-muted-foreground">Future Monthly Rental (per unit)</div>
       <div className="text-lg font-bold text-primary">
-        {formatCurrency(scheme.monthly_installment_amount! * 0.3)}
+        {formatCurrency(scheme.monthly_rental_income
+        )}
       </div>
     </div>
   </>
@@ -285,15 +309,17 @@ const InstallmentDetails: React.FC<any> = ({ scheme, formatCurrency }) => (
 
 const PaymentInputSection: React.FC<any> = ({
   customPayment,
+  selectedPlan,
   onCustomPaymentChange,
   isValidPaymentAmount,
   getMinPayment,
   formatCurrency,
-  selectedPlan,
   schemes,
 }) => {
   const scheme = schemes.find((s: Scheme) => s.id === selectedPlan.planId);
-  const balanceDue = selectedPlan.price - (parseInt(customPayment) || 0);
+  const currentPayment = customPayment;
+  const balance = selectedPlan.price - currentPayment;
+  const additional = Math.max(0, currentPayment - getMinPayment());
 
   return (
     <div className="md:col-span-3 mt-4 space-y-4">
@@ -303,7 +329,7 @@ const PaymentInputSection: React.FC<any> = ({
           <IndianRupee className="w-5 h-5 text-muted-foreground" />
           <Input
             type="number"
-            value={customPayment}
+            value={customPayment.toString()}
             onChange={(e) => onCustomPaymentChange(e.target.value)}
             placeholder={`Minimum ${formatCurrency(getMinPayment())}`}
             className="text-sm"
@@ -322,12 +348,16 @@ const PaymentInputSection: React.FC<any> = ({
           <div className="flex justify-between">
             <span className="text-muted-foreground">Additional Payment:</span>
             <span className="font-medium">
-              {formatCurrency(Math.max(0, (parseInt(customPayment) || 0) - getMinPayment()))}
+              {formatCurrency(additional)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Balance Due (within 90 days):</span>
-            <span className="font-medium text-orange-600">{formatCurrency(balanceDue)}</span>
+            <span className="text-muted-foreground">
+              {selectedPlan.type === "single" ? "Balance Due (within 90 days):" : "Remaining Investment:"}
+            </span>
+            <span className={`font-medium ${selectedPlan.type === "single" ? "text-orange-600" : ""}`}>
+              {formatCurrency(balance)}
+            </span>
           </div>
         </div>
       </div>
@@ -336,19 +366,20 @@ const PaymentInputSection: React.FC<any> = ({
         getMinPayment={getMinPayment}
         scheme={scheme}
         formatCurrency={formatCurrency}
+        selectedPlan={selectedPlan}
       />
     </div>
   );
 };
 
-const PaymentStructureInfo: React.FC<any> = ({ getMinPayment, scheme, formatCurrency }) => (
+const PaymentStructureInfo: React.FC<any> = ({ getMinPayment, scheme, formatCurrency, selectedPlan }) => (
   <div className="text-xs text-muted-foreground p-3 bg-blue-50 rounded border-l-4 border-blue-400">
     <div className="font-medium text-blue-800 mb-1">Payment Structure:</div>
     <ul className="space-y-1 text-blue-700">
-      <li>• Minimum advance: {formatCurrency(getMinPayment())} per unit (required now)</li>
-      <li>• Any amount above minimum goes toward main payment</li>
-      <li>• Remaining balance must be paid within {scheme?.balance_payment_days || 90} days</li>
-      <li>• You can pay the full amount now to avoid future payment</li>
+      <li>• Minimum initial payment: {formatCurrency(getMinPayment())} {selectedPlan.type === "single" ? "(booking advance)" : "(booking advance or 1st installment)"}</li>
+      <li>• Any amount above minimum {selectedPlan.type === "single" ? "goes toward main payment" : "reduces future installments"}</li>
+      <li>• {selectedPlan.type === "single" ? `Remaining balance within ${scheme?.balance_payment_days || 90} days` : `Paid over ${selectedPlan.installments} monthly installments`}</li>
+      <li>• You can pay more now to {selectedPlan.type === "single" ? "complete sooner" : "reduce future payments"}</li>
     </ul>
   </div>
 );
