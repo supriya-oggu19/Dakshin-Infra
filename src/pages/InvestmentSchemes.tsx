@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-  PaginationEllipsis,
 } from '@/components/ui/pagination';
 import {
   DollarSign,
@@ -19,33 +18,36 @@ import {
   Calendar,
   Building,
   TrendingUp,
+  CheckCircle2,
   AlertCircle,
   Loader2,
   ArrowRight,
-  CreditCard,
+  CreditCard
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { projectApi } from '@/api/projectApi';
 import { schemeApi } from '@/api/schemeApi';
 import { InvestmentSchemeData, SchemeType } from '@/api/models/schemeModels';
+import { ProjectResponse } from '@/api/models/projectModels';
 
 interface InvestmentSchemesProps {
   projectName?: string;
   projectId?: string;
+  minInvestmentAmount?: number;
 }
 
-const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, projectId }) => {
+const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, projectId, minInvestmentAmount }) => {
   const id = projectId;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [schemes, setSchemes] = useState<InvestmentSchemeData[]>([]);
+  const [allSchemes, setAllSchemes] = useState<InvestmentSchemeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchedProjectName, setFetchedProjectName] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
 
-  const SCHEMES_PER_PAGE = 1;
+  const itemsPerPage = 4;
 
   useEffect(() => {
     const fetchSchemes = async () => {
@@ -57,23 +59,10 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
       try {
         setLoading(true);
 
-        const response = await schemeApi.listByProject({
-          project_id: id,
-          page: currentPage,
-          limit: SCHEMES_PER_PAGE
-        });
-
-        setSchemes(response?.data.schemes ?? []);
-
-        if (response?.data.total_count) {
-          const total = response.data.total_count;
-          setTotalCount(total);
-          setTotalPages(Math.ceil(total / SCHEMES_PER_PAGE));
-        } else {
-          setTotalCount(schemes.length);
-          setTotalPages(1);
-        }
-
+        // Fetch schemes using the new API service (all schemes for client-side pagination)
+        const response = await schemeApi.listByProject({ project_id: id });
+        setAllSchemes(response?.data.schemes ?? []);
+        setCurrentPage(1);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching schemes:', err);
@@ -83,14 +72,41 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     };
 
     fetchSchemes();
-  }, [id, currentPage]);
+  }, [id]);
 
-  const formatCurrency = (amount: number | null) => {
-    if (!amount) return 'N/A';
-    const lakhs = amount / 100000;
-    return lakhs >= 100
-      ? `₹${(lakhs / 100).toFixed(2)} Cr`
-      : `₹${lakhs.toFixed(2)} L`;
+  const paginatedSchemes = useMemo(() => 
+    allSchemes.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    ),
+    [allSchemes, currentPage, itemsPerPage]
+  );
+
+  const totalPages = Math.ceil(allSchemes.length / itemsPerPage);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  const formatCurrency = (amount: number | null | undefined): string => {
+    if (amount == null || isNaN(amount)) return "N/A";
+    if (amount === 0) return "₹0";
+
+    const absAmount = Math.abs(amount);
+
+    if (absAmount >= 1_00_00_000) {
+      const value = (absAmount / 1_00_00_000).toFixed(2).replace(/\.00$/, "");
+      return `₹${value} crore`;
+    } else if (absAmount >= 1_00_000) {
+      const value = (absAmount / 1_00_000).toFixed(2).replace(/\.00$/, "");
+      return `₹${value} lakh`;
+    } else if (absAmount >= 1_000) {
+      const value = (absAmount / 1_000).toFixed(2).replace(/\.00$/, "");
+      return `₹${value} K`;
+    } else {
+      return `₹${absAmount.toLocaleString("en-IN")}`;
+    }
   };
 
   const getSchemeTypeColor = (schemeType: SchemeType) => {
@@ -121,30 +137,6 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     } else {
       navigate('/login', { state: { from: `/purchase/${id}`, selectedSchemeId: schemeId } });
     }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Generate page numbers to display
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    return pages;
   };
 
   const displayProjectName = projectName || 'Project';
@@ -206,24 +198,15 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Results Count */}
-        {schemes.length > 0 && (
-          <div className="flex justify-between items-center mb-6">
-            <p className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * SCHEMES_PER_PAGE) + 1} to {Math.min(currentPage * SCHEMES_PER_PAGE, totalCount)} of {totalCount} schemes
-            </p>
-          </div>
-        )}
-
         {/* Stats Bar */}
-        {schemes.length > 0 && (
+        {allSchemes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <Card className="border-border shadow-lg bg-card">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Schemes</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{totalCount}</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{allSchemes.length}</p>
                   </div>
                   <div className="h-12 w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-yellow-500" />
@@ -238,7 +221,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Starting From</p>
                     <p className="text-3xl font-bold text-foreground mt-1">
-                      {formatCurrency(Math.min(...schemes.map(s => s.booking_advance || Infinity)))}
+                      {formatCurrency(minInvestmentAmount)}
                     </p>
                   </div>
                   <div className="h-12 w-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
@@ -254,7 +237,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Max Area</p>
                     <p className="text-3xl font-bold text-foreground mt-1">
-                      {Math.max(...schemes.map(s => s.area_sqft))} sqft
+                      {Math.max(...allSchemes.map(s => s.area_sqft)) || 0} sqft
                     </p>
                   </div>
                   <div className="h-12 w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
@@ -267,7 +250,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
         )}
 
         {/* Schemes Grid */}
-        {schemes.length === 0 ? (
+        {allSchemes.length === 0 ? (
           <Alert className="max-w-2xl mx-auto border-yellow-500/30 bg-yellow-500/10">
             <AlertCircle className="h-5 w-5 text-yellow-500" />
             <AlertDescription className="ml-2">
@@ -279,8 +262,8 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
           </Alert>
         ) : (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {schemes.map((scheme) => (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {paginatedSchemes.map((scheme) => (
                 <Card key={scheme.id} className="border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
                   <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
 
@@ -308,13 +291,13 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
 
                   <CardContent className="space-y-3 pt-0">
                     <div className="grid grid-cols-2 gap-3">
-                      {/* Booking Advance - Show for both types if available */}
+                      {/* Booking Advance */}
                       {(scheme.booking_advance && scheme.booking_advance > 0) && (
-                        <div className="bg-background p-3 rounded-lg border border-border">
+                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-1.5 mb-1">
                             <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-xs font-medium text-muted-foreground">
-                              {scheme.scheme_type === SchemeType.SINGLE_PAYMENT ? 'Booking Advance' : 'Booking Advance'}
+                              Booking Advance
                             </span>
                           </div>
                           <span className="text-base font-bold text-emerald-600">
@@ -325,7 +308,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
 
                       {/* Monthly EMI for installment plans */}
                       {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                        <div className="bg-background p-3 rounded-lg border border-border">
+                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-1.5 mb-1">
                             <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
@@ -338,7 +321,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
 
                       {/* Balance Payment Days for single payment */}
                       {scheme.scheme_type === SchemeType.SINGLE_PAYMENT && scheme.balance_payment_days && (
-                        <div className="bg-background p-3 rounded-lg border border-border">
+                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-1.5 mb-1">
                             <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
@@ -351,14 +334,28 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
 
                       {/* Duration for installment plans */}
                       {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                        <div className="bg-background p-3 rounded-lg border border-border">
+                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
                           <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
                           <span className="text-base font-bold text-foreground">
                             {scheme.total_installments || 'N/A'} months
                           </span>
                         </div>
                       )}
+
+                      {/*  NEW — Monthly Rental Income */}
+                      {scheme.monthly_rental_income && (
+                        <div className="bg-background p-3 rounded-lg border hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">Monthly Rental Income</span>
+                          </div>
+                          <span className="text-primary font-bold ">
+                            {formatCurrency(scheme.monthly_rental_income)}
+                          </span>
+                        </div>
+                      )}
                     </div>
+
 
                     {/* Rental Information */}
                     {scheme.rental_start_month && (
@@ -389,17 +386,9 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
               ))}
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 0 && (
-              <div className="flex flex-col items-center gap-6 mt-12">
-                {/* Page info text */}
-                <div className="text-center">
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                </div>
-
-                {/* Shadcn UI Pagination */}
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center mt-12">
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
@@ -409,12 +398,11 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
                           e.preventDefault();
                           if (currentPage > 1) handlePageChange(currentPage - 1);
                         }}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        className="hover:bg-yellow-100 text-yellow-700"
                       />
-
                     </PaginationItem>
 
-                    {getPageNumbers().map((page) => (
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                       <PaginationItem key={page}>
                         <PaginationLink
                           href="#"
@@ -422,8 +410,12 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
                             e.preventDefault();
                             handlePageChange(page);
                           }}
-                          isActive={currentPage === page}
-                          className="cursor-pointer"
+                          className={`mx-1 rounded-md px-4 py-2 transition-colors duration-200 
+                            ${
+                              currentPage === page
+                                ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold shadow-md'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-yellow-50'
+                            }`}
                         >
                           {page}
                         </PaginationLink>
@@ -437,7 +429,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
                           e.preventDefault();
                           if (currentPage < totalPages) handlePageChange(currentPage + 1);
                         }}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        className="hover:bg-yellow-100 text-yellow-700"
                       />
                     </PaginationItem>
                   </PaginationContent>

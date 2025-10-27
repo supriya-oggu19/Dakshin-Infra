@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import UserInfoForm from "@/pages/UserInfoForm";
+import UserInfoPage from "@/pages/UserInfoPage";
 import KYCForm from "./KYCForm";
 import PurchaseUnitConfirmation from "./PurchaseUnitConfirmation";
 
@@ -26,11 +26,13 @@ import {
   UserInfo, 
   JointAccountInfo, 
   KYCDocuments,
-  CreateUserProfileRequest 
-} from "@/api/models/userProfile.model";
+  CreateUserProfileRequest,
+  Account 
+} from "@/api/models/userInfo.model"; // Standardized to userInfo.model
+import { validatePhone } from "@/utils/validation"; // Assuming this exists
 
 const PurchaseFlow = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
@@ -39,20 +41,30 @@ const PurchaseFlow = () => {
   const [currentStep, setCurrentStep] = useState<PurchaseStep>("plan-selection");
   const [selectedPlan, setSelectedPlan] = useState<PlanSelection | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<number>(1);
-  const [customPayment, setCustomPayment] = useState<string>("");
-  const [userInfo, setUserInfo] = useState<UserInfo>(getInitialUserInfo(user));
-  const [isJointAccount, setIsJointAccount] = useState(false);
-  const [jointAccountInfo, setJointAccountInfo] = useState<JointAccountInfo>(getInitialJointInfo());
-  const [verified, setVerified] = useState(getInitialVerifiedState());
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [jointTermsAccepted, setJointTermsAccepted] = useState(false);
+  const [customPayment, setCustomPayment] = useState<number>(0);
+  const [accounts, setAccounts] = useState<Account[]>([
+    {
+      id: 'primary',
+      type: 'primary',
+      data: getInitialUserInfo(user),
+      termsAccepted: false,
+      verified: { pan: false, aadhar: false, gst: false, passport: false }
+    }
+  ]);
   const [kycDocuments, setKycDocuments] = useState<KYCDocuments>({});
   const [kycAccepted, setKycAccepted] = useState(false);
-  const [jointKycAccepted, setJointKycAccepted] = useState(false);
+  const [jointKycAccepted, setJointKycAccepted] = useState<boolean[]>([]);
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState<Scheme[]>([]);
+  const [totalInvestment, setTotalInvestment] = useState<number>(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [userProfileId, setUserProfileId] = useState<string | null>(null);
+  const [userProfileIds, setUserProfileIds] = useState<string[]>([]);
+
+  // Update when accounts change
+  useEffect(() => {
+    const jointCount = accounts.filter(account => account.type === 'joint').length;
+    setJointKycAccepted(Array(jointCount).fill(false));
+  }, [accounts]);
 
   // Helper functions for initial state
   function getInitialUserInfo(user: any): UserInfo {
@@ -102,10 +114,27 @@ const PurchaseFlow = () => {
       gender: "male",
       email: "",
       phone_number: "",
+      present_address: {
+        street: "",
+        city: "",
+        state: "",
+        country: "India",
+        postal_code: "",
+      },
+      permanent_address: {
+        street: "",
+        city: "",
+        state: "",
+        country: "India",
+        postal_code: "",
+      },
+      occupation: "",
+      annual_income: "",
       pan_number: "",
       aadhar_number: "",
       gst_number: "",
       passport_number: "",
+      sameAddress: true,
       user_type: "individual",
       account_details: {
         account_holder_name: "",
@@ -113,19 +142,6 @@ const PurchaseFlow = () => {
         account_number: "",
         ifsc_code: "",
       },
-    };
-  }
-
-  function getInitialVerifiedState() {
-    return {
-      pan: false,
-      aadhar: false,
-      gst: false,
-      passport: false,
-      jointPan: false,
-      jointAadhar: false,
-      jointGst: false,
-      jointPassport: false,
     };
   }
 
@@ -152,8 +168,8 @@ const PurchaseFlow = () => {
 
       try {
         setLoading(true);
-        console.log(`Fetching schemes for project_id: ${id}`);
-        
+        setFetchError(null);
+
         const params: SchemeListRequest = {
           project_id: id,
           page: 1,
@@ -163,30 +179,24 @@ const PurchaseFlow = () => {
         const response = await purchaseApi.getInvestmentSchemes(params);
         console.log("API response:", response);
 
-        if (response.message === "Investment schemes for project retrieved successfully") {
-          setSchemes(response.schemes || []);
-          if (!response.schemes || response.schemes.length === 0) {
-            setFetchError("No investment schemes available for this project");
-            toast({
-              title: "No Schemes",
-              description: "No investment schemes available for this project",
-              variant: "destructive",
-            });
-          }
+        if (response.schemes && response.schemes.length > 0) {
+          setSchemes(response.schemes);
+          setTotalInvestment(response.total_invertment_amount);
         } else {
-          setFetchError(response.message || "Failed to fetch investment schemes");
+          setSchemes([]);
+          setFetchError("No investment schemes available for this project");
           toast({
-            title: "Error",
-            description: response.message || "Failed to fetch investment schemes",
+            title: "No Schemes",
+            description: "No investment schemes available for this project",
             variant: "destructive",
           });
         }
       } catch (error: any) {
         console.error("Fetch error:", error);
-        setFetchError(error.response?.data?.message || "Error fetching schemes. Please try again.");
+        setFetchError(error.response?.data?.message || error.message || "Error fetching schemes. Please try again.");
         toast({
           title: "Error",
-          description: error.response?.data?.message || "Error fetching schemes. Please try again.",
+          description: error.response?.data?.message || error.message || "Error fetching schemes. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -197,35 +207,33 @@ const PurchaseFlow = () => {
     fetchSchemes();
   }, [id, toast]);
 
-  // Plan selection handlers
+  // Plan selection handlers (unchanged)
   const handlePlanSelection = (scheme: Scheme, units: number) => {
     const type = scheme.scheme_type === "single_payment" ? "single" : "installment";
     const totalPrice =
       type === "single"
         ? scheme.booking_advance * units
         : scheme.total_installments! * scheme.monthly_installment_amount! * units;
-    const minPayment = scheme.booking_advance * units;
+    const basePerUnit = scheme.booking_advance || (type === "installment" ? scheme.monthly_installment_amount! : 0);
+    const minPayment = Math.max(basePerUnit * units, 50000);
 
     setSelectedPlan({
       type,
       planId: scheme.id,
       area: scheme.area_sqft,
       price: totalPrice,
+      totalInvestment: totalInvestment,
       monthlyAmount: type === "installment" ? scheme.monthly_installment_amount! * units : undefined,
       installments: type === "installment" ? scheme.total_installments! : undefined,
       rentalStart: scheme.rental_start_month
         ? `${scheme.rental_start_month}th Month`
         : "Next month after last installment",
-      monthlyRental: scheme.monthly_installment_amount
-        ? scheme.monthly_installment_amount * units * 0.3
-        : scheme.booking_advance * units * 0.01,
+      monthlyRental: (scheme.monthly_rental_income || (type === "installment" ? scheme.monthly_installment_amount! * 0.3 : scheme.booking_advance * 0.01)) * units,
       units: units,
-      paymentAmount: type === "single" ? minPayment : undefined,
+      paymentAmount: minPayment,
     });
 
-    if (type === "single") {
-      setCustomPayment(minPayment.toString());
-    }
+    setCustomPayment(minPayment);
   };
 
   const handleUnitsChange = (increment: boolean) => {
@@ -241,93 +249,199 @@ const PurchaseFlow = () => {
   };
 
   const handleCustomPaymentChange = (value: string) => {
-    setCustomPayment(value);
-    if (selectedPlan && selectedPlan.type === "single") {
-      const paymentAmount = parseInt(value) || 0;
+    const numValue = parseInt(value) || 0;
+    setCustomPayment(numValue);
+    if (selectedPlan) {
       setSelectedPlan({
         ...selectedPlan,
-        paymentAmount,
+        paymentAmount: numValue,
       });
     }
   };
 
   // Validation helpers
   const getMinPayment = () => {
-    return selectedPlan ? schemes.find((s) => s.id === selectedPlan.planId)?.booking_advance! * selectedPlan.units : 200000;
+    if (!selectedPlan) return 50000;
+    const scheme = schemes.find((s) => s.id === selectedPlan.planId);
+    if (!scheme) return 50000;
+    const type = scheme.scheme_type === "single_payment" ? "single" : "installment";
+    const basePerUnit = scheme.booking_advance || (type === "installment" ? scheme.monthly_installment_amount! : 0);
+    return Math.max(basePerUnit * selectedPlan.units, 50000);
   };
 
   const isValidPaymentAmount = () => {
-    if (!selectedPlan || selectedPlan.type !== "single") return true;
-    const paymentAmount = parseInt(customPayment) || 0;
-    return paymentAmount >= getMinPayment();
+    if (!selectedPlan) return false;
+    return customPayment >= getMinPayment();
   };
 
   const validateUserInfo = () => {
-    // Your existing validation logic here
-    // Return boolean based on validation
-    return true; // Simplified for example
+    for (const account of accounts) {
+      const data = account.data as UserInfo;
+      if (!data.surname || !data.name || !account.termsAccepted) return false;
+
+      if (!data.dob || !data.email) return false;
+      if (!data.phone_number || !validatePhone(data.phone_number)) return false;
+      if (!data.present_address.street || !data.present_address.city) return false;
+      if (!data.occupation || !data.annual_income) return false;
+      if (!data.account_details.account_number || !data.account_details.ifsc_code) return false;
+
+      // verified
+      switch (data.user_type) {
+        case 'individual':
+          if (!account.verified.pan || !account.verified.aadhar) return false;
+          break;
+        case 'business':
+          if (!account.verified.gst) return false;
+          break;
+        case 'NRI':
+          if (!account.verified.passport) return false;
+          break;
+      }
+    }
+    return true;
   };
 
   const validateKYC = () => {
-    // Your existing KYC validation logic here
-    // Return boolean based on validation
-    return true; // Simplified for example
+    if (!kycAccepted) return false;
+    const primary = accounts[0]?.data as UserInfo;
+    if (!primary) return false;
+    if (primary.user_type === 'individual' && (!kycDocuments.pan || !kycDocuments.aadhar)) return false;
+    if (primary.user_type === 'business' && !kycDocuments.gst) return false;
+    if (primary.user_type === 'NRI' && !kycDocuments.passport) return false;
+
+    if (accounts.length > 1 && !jointKycAccepted.every(Boolean)) return false;
+
+    const jointAccounts = accounts
+      .filter(account => account.type === 'joint')
+      .map(account => account.data as JointAccountInfo);
+    jointAccounts.forEach((joint, i) => {
+      const idx = i + 1;
+      const base = `joint${idx}`;
+      if (joint.user_type === 'individual' && (!kycDocuments[`${base}Pan`] || !kycDocuments[`${base}Aadhar`])) return false;
+      if (joint.user_type === 'business' && !kycDocuments[`${base}Gst`]) return false;
+      if (joint.user_type === 'NRI' && !kycDocuments[`${base}Passport`]) return false;
+    });
+
+    return true;
   };
 
-  // User profile creation
-  const createUserProfile = async (): Promise<string> => {
-    const profileData: CreateUserProfileRequest = {
-      surname: userInfo.surname,
-      name: userInfo.name,
-      dob: userInfo.dob,
-      gender: userInfo.gender,
-      present_address: userInfo.present_address,
-      permanent_address: userInfo.sameAddress ? userInfo.present_address : userInfo.permanent_address,
-      occupation: userInfo.occupation,
-      annual_income: userInfo.annual_income,
-      user_type: userInfo.user_type,
-      pan_number: userInfo.user_type === "individual" ? userInfo.pan_number : null,
-      aadhar_number: userInfo.user_type === "individual" ? userInfo.aadhar_number : null,
-      gst_number: userInfo.user_type === "business" ? userInfo.gst_number : null,
-      passport_number: userInfo.user_type === "NRI" ? userInfo.passport_number : null,
-      phone_number: userInfo.phone_number,
-      email: userInfo.email,
-      account_details: userInfo.account_details,
-      joint_account: isJointAccount
-        ? {
-            surname: jointAccountInfo.surname,
-            name: jointAccountInfo.name,
-            dob: jointAccountInfo.dob,
-            gender: jointAccountInfo.gender,
-            email: jointAccountInfo.email,
-            phone_number: jointAccountInfo.phone_number,
-            user_type: jointAccountInfo.user_type,
-            pan_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.pan_number : null,
-            aadhar_number: jointAccountInfo.user_type === "individual" ? jointAccountInfo.aadhar_number : null,
-            gst_number: jointAccountInfo.user_type === "business" ? jointAccountInfo.gst_number : null,
-            passport_number: jointAccountInfo.user_type === "NRI" ? jointAccountInfo.passport_number : null,
-            account_details: jointAccountInfo.account_details,
-          }
-        : null,
+  // User profiles creation - one by one
+  const createUserProfiles = async (): Promise<string[]> => {
+    const ids: string[] = [];
+    const jointAccounts = accounts
+      .filter(account => account.type === 'joint')
+      .map(account => account.data as JointAccountInfo);
+
+    // Primary
+    const primary = accounts.find(a => a.type === 'primary')?.data as UserInfo;
+    if (!primary) throw new Error("Primary account data missing");
+
+    const primaryData: CreateUserProfileRequest = {
+      surname: primary.surname,
+      name: primary.name,
+      dob: primary.dob,
+      gender: primary.gender,
+      present_address: primary.present_address,
+      permanent_address: primary.sameAddress ? primary.present_address : primary.permanent_address,
+      occupation: primary.occupation,
+      annual_income: primary.annual_income,
+      user_type: primary.user_type,
+      pan_number: primary.user_type === "individual" ? primary.pan_number : null,
+      aadhar_number: primary.user_type === "individual" ? primary.aadhar_number : null,
+      gst_number: primary.user_type === "business" ? primary.gst_number : null,
+      passport_number: primary.user_type === "NRI" ? primary.passport_number : null,
+      phone_number: primary.phone_number,
+      email: primary.email,
+      account_details: primary.account_details,
     };
 
-    const formData = new FormData();
-    formData.append("profile_data", JSON.stringify(profileData));
+    const primaryFormData = new FormData();
+    primaryFormData.append("profile_data", JSON.stringify(primaryData));
 
-    // Add documents (simplified for example)
-    // Your existing document handling logic here
+    let primaryDoc1: File | null = null;
+    let primaryDoc2: File | null = null;
+    if (primary.user_type === 'individual') {
+      primaryDoc1 = kycDocuments.pan as File;
+      primaryDoc2 = kycDocuments.aadhar as File;
+    } else if (primary.user_type === 'business') {
+      primaryDoc1 = kycDocuments.gst as File;
+    } else if (primary.user_type === 'NRI') {
+      primaryDoc1 = kycDocuments.passport as File;
+    }
+
+    if (!primaryDoc1) throw new Error("Missing required document for primary user");
+
+    primaryFormData.append("document1", primaryDoc1);
+    if (primaryDoc2) primaryFormData.append("document2", primaryDoc2);
 
     try {
-      const response = await userProfileApi.createUserProfile(formData);
-      
-      if (response.data.user_profile_id) {
-        return response.data.user_profile_id;
+      const primaryResponse = await userProfileApi.createUserProfile(primaryFormData);
+      if (primaryResponse.data.user_profile_id) {
+        ids.push(primaryResponse.data.user_profile_id);
       } else {
-        throw new Error("No user profile ID returned from server");
+        throw new Error("No user profile ID returned for primary user");
       }
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to create user profile");
+      throw new Error(error.response?.data?.message || "Failed to create primary user profile");
     }
+
+    // Joints
+    for (let i = 0; i < jointAccounts.length; i++) {
+      const joint = jointAccounts[i] as UserInfo;
+      const jointIndex = i + 1;
+      const baseKey = `joint${jointIndex}`;
+
+      const jointData: CreateUserProfileRequest = {
+        surname: joint.surname,
+        name: joint.name,
+        dob: joint.dob,
+        gender: joint.gender,
+        present_address: joint.present_address,
+        permanent_address: joint.sameAddress ? joint.present_address : joint.permanent_address,
+        occupation: joint.occupation,
+        annual_income: joint.annual_income,
+        user_type: joint.user_type,
+        pan_number: joint.user_type === "individual" ? joint.pan_number : null,
+        aadhar_number: joint.user_type === "individual" ? joint.aadhar_number : null,
+        gst_number: joint.user_type === "business" ? joint.gst_number : null,
+        passport_number: joint.user_type === "NRI" ? joint.passport_number : null,
+        phone_number: joint.phone_number,
+        email: joint.email,
+        account_details: joint.account_details,
+      };
+
+      const jointFormData = new FormData();
+      jointFormData.append("profile_data", JSON.stringify(jointData));
+
+      let jointDoc1: File | null = null;
+      let jointDoc2: File | null = null;
+      if (joint.user_type === 'individual') {
+        jointDoc1 = kycDocuments[`${baseKey}Pan`] as File;
+        jointDoc2 = kycDocuments[`${baseKey}Aadhar`] as File;
+      } else if (joint.user_type === 'business') {
+        jointDoc1 = kycDocuments[`${baseKey}Gst`] as File;
+      } else if (joint.user_type === 'NRI') {
+        jointDoc1 = kycDocuments[`${baseKey}Passport`] as File;
+      }
+
+      if (!jointDoc1) throw new Error(`Missing required document for joint user ${jointIndex}`);
+
+      jointFormData.append("document1", jointDoc1);
+      if (jointDoc2) jointFormData.append("document2", jointDoc2);
+
+      try {
+        const jointResponse = await userProfileApi.createUserProfile(jointFormData);
+        if (jointResponse.data.user_profile_id) {
+          ids.push(jointResponse.data.user_profile_id);
+        } else {
+          throw new Error(`No user profile ID returned for joint user ${jointIndex}`);
+        }
+      } catch (error: any) {
+        throw new Error(error.response?.data?.message || `Failed to create joint user ${jointIndex} profile`);
+      }
+    }
+
+    return ids;
   };
 
   // Navigation handlers
@@ -340,16 +454,15 @@ const PurchaseFlow = () => {
       } else if (currentStep === "user-info" && validateUserInfo()) {
         setCurrentStep("kyc");
       } else if (currentStep === "kyc" && validateKYC()) {
-        const userProfileId = await createUserProfile();
-        setUserProfileId(userProfileId);
+        const userProfileIds = await createUserProfiles();
+        setUserProfileIds(userProfileIds);
 
         toast({
           title: "Success",
-          description: "User profile created successfully",
+          description: "User profiles created successfully",
         });
         setCurrentStep("payment");
       } else if (currentStep === "payment") {
-        // Payment is handled in PurchaseUnitConfirmation component
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setCurrentStep("confirmation");
         toast({
@@ -390,13 +503,7 @@ const PurchaseFlow = () => {
   };
 
   const getCurrentPaymentAmount = () => {
-    if (!selectedPlan) return 0;
-
-    if (selectedPlan.type === "installment") {
-      return selectedPlan.monthlyAmount!;
-    } else {
-      return selectedPlan.paymentAmount || getMinPayment();
-    }
+    return selectedPlan ? selectedPlan.paymentAmount! : 0;
   };
 
   const handlePurchaseSuccess = (data: any) => {
@@ -408,6 +515,15 @@ const PurchaseFlow = () => {
     });
   };
 
+  const handleUserInfoSubmit = async (submittedAccounts: Account[]) => {
+    setAccounts(submittedAccounts);
+    if (validateUserInfo()) {
+      toast({ title: "Success", description: "User info saved" });
+    } else {
+      toast({ title: "Error", description: "Please fix validation errors", variant: "destructive" });
+    }
+  };
+
   // Render different steps
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -415,6 +531,7 @@ const PurchaseFlow = () => {
         return (
           <PlanSelectionStep
             schemes={schemes}
+            totalInvestment={totalInvestment}
             selectedPlan={selectedPlan}
             selectedUnits={selectedUnits}
             customPayment={customPayment}
@@ -432,24 +549,19 @@ const PurchaseFlow = () => {
       case "user-info":
         return (
           <div className="space-y-6">
-            <UserInfoForm
-              userInfo={userInfo}
-              setUserInfo={setUserInfo}
-              termsAccepted={termsAccepted}
-              setTermsAccepted={setTermsAccepted}
-              isJointAccount={isJointAccount}
-              setIsJointAccount={setIsJointAccount}
-              jointAccountInfo={jointAccountInfo}
-              setJointAccountInfo={setJointAccountInfo}
-              jointTermsAccepted={jointTermsAccepted}
-              setJointTermsAccepted={setJointTermsAccepted}
-              verified={verified}
-              setVerified={setVerified}
+            <UserInfoPage
+              accounts={accounts}
+              onSubmit={handleUserInfoSubmit}
+              onAccountsChange={setAccounts}
             />
           </div>
         );
 
       case "kyc":
+        const jointAccounts = accounts
+          .filter(account => account.type === 'joint')
+          .map(account => account.data as JointAccountInfo);
+        
         return (
           <div className="space-y-6">
             <KYCForm
@@ -457,13 +569,12 @@ const PurchaseFlow = () => {
               setKycDocuments={setKycDocuments}
               kycAccepted={kycAccepted}
               setKycAccepted={setKycAccepted}
-              userType={userInfo.user_type}
-              isJointAccount={isJointAccount}
-              jointUserType={jointAccountInfo.user_type}
+              userType={(accounts[0]?.data as UserInfo)?.user_type || "individual"}
+              isJointAccount={jointAccounts.length > 0}
+              jointAccounts={jointAccounts}
               jointKycAccepted={jointKycAccepted}
               setJointKycAccepted={setJointKycAccepted}
-              userInfo={userInfo}
-              jointAccountInfo={jointAccountInfo}
+              userInfo={accounts[0]?.data as UserInfo}
               setCurrentStep={setCurrentStep}
             />
           </div>
@@ -475,10 +586,11 @@ const PurchaseFlow = () => {
             <PurchaseUnitConfirmation
               projectId={id!}
               schemeId={selectedPlan.planId}
-              isJointOwnership={isJointAccount}
+              totalInvestmentOfProject={totalInvestment}
+              isJointOwnership={accounts.length > 1}
               numberOfUnits={selectedUnits}
               onPurchaseSuccess={handlePurchaseSuccess}
-              userProfileId={userProfileId}
+              userProfileIds={userProfileIds}
               schemeData={schemes.find(s => s.id === selectedPlan.planId)}
               paymentAmount={getCurrentPaymentAmount()}
             />
@@ -513,7 +625,6 @@ const PurchaseFlow = () => {
 
       <div className="pt-20 px-4 pb-16">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
           <div className="mb-8">
             <button
               onClick={() => navigate(`/projects/${id}`)}
@@ -524,17 +635,13 @@ const PurchaseFlow = () => {
             <p className="text-muted-foreground">Complete your investment in a few simple steps</p>
           </div>
 
-          {/* Progress Stepper */}
           <PurchaseProgress currentStep={currentStep} />
 
-          {/* Main Content Grid */}
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Content - Steps */}
             <div className="lg:col-span-2">
               {renderCurrentStep()}
             </div>
 
-            {/* Right Sidebar - Order Summary */}
             <OrderSummary
               selectedPlan={selectedPlan}
               currentStep={currentStep}

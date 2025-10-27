@@ -1,4 +1,3 @@
-// components/purchase/OrderSummary.tsx
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -37,7 +36,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     
     switch (currentStep) {
       case "plan-selection":
-        return selectedPlan?.type === "single" && !isValidPaymentAmount();
+        return !isValidPaymentAmount();
       case "user-info":
         return !validateUserInfo();
       case "kyc":
@@ -65,8 +64,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           )}
         </CardContent>
       </Card>
-
-      <SecurityInfoCard />
 
       {currentStep !== "confirmation" && currentStep !== "payment" && (
         <NavigationButtons
@@ -119,18 +116,21 @@ const OrderDetails: React.FC<any> = ({ selectedPlan, getMinPayment, formatCurren
     )}
     
     {selectedPlan.type === "single" && (
-      <>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Payment Amount</span>
-          <span className="font-medium">{formatCurrency(selectedPlan.paymentAmount || getMinPayment())}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Balance Due</span>
-          <span className="font-medium text-orange-600">
-            {formatCurrency(selectedPlan.price - (selectedPlan.paymentAmount || getMinPayment()))}
-          </span>
-        </div>
-      </>
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">Balance Due (within 90 days)</span>
+        <span className="font-medium text-orange-600">
+          {formatCurrency((selectedPlan.totalInvestment * selectedPlan.units) - selectedPlan.paymentAmount)}
+        </span>
+      </div>
+    )}
+    
+    {selectedPlan.type === "installment" && (
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">Remaining Amount</span>
+        <span className="font-medium">
+          {formatCurrency(selectedPlan.price - selectedPlan.paymentAmount)}
+        </span>
+      </div>
     )}
     
     <Separator />
@@ -138,38 +138,16 @@ const OrderDetails: React.FC<any> = ({ selectedPlan, getMinPayment, formatCurren
       <span className="text-muted-foreground">Future Monthly Rental</span>
       <span className="font-medium text-green-600">{formatCurrency(selectedPlan.monthlyRental)}</span>
     </div>
+        <div className="flex justify-between text-sm">
+      <span className="text-muted-foreground" >Total Investment</span>
+      <span>{formatCurrency(selectedPlan.totalInvestment * selectedPlan.units)}</span>
+    </div>
     <Separator />
-    <div className="flex justify-between text-lg font-bold">
-      <span>Total Investment</span>
-      <span>{formatCurrency(selectedPlan.price)}</span>
+        <div className="flex justify-between text-lg font-bold text-primary">
+      <span>Pay now</span>
+      <span>{formatCurrency(selectedPlan.paymentAmount)}</span>
     </div>
   </div>
-);
-
-const SecurityInfoCard: React.FC = () => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center text-sm">
-        <Shield className="w-4 h-4 mr-2" />
-        Secure Payment
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-3 text-xs text-muted-foreground">
-      <p>Your personal and payment information is encrypted and secure.</p>
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-5 bg-green-600 rounded flex items-center justify-center">
-          <CheckCircle className="w-3 h-3 text-white" />
-        </div>
-        <span>256-bit SSL Encryption</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-5 bg-blue-600 rounded flex items-center justify-center">
-          <Shield className="w-3 h-3 text-white" />
-        </div>
-        <span>PCI DSS Compliant</span>
-      </div>
-    </CardContent>
-  </Card>
 );
 
 const NavigationButtons: React.FC<any> = ({

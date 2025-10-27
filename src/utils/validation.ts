@@ -1,106 +1,107 @@
-// File: src/utils/validation.ts
-export const VALIDATION_PATTERNS = {
-  PAN: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
-  AADHAAR: /^\d{12}$/,
-  GSTIN: /^[0-9A-Z]{15}$/,
-  PASSPORT: /^[A-Z0-9]{6,12}$/,
-  PHONE: /^\+?\d{1,3}[-.\s]?\d{6,10}$/,
-  ACCOUNT_NUMBER: /^\d{9,18}$/,
-  IFSC: /^[A-Z]{4}0[A-Z0-9]{6}$/,
-};
-
+// Validation functions
 export const validatePAN = (pan: string): boolean => {
-  return VALIDATION_PATTERNS.PAN.test(pan);
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  return panRegex.test(pan);
 };
 
 export const validateAadhaar = (aadhaar: string): boolean => {
-  return VALIDATION_PATTERNS.AADHAAR.test(aadhaar);
+  const aadhaarRegex = /^\d{12}$/;
+  return aadhaarRegex.test(aadhaar);
 };
 
 export const validateGSTIN = (gstin: string): boolean => {
-  return VALIDATION_PATTERNS.GSTIN.test(gstin);
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+  return gstinRegex.test(gstin);
 };
 
 export const validatePassport = (passport: string): boolean => {
-  return VALIDATION_PATTERNS.PASSPORT.test(passport);
+  const passportRegex = /^[A-PR-WY][1-9]\d\s?\d{4}[1-9]$/;
+  return passportRegex.test(passport);
 };
 
 export const validatePhone = (phone: string): boolean => {
-  return VALIDATION_PATTERNS.PHONE.test(phone);
+  const phoneRegex = /^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/;
+  return phoneRegex.test(phone.replace(/\s/g, ''));
 };
 
-export const validateAccountNumber = (accountNumber: string): boolean => {
-  return VALIDATION_PATTERNS.ACCOUNT_NUMBER.test(accountNumber);
+export const validateAccountNumber = (account: string): boolean => {
+  const accountRegex = /^\d{9,18}$/;
+  return accountRegex.test(account);
 };
 
 export const validateIFSC = (ifsc: string): boolean => {
-  return VALIDATION_PATTERNS.IFSC.test(ifsc);
+  const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+  return ifscRegex.test(ifsc);
 };
 
-export const validateUserTypeFields = (userType: string, fields: any): string[] => {
-  const validationErrors: string[] = [];
-
-  if (userType === 'individual') {
-    if (!fields.pan_number || !validatePAN(fields.pan_number)) {
-      validationErrors.push('Valid PAN number is required for individual user type');
-    }
-    if (!fields.aadhar_number || !validateAadhaar(fields.aadhar_number)) {
-      validationErrors.push('Valid Aadhaar number is required for individual user type');
-    }
-    if (fields.gst_number) {
-      validationErrors.push('GST number should not be provided for individual user type');
-    }
-    if (fields.passport_number) {
-      validationErrors.push('Passport number should not be provided for individual user type');
-    }
-  } else if (userType === 'business') {
-    if (!fields.gst_number || !validateGSTIN(fields.gst_number)) {
-      validationErrors.push('Valid GST number is required for business user type');
-    }
-    if (fields.pan_number) {
-      validationErrors.push('PAN number should not be provided for business user type');
-    }
-    if (fields.aadhar_number) {
-      validationErrors.push('Aadhaar number should not be provided for business user type');
-    }
-    if (fields.passport_number) {
-      validationErrors.push('Passport number should not be provided for business user type');
-    }
-  } else if (userType === 'NRI') {
-    if (!fields.passport_number || !validatePassport(fields.passport_number)) {
-      validationErrors.push('Valid passport number is required for NRI user type');
-    }
-    if (fields.pan_number) {
-      validationErrors.push('PAN number should not be provided for NRI user type');
-    }
-    if (fields.aadhar_number) {
-      validationErrors.push('Aadhaar number should not be provided for NRI user type');
-    }
-    if (fields.gst_number) {
-      validationErrors.push('GST number should not be provided for NRI user type');
-    }
-  }
-
-  return validationErrors;
-};
-
+// Field-specific validation
 export const getFieldError = (field: string, value: string): string => {
   switch (field) {
     case 'pan_number':
-      return validatePAN(value) ? '' : 'Invalid PAN format (e.g., ABCDE1234F)';
+      if (!value) return 'PAN number is required';
+      if (!validatePAN(value)) return 'Invalid PAN format (e.g., ABCDE1234F)';
+      return '';
+
     case 'aadhar_number':
-      return validateAadhaar(value) ? '' : 'Aadhaar must be 12 digits';
+      if (!value) return 'Aadhaar number is required';
+      if (!validateAadhaar(value)) return 'Aadhaar must be 12 digits';
+      return '';
+
     case 'gst_number':
-      return validateGSTIN(value) ? '' : 'Invalid GSTIN format (15 alphanumeric characters)';
+      if (!value) return 'GST number is required';
+      if (!validateGSTIN(value)) return 'Invalid GST format';
+      return '';
+
     case 'passport_number':
-      return validatePassport(value) ? '' : 'Invalid Passport format (6-12 alphanumeric characters)';
+      if (!value) return 'Passport number is required';
+      if (!validatePassport(value)) return 'Invalid Passport format';
+      return '';
+
     case 'phone_number':
-      return validatePhone(value) ? '' : 'Invalid phone format (e.g., +91 9876543210)';
+      if (!value) return 'Phone number is required';
+      if (!validatePhone(value)) return 'Invalid Indian phone number';
+      return '';
+
     case 'account_number':
-      return validateAccountNumber(value) ? '' : 'Account number must be 9-18 digits';
+      if (!value) return 'Account number is required';
+      if (!validateAccountNumber(value)) return 'Account number must be 9-18 digits';
+      return '';
+
     case 'ifsc_code':
-      return validateIFSC(value) ? '' : 'Invalid IFSC format (e.g., SBIN0000123)';
+      if (!value) return 'IFSC code is required';
+      if (!validateIFSC(value)) return 'Invalid IFSC code format';
+      return '';
+
     default:
       return '';
   }
+};
+
+// User type specific field validation
+export const validateUserTypeFields = (userType: string, fields: any): string[] => {
+  const errors: string[] = [];
+
+  if (userType === 'individual') {
+    if (!fields.pan_number) errors.push('PAN number is required for individuals');
+    if (!fields.aadhar_number) errors.push('Aadhaar number is required for individuals');
+  } else if (userType === 'business') {
+    if (!fields.gst_number) errors.push('GST number is required for businesses');
+  } else if (userType === 'NRI') {
+    if (!fields.passport_number) errors.push('Passport number is required for NRIs');
+  }
+
+  return errors;
+};
+
+// Required field validation
+export const validateRequiredFields = (data: any, requiredFields: string[]): string[] => {
+  const errors: string[] = [];
+  
+  requiredFields.forEach(field => {
+    if (!data[field] || data[field].toString().trim() === '') {
+      errors.push(`${field.replace('_', ' ')} is required`);
+    }
+  });
+
+  return errors;
 };

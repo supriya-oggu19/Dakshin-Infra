@@ -43,7 +43,7 @@ export const ENDPOINTS = {
   },
 
   PAYMENTS: {
-    CREATE_ORDER: "/payments/create-order",
+    CREATE_ORDER: "/payments/create-order-with-unit",
     LIST: "/payments/list",
   },
 
