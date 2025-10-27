@@ -36,7 +36,7 @@ export const ENDPOINTS = {
     UPDATE_STATUS: (id: string) => `/contact-inquiry/update-status/${id}`,
   },
   PAYMENTS: {
-    CREATE_ORDER: "/payments/create-order",
+    CREATE_ORDER: "/payments/create-order-with-unit",
   },
   USER_PROFILE: {
     CREATE: "/user_profile/create",

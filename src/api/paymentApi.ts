@@ -1,6 +1,6 @@
-import axiosClient from "./axiosClient";
+import {mainAxiosClient} from "./axiosClient";
 import { ENDPOINTS } from "./endpoints";
 
 export const paymentApi = {
-  createOrder: (data: any) => axiosClient.post(ENDPOINTS.PAYMENTS.CREATE_ORDER, data),
+  createOrder: (data: any) => mainAxiosClient.post(ENDPOINTS.PAYMENTS.CREATE_ORDER, data),
 };

@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Building, FileText, Users, IndianRupee, CheckCircle, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { paymentApi } from "@/api/paymentApi"; // Adjust path as needed based on your project structure
 
 interface PurchaseUnitConfirmationProps {
   projectId: string;
   schemeId: string;
+  totalInvestmentOfProject: number;
   isJointOwnership: boolean;
   numberOfUnits: number;
   onPurchaseSuccess: (data: any) => void;
@@ -30,6 +32,7 @@ const PurchaseUnitConfirmation = ({
   schemeId,
   isJointOwnership,
   numberOfUnits,
+  totalInvestmentOfProject,
   onPurchaseSuccess,
   userProfileIds,
   schemeData,
@@ -49,6 +52,13 @@ const PurchaseUnitConfirmation = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { getToken } = useAuth();
+
+  console.log('projectId Data:', projectId);
+  console.log('schemeId Data:', schemeId);
+  console.log('isJointOwnership Data:', isJointOwnership);
+  console.log('userProfileIds Data:', userProfileIds);
+  console.log('paymentAmount Data:', paymentAmount);
+  console.log('Scheme Data:', schemeData);
 
   const formatCurrency = (amount: number) => {
     if (!amount || isNaN(amount)) {
@@ -133,48 +143,48 @@ const PurchaseUnitConfirmation = ({
     setLoading(true);
 
     try {
-      const token = getToken();
-      const purchaseData = {
-        project_id: projectId,
-        scheme_id: schemeId,
-        user_profile_ids: userProfileIds,
-        number_of_units: numberOfUnits,
-        is_joint_ownership: isJointOwnership,
-        payment_amount: paymentAmount,
-        customer_name: userInfo.name,
-        customer_email: userInfo.email,
-        customer_phone: userInfo.phone
+      // Assuming the first profile ID is the primary user
+      const primaryUserProfileId = userProfileIds[0];
+      const jointOwners = isJointOwnership 
+        ? userProfileIds.slice(1).map(id => ({ user_profile_id: id })) 
+        : null;
+
+      const requestData = {
+        unit_data: {
+          project_id: projectId,
+          scheme_id: schemeId,
+          user_profile_id: primaryUserProfileId,
+          is_joint_ownership: isJointOwnership,
+          joint_owners: jointOwners,
+          number_of_units: numberOfUnits
+        },
+        order_data: {
+          order_amount: paymentAmount,
+          customer_phone: userInfo.phone,
+          customer_name: userInfo.name, // Added for completeness, assuming backend accepts
+          customer_email: userInfo.email, // Added for completeness, assuming backend accepts
+          payment_methods: "upi"
+        }
       };
 
-      const response = await fetch('http://127.0.0.1:8001/api/purchase/units', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(purchaseData),
-      });
+      const response = await paymentApi.createOrder(requestData);
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Purchase failed');
-      }
-
-      if (data.message === 'Unit purchased successfully' || data.status === 'success') {
+      if (data.status === 'success') {
         toast({
           title: "Success",
-          description: "Purchase completed successfully!",
+          description: "Order created successfully! Proceeding to payment.",
         });
         onPurchaseSuccess(data);
       } else {
-        throw new Error(data.message || 'Purchase failed');
+        throw new Error(data.message || 'Order creation failed');
       }
     } catch (error: any) {
       console.error('Purchase error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to complete purchase. Please try again.",
+        description: error.response?.data?.message || error.message || "Failed to create order. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -250,10 +260,7 @@ const PurchaseUnitConfirmation = ({
               
               {isInstallment ? (
                 <>
-                  <div className="flex justify-between text-green-600">
-                    <span className="font-medium">Booking Advance (Now):</span>
-                    <span className="font-semibold">{formatCurrency(paymentAmount)}</span>
-                  </div>
+                  
                   <div className="flex justify-between">
                     <span className="text-gray-600">Monthly Installment:</span>
                     <span className="font-semibold">
@@ -263,6 +270,15 @@ const PurchaseUnitConfirmation = ({
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Installments:</span>
                     <span className="font-semibold">{schemeData?.total_installments || 0}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="font-medium">Total Inverstment:</span>
+                    <span className="font-semibold">{formatCurrency(totalInvestmentOfProject)}</span>
+                  </div>
+                  <div className="flex justify-between text-green-600">
+                    <span className="font-medium">Booking Advance (Now):</span>
+                    <span className="font-semibold">{formatCurrency(paymentAmount)}</span>
                   </div>
                 </>
               ) : (
@@ -282,20 +298,20 @@ const PurchaseUnitConfirmation = ({
                 </>
               )}
               
-              <div className="flex justify-between border-t pt-2">
+              {/* <div className="flex justify-between border-t pt-2">
                 <span className="text-lg font-bold text-gray-800">
                   {isInstallment ? 'Total Investment:' : 'Total Amount:'}
                 </span>
-                <span className="text-lg font-bold text-blue-600">
+                <span className="text-lg font-bold">
                   {formatCurrency(totalInvestment)}
                 </span>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
 
         <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-800 flex items-center gap-2">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
             <CheckCircle className="w-5 h-5" />
             Your Information
           </h3>
@@ -365,7 +381,7 @@ const PurchaseUnitConfirmation = ({
           </div>
         </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        {/* <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
             <div>
@@ -388,7 +404,7 @@ const PurchaseUnitConfirmation = ({
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div className="flex justify-center pt-4">
           <Button
