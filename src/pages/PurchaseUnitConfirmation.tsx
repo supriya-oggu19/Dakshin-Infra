@@ -7,6 +7,7 @@ import { Building, FileText, Users, IndianRupee, CheckCircle, AlertCircle, Shiel
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { paymentApi } from "@/api/paymentApi"; // Adjust path as needed based on your project structure
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PurchaseUnitConfirmationProps {
   projectId: string;
@@ -25,6 +26,12 @@ interface UserInfo {
   name: string;
   email: string;
   phone: string;
+}
+
+declare global {
+  interface Window {
+    Cashfree: any;
+  }
 }
 
 const PurchaseUnitConfirmation = ({
@@ -52,6 +59,10 @@ const PurchaseUnitConfirmation = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { getToken } = useAuth();
+  const [paymentMethod, setPaymentMethod] = useState("dc");
+
+  // Since you're using sandbox, set mode to "sandbox"
+  const CASHFREE_MODE = 'sandbox'; // Change to 'production' for live
 
   console.log('projectId Data:', projectId);
   console.log('schemeId Data:', schemeId);
@@ -126,6 +137,86 @@ const PurchaseUnitConfirmation = ({
     return !nameError && !emailError && !phoneError;
   };
 
+  const initiateCashfreePayment = (orderData: any) => {
+    // Check if Cashfree script is already loaded
+    if (window.Cashfree) {
+      initializeAndStartPayment(orderData);
+      return;
+    }
+
+    // Dynamically load the Cashfree v3 script
+    const script = document.createElement('script');
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    script.async = true;
+    script.onload = () => {
+      initializeAndStartPayment(orderData);
+    };
+    script.onerror = () => {
+      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to load payment gateway. Please try again.",
+        variant: "destructive",
+      });
+    };
+
+    // Avoid duplicate scripts
+    if (!document.querySelector('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]')) {
+      document.head.appendChild(script);
+    } else {
+      initializeAndStartPayment(orderData);
+    }
+  };
+
+  const initializeAndStartPayment = (orderData: any) => {
+    if (!window.Cashfree) {
+      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Payment gateway not available. Please refresh and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Initialize Cashfree with sandbox mode
+      const cashfree = window.Cashfree({
+        mode: CASHFREE_MODE,
+      });
+
+      // Open the checkout page (redirect to hosted page)
+      const checkoutOptions = {
+        paymentSessionId: orderData.payment_session_id,
+        redirectTarget: '_self', // Opens in the same tab; use '_blank' for new tab
+      };
+
+      // For redirect, no promise; user will be redirected back to your return_url set in order creation
+      // If using '_modal' or inline, you can chain .then/.catch
+      cashfree.checkout(checkoutOptions);
+
+      // Note: For redirect mode, success/error handling happens on your server or return_url
+      // Here, we assume the redirect will handle the flow; you may want to show a message
+      toast({
+        title: "Redirecting",
+        description: "Opening secure payment page...",
+      });
+
+      // Since it's redirect, we don't call onPurchaseSuccess here
+      // The parent component or return_url should handle the final success
+      // For now, to match your flow, you might need to adjust based on your backend return handling
+
+    } catch (error) {
+      console.error('Cashfree Initialization Error:', error);
+      setLoading(false);
+      toast({
+        title: "Payment Error",
+        description: 'Failed to initialize payment. Please try again.',
+        variant: "destructive",
+      });
+    }
+  };
+
   const handlePurchase = async () => {
     if (!validateForm()) {
       return;
@@ -163,32 +254,32 @@ const PurchaseUnitConfirmation = ({
           customer_phone: userInfo.phone,
           customer_name: userInfo.name, // Added for completeness, assuming backend accepts
           customer_email: userInfo.email, // Added for completeness, assuming backend accepts
-          payment_methods: "upi"
+          payment_methods: paymentMethod
         }
       };
 
       const response = await paymentApi.createOrder(requestData);
 
       const data = response.data;
-
+      console.log('Order Creation Response:', data);
       if (data.status === 'success') {
         toast({
           title: "Success",
-          description: "Order created successfully! Proceeding to payment.",
+          description: "Order created successfully! Redirecting to secure payment page.",
         });
-        onPurchaseSuccess(data);
+        // Initiate Cashfree payment
+        initiateCashfreePayment(data);
       } else {
         throw new Error(data.message || 'Order creation failed');
       }
     } catch (error: any) {
       console.error('Purchase error:', error);
+      setLoading(false);
       toast({
         title: "Error",
         description: error.response?.data?.message || error.message || "Failed to create order. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -297,15 +388,6 @@ const PurchaseUnitConfirmation = ({
                   )}
                 </>
               )}
-              
-              {/* <div className="flex justify-between border-t pt-2">
-                <span className="text-lg font-bold text-gray-800">
-                  {isInstallment ? 'Total Investment:' : 'Total Amount:'}
-                </span>
-                <span className="text-lg font-bold">
-                  {formatCurrency(totalInvestment)}
-                </span>
-              </div> */}
             </div>
           </div>
         </div>
@@ -359,7 +441,7 @@ const PurchaseUnitConfirmation = ({
               )}
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="phone" className="text-gray-700">
                 Phone Number *
               </Label>
@@ -378,33 +460,23 @@ const PurchaseUnitConfirmation = ({
                 </p>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="font-semibold text-green-800 mb-2">Ready to Proceed</h4>
-              <p className="text-sm text-green-700">
-                Review your selection and provide your information above. When you click "Confirm & Continue", 
-                you will be redirected to complete your purchase.
-              </p>
+            <div className="space-y-2">
+              <Label className="text-gray-700">Payment Method *</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select payment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="cc">Credit Card</SelectItem>
+                  <SelectItem value="dc">Debit Card</SelectItem>
+                  <SelectItem value="nb">Net Banking</SelectItem> 
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="font-semibold text-blue-800 mb-2">Secure Transaction</h4>
-              <p className="text-sm text-blue-700">
-                Your payment information is secure and encrypted. We use industry-standard security measures to protect your data.
-              </p>
-            </div>
-          </div>
-        </div> */}
 
         <div className="flex justify-center pt-4">
           <Button
