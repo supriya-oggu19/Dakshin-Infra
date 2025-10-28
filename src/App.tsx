@@ -21,6 +21,7 @@ import InvestmentSchemes from "./pages/InvestmentSchemes";
 import React from "react";
 import FAQ from "./components/FAQ";
 import Footer from "./components/Footer";
+import PaymentResult from "./pages/PaymentResult";
 
 const queryClient = new QueryClient();
 
@@ -107,6 +108,7 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/investment-schemes/:id" element={<AppLayout><InvestmentSchemes /></AppLayout>} />
               <Route path="/faq" element={<AppLayout><FAQ /></AppLayout>} />
+              <Route path="/payment-result" element={<PaymentResult />} />
 
               {/* Protected Routes */}
               <Route
