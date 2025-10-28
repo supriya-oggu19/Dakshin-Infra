@@ -8,7 +8,6 @@ import ProjectCard from "@/components/ProjectCard";
 import heroImage from "@/assets/hero-skyline.jpg";
 import { Link } from "react-router-dom";
 
-
 import { projectApi } from "@/api/projectApi";
 import FAQ from "@/components/FAQ";
 
@@ -201,15 +200,23 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Stats Section - FIXED: All cards same height & responsive */}
       <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="container-professional">
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 min-h-[240px] md:min-h-[300px]">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="group relative animate-slide-in-up hover:-translate-y-2 transition-all duration-500" style={{ animationDelay: `${index * 150}ms` }}>
-                  <div className="relative bg-gradient-to-br from-white via-gray-50 to-white p-8 rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+                <div
+                  key={index}
+                  className="group relative h-full animate-slide-in-up hover:-translate-y-2 transition-all duration-500"
+                  style={{ animationDelay: `${index * 150}ms` }}
+                >
+                  <div className="relative h-full bg-gradient-to-br from-white via-gray-50 to-white 
+                            p-5 sm:p-6 md:p-8 rounded-3xl shadow-lg border border-gray-100 
+                            overflow-hidden flex flex-col justify-between 
+                            w-[90%] sm:w-auto mx-auto">
+                    {/* Hover gradient layers */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                       <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 via-transparent to-yellow-50"></div>
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-yellow-100 to-transparent rounded-full transform translate-x-16 -translate-y-16"></div>
@@ -218,21 +225,20 @@ const Homepage = () => {
 
                     <div className="absolute top-0 left-1/2 w-0 h-1 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 group-hover:w-full group-hover:left-0 transition-all duration-700 ease-out"></div>
 
-                    <div className="relative z-10">
-                      <div className="w-16 h-16 bg-gradient-to-br from-yellow-100 via-yellow-50 to-white rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md">
-                        <Icon className="w-8 h-8 text-yellow-600 group-hover:text-yellow-700 transition-colors duration-300" />
+                    <div className="relative z-10 flex flex-col items-center text-center flex-1 justify-center space-y-3 sm:space-y-4">
+                      {/* Fixed-size icon container */}
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-yellow-100 via-yellow-50 to-white rounded-2xl flex items-center justify-center mx-auto transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md">
+                        <Icon className="w-7 h-7 sm:w-8 sm:h-8 text-yellow-600 group-hover:text-yellow-700 transition-colors duration-300" />
                       </div>
 
-                      <div className="text-center mb-4">
-                        <div className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-gray-900 to-black bg-clip-text text-transparent mb-2 group-hover:from-yellow-600 group-hover:via-yellow-700 group-hover:to-yellow-800 transition-all duration-500">
-                          {stat.number}
-                        </div>
+                      {/* Number */}
+                      <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-800 via-gray-900 to-black bg-clip-text text-transparent group-hover:from-yellow-600 group-hover:via-yellow-700 group-hover:to-yellow-800 transition-all duration-500">
+                        {stat.number}
                       </div>
 
-                      <div className="text-center">
-                        <div className="text-base font-semibold text-gray-700 group-hover:text-gray-900 transition-colors duration-300">
-                          {stat.label}
-                        </div>
+                      {/* Label */}
+                      <div className="text-xs sm:text-sm md:text-base font-semibold text-gray-700 group-hover:text-gray-900 transition-colors duration-300 text-balance">
+                        {stat.label}
                       </div>
                     </div>
 

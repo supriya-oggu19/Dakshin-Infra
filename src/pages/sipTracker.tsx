@@ -19,7 +19,7 @@ import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { investmentApi } from "../api/investmentApi";
 import { InvestmentUnit, PaymentListResponse, Payment } from "../api/models/investment.model";
-import { portfolioApi } from "../api/portfolio-api";  // ✅ make sure this import exists!
+import { portfolioApi } from "../api/portfolio-api";
 
 const SipTracker = () => {
   const { token } = useAuth();
@@ -39,7 +39,7 @@ const SipTracker = () => {
     }
   }, [selectedUnit]);
 
- const fetchPortfolioData = async () => {
+  const fetchPortfolioData = async () => {
     if (!token) return;
 
     try {
@@ -47,9 +47,8 @@ const SipTracker = () => {
       setError(null);
 
       const response = await portfolioApi.getPortfolio(token);
-const portfolio = response.data.portfolio || response.data.data || response.data || [];
-setPortfolioData(portfolio);
-
+      const portfolio = response.data.portfolio || response.data.data || response.data || [];
+      setPortfolioData(portfolio);
 
       if (response.data.portfolio && response.data.portfolio.length > 0) {
         setSelectedUnit(response.data.portfolio[0].unit_number);
@@ -67,7 +66,7 @@ setPortfolioData(portfolio);
 
     try {
       setLoading(true);
-      const response = await investmentApi.getPayments(unitNumber, token); // ✅ also fixed
+      const response = await investmentApi.getPayments(unitNumber, token);
       setPaymentData(response.data);
     } catch (err: any) {
       console.error("Error fetching payment data:", err);
@@ -86,7 +85,7 @@ setPortfolioData(portfolio);
     } else if (amount >= 1000) {
       return `₹${(amount / 1000).toFixed(1)}K`;
     }
-    return `₹${amount}`;
+    return `₹${amount.toLocaleString('en-IN')}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -94,7 +93,7 @@ setPortfolioData(portfolio);
     const date = new Date(dateString);
     return date.toLocaleDateString("en-IN", {
       day: "2-digit",
-      month: "2-digit",
+      month: "short",
       year: "numeric",
     });
   };
@@ -147,8 +146,7 @@ setPortfolioData(portfolio);
     if (!unit || !unit.total_investment) return 0;
 
     const totalPaid =
-      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
-      0;
+      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
     return (totalPaid / unit.total_investment) * 100;
   };
 
@@ -167,8 +165,7 @@ setPortfolioData(portfolio);
         0
       ) || 0;
     const totalPaid =
-      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
-      0;
+      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
 
     return { totalRebates, totalPenalties, totalPaid };
   };
@@ -249,39 +246,44 @@ setPortfolioData(portfolio);
   const currentUnit = portfolioData.find((u) => u.unit_number === selectedUnit);
   const { totalRebates, totalPenalties, totalPaid } = calculateTotals();
   const progress = calculatePaymentProgress();
-  const balanceAmount = currentUnit
-    ? currentUnit.total_investment - totalPaid
-    : 0;
+  const balanceAmount = currentUnit ? currentUnit.total_investment - totalPaid : 0;
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
       <div className="pt-20 pb-12">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
               Investment Tracker
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Track your installment payments, rebates, and penalties
             </p>
           </div>
 
           {/* Unit Selector */}
-          <div className="mb-8">
-            <div className="flex flex-wrap gap-3">
+          <div className="mb-6 sm:mb-8">
+            <label className="block text-sm font-medium text-muted-foreground mb-3">
+              Select Investment Unit
+            </label>
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {portfolioData.map((unit) => (
                 <button
                   key={unit.unit_id}
                   onClick={() => setSelectedUnit(unit.unit_number)}
-                  className={`px-4 py-2 rounded-lg border transition-colors ${selectedUnit === unit.unit_number
-                      ? "bg-primary/10 border-primary text-primary"
-                      : "bg-card border-border text-card-foreground hover:bg-accent"
-                    }`}
+                  className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg border transition-all text-sm sm:text-base ${
+                    selectedUnit === unit.unit_number
+                      ? "bg-primary/10 border-primary text-primary shadow-sm"
+                      : "bg-card border-border text-card-foreground hover:bg-accent hover:border-accent-foreground/20"
+                  }`}
                 >
-                  {unit.project.project_name} - {unit.unit_number}
+                  <span className="hidden sm:inline">
+                    {unit.project.project_name} - {unit.unit_number}
+                  </span>
+                  <span className="sm:hidden">{unit.unit_number}</span>
                 </button>
               ))}
             </div>
@@ -289,67 +291,67 @@ setPortfolioData(portfolio);
 
           {/* Summary Cards */}
           {currentUnit && (
-            <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
               <Card className="border-0 shadow-md card-luxury">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-2 sm:mb-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                         Total Amount
                       </p>
-                      <p className="text-xl font-bold text-foreground">
+                      <p className="text-lg sm:text-xl font-bold text-foreground">
                         {formatCurrency(currentUnit.total_investment)}
                       </p>
                     </div>
-                    <Target className="w-8 h-8 text-primary" />
+                    <Target className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-0 shadow-md card-luxury">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-2 sm:mb-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                         Paid Amount
                       </p>
-                      <p className="text-xl font-bold text-primary">
+                      <p className="text-lg sm:text-xl font-bold text-primary">
                         {formatCurrency(totalPaid)}
                       </p>
                     </div>
-                    <CheckCircle className="w-8 h-8 text-primary" />
+                    <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-0 shadow-md card-luxury">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Balance Amount
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-2 sm:mb-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                        Balance
                       </p>
-                      <p className="text-xl font-bold text-foreground">
+                      <p className="text-lg sm:text-xl font-bold text-foreground">
                         {formatCurrency(balanceAmount)}
                       </p>
                     </div>
-                    <Clock className="w-8 h-8 text-secondary" />
+                    <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-secondary" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-0 shadow-md card-luxury">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-2 sm:mb-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                         Progress
                       </p>
-                      <p className="text-xl font-bold text-primary">
+                      <p className="text-lg sm:text-xl font-bold text-primary">
                         {progress.toFixed(1)}%
                       </p>
                     </div>
-                    <TrendingUp className="w-8 h-8 text-primary" />
+                    <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                   </div>
                 </CardContent>
               </Card>
@@ -357,73 +359,65 @@ setPortfolioData(portfolio);
           )}
 
           {/* Main Content */}
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Progress Section */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <Card className="border-0 shadow-md card-luxury">
-                <CardHeader className="border-b bg-card">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl text-card-foreground">
+                <CardHeader className="border-b bg-card p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <CardTitle className="text-lg sm:text-xl text-card-foreground">
                       Payment Progress
                     </CardTitle>
                     {currentUnit && (
-                      <Badge
-                        className={getStatusColor(currentUnit.payment_status)}
-                      >
+                      <Badge className={getStatusColor(currentUnit.payment_status)}>
                         {getStatusText(currentUnit.payment_status)}
                       </Badge>
                     )}
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="space-y-6">
                     {/* Progress Bar */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-foreground">
+                        <span className="text-xs sm:text-sm font-medium text-foreground">
                           Overall Progress
                         </span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-xs sm:text-sm text-muted-foreground">
                           {paymentData?.total_payments || 0} payments
                         </span>
                       </div>
-                      <Progress value={progress} className="h-4 mb-4" />
-                      <div className="flex justify-between text-sm text-muted-foreground">
+                      <Progress value={progress} className="h-3 sm:h-4 mb-4" />
+                      <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
                         <span>{formatCurrency(totalPaid)} paid</span>
-                        <span>
-                          {formatCurrency(currentUnit?.total_investment)} total
-                        </span>
+                        <span>{formatCurrency(currentUnit?.total_investment)} total</span>
                       </div>
                     </div>
 
                     {/* Next Payment */}
                     {paymentData?.next_installment && (
                       <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-medium text-amber-800 mb-1">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="font-medium text-amber-800 mb-1 text-sm sm:text-base">
                               Next Payment Due
                             </p>
-                            <p className="text-sm text-amber-700">
-                              {formatDate(
-                                paymentData.next_installment.due_date
-                              )}
+                            <p className="text-xs sm:text-sm text-amber-700">
+                              {formatDate(paymentData.next_installment.due_date)}
                             </p>
-                            <p className="text-lg font-bold text-amber-900 mt-2">
-                              {formatCurrency(
-                                paymentData.next_installment.amount
-                              )}
+                            <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
+                              {formatCurrency(paymentData.next_installment.amount)}
                             </p>
-                            <p className="text-sm text-amber-700 mt-1">
-                              Installment #
-                              {paymentData.next_installment.installment_number}
+                            <p className="text-xs sm:text-sm text-amber-700 mt-1">
+                              Installment #{paymentData.next_installment.installment_number}
                             </p>
                           </div>
                           <Button
                             size="sm"
                             variant="luxury"
                             onClick={handlePayNow}
+                            className="w-full sm:w-auto"
                           >
                             <CreditCard className="w-4 h-4 mr-2" />
                             Pay Now
@@ -433,35 +427,122 @@ setPortfolioData(portfolio);
                     )}
 
                     {/* Rebate & Penalties */}
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                       <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-green-600 mb-1">
+                            <p className="text-xs sm:text-sm text-green-600 mb-1">
                               Total Rebates
                             </p>
-                            <p className="text-xl font-bold text-green-800">
+                            <p className="text-lg sm:text-xl font-bold text-green-800">
                               +{formatCurrency(totalRebates)}
                             </p>
                           </div>
-                          <Award className="w-6 h-6 text-green-500" />
+                          <Award className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
                         </div>
                       </div>
 
                       <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-red-600 mb-1">
+                            <p className="text-xs sm:text-sm text-red-600 mb-1">
                               Total Penalties
                             </p>
-                            <p className="text-xl font-bold text-red-800">
+                            <p className="text-lg sm:text-xl font-bold text-red-800">
                               {formatCurrency(totalPenalties)}
                             </p>
                           </div>
-                          <AlertTriangle className="w-6 h-6 text-red-500" />
+                          <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
                         </div>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment History - Mobile Optimized */}
+              <Card className="border-0 shadow-md card-luxury lg:hidden">
+                <CardHeader className="border-b bg-card p-4">
+                  <CardTitle className="text-lg text-foreground">
+                    Payment History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {paymentData?.payments && paymentData.payments.length > 0 ? (
+                      paymentData.payments
+                        .slice()
+                        .reverse()
+                        .map((payment, index) => (
+                          <div
+                            key={index}
+                            className="p-3 bg-card/50 rounded-lg border border-border"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-start gap-2 flex-1">
+                                <div
+                                  className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                    payment.payment_status === "completed"
+                                      ? "bg-green-500"
+                                      : "bg-muted"
+                                  }`}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-foreground text-sm">
+                                    {getTransactionTypeText(payment.transaction_type)}
+                                    {payment.installment_number &&
+                                      payment.installment_number > 0 &&
+                                      ` #${payment.installment_number}`}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDate(payment.payment_date)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-foreground text-sm">
+                                  {formatCurrency(payment.amount)}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                              <div className="flex flex-wrap gap-1">
+                                {payment.rebate_amount && payment.rebate_amount > 0 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-green-600 border-green-200 text-xs"
+                                  >
+                                    +{formatCurrency(payment.rebate_amount)}
+                                  </Badge>
+                                )}
+                                {payment.penalty_amount && payment.penalty_amount > 0 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-red-600 border-red-200 text-xs"
+                                  >
+                                    -{formatCurrency(payment.penalty_amount)}
+                                  </Badge>
+                                )}
+                              </div>
+                              {payment.payment_status === "completed" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDownloadReceipt(payment)}
+                                  className="text-xs h-7"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        No payment history available
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -470,15 +551,15 @@ setPortfolioData(portfolio);
             {/* Sidebar Info */}
             <div className="space-y-6">
               <Card className="border-0 shadow-md card-luxury">
-                <CardHeader className="border-b bg-card">
-                  <CardTitle className="text-lg text-foreground">
+                <CardHeader className="border-b bg-card p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg text-foreground">
                     Payment Rules
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
-                      <Award className="w-5 h-5 text-green-500 mt-0.5" />
+                      <Award className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="font-medium text-foreground text-sm">
                           Early Payment Rebates
@@ -489,7 +570,7 @@ setPortfolioData(portfolio);
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
+                      <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="font-medium text-foreground text-sm">
                           Late Payment Penalty
@@ -504,29 +585,29 @@ setPortfolioData(portfolio);
               </Card>
 
               <Card className="border-0 shadow-md card-luxury">
-                <CardHeader className="border-b bg-card">
-                  <CardTitle className="text-lg text-foreground">
+                <CardHeader className="border-b bg-card p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg text-foreground">
                     Quick Stats
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="space-y-3">
                     {currentUnit && (
                       <>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             Scheme
                           </span>
-                          <span className="text-sm font-medium text-foreground">
+                          <span className="text-xs sm:text-sm font-medium text-foreground text-right">
                             {currentUnit.scheme.scheme_name}
                           </span>
                         </div>
                         {currentUnit.scheme.monthly_installment_amount > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs sm:text-sm text-muted-foreground">
                               Monthly Amount
                             </span>
-                            <span className="text-sm font-medium text-foreground">
+                            <span className="text-xs sm:text-sm font-medium text-foreground">
                               {formatCurrency(
                                 currentUnit.scheme.monthly_installment_amount
                               )}
@@ -535,15 +616,16 @@ setPortfolioData(portfolio);
                         )}
                       </>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs sm:text-sm text-muted-foreground">
                         Net Adjustment
                       </span>
                       <span
-                        className={`text-sm font-medium ${totalRebates + totalPenalties >= 0
+                        className={`text-xs sm:text-sm font-medium ${
+                          totalRebates + totalPenalties >= 0
                             ? "text-green-600"
                             : "text-red-600"
-                          }`}
+                        }`}
                       >
                         {totalRebates + totalPenalties >= 0 ? "+" : ""}
                         {formatCurrency(totalRebates + totalPenalties)}
@@ -555,8 +637,8 @@ setPortfolioData(portfolio);
             </div>
           </div>
 
-          {/* Payment History */}
-          <div className="mt-8">
+          {/* Payment History - Desktop */}
+          <div className="mt-8 hidden lg:block">
             <Card className="border-0 shadow-md card-luxury">
               <CardHeader className="border-b bg-card">
                 <CardTitle className="text-xl text-foreground">
@@ -572,21 +654,21 @@ setPortfolioData(portfolio);
                       .map((payment, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border"
+                          className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border hover:bg-accent/50 transition-colors"
                         >
                           <div className="flex items-center gap-4">
                             <div
-                              className={`w-3 h-3 rounded-full ${payment.payment_status === "completed"
+                              className={`w-3 h-3 rounded-full ${
+                                payment.payment_status === "completed"
                                   ? "bg-green-500"
                                   : "bg-muted"
-                                }`}
+                              }`}
                             />
                             <div>
                               <p className="font-medium text-foreground">
-                                {getTransactionTypeText(
-                                  payment.transaction_type
-                                )}
-                                {payment.installment_number && payment.installment_number > 0 &&
+                                {getTransactionTypeText(payment.transaction_type)}
+                                {payment.installment_number &&
+                                  payment.installment_number > 0 &&
                                   ` #${payment.installment_number}`}
                               </p>
                               <p className="text-sm text-muted-foreground">
@@ -597,27 +679,25 @@ setPortfolioData(portfolio);
                               </p>
                               {(payment.rebate_amount && payment.rebate_amount > 0 ||
                                 payment.penalty_amount && payment.penalty_amount > 0) && (
-                                  <div className="flex gap-2 mt-1">
-                                    {payment.rebate_amount && payment.rebate_amount > 0 && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-green-600 border-green-200 text-xs"
-                                      >
-                                        Rebate: +
-                                        {formatCurrency(payment.rebate_amount)}
-                                      </Badge>
-                                    )}
-                                    {payment.penalty_amount && payment.penalty_amount > 0 && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-red-600 border-red-200 text-xs"
-                                      >
-                                        Penalty: -
-                                        {formatCurrency(payment.penalty_amount)}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
+                                <div className="flex gap-2 mt-1">
+                                  {payment.rebate_amount && payment.rebate_amount > 0 && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-green-600 border-green-200 text-xs"
+                                    >
+                                      Rebate: +{formatCurrency(payment.rebate_amount)}
+                                    </Badge>
+                                  )}
+                                  {payment.penalty_amount && payment.penalty_amount > 0 && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-red-600 border-red-200 text-xs"
+                                    >
+                                      Penalty: -{formatCurrency(payment.penalty_amount)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">

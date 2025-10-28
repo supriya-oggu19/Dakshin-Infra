@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,14 +27,12 @@ import {
   AlertCircle,
   Loader2,
   ArrowRight,
-  CreditCard
+  CreditCard,
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { projectApi } from '@/api/projectApi';
 import { schemeApi } from '@/api/schemeApi';
 import { InvestmentSchemeData, SchemeType } from '@/api/models/schemeModels';
-import { ProjectResponse } from '@/api/models/projectModels';
 
 interface InvestmentSchemesProps {
   projectName?: string;
@@ -37,18 +40,25 @@ interface InvestmentSchemesProps {
   minInvestmentAmount?: number;
 }
 
-const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, projectId, minInvestmentAmount }) => {
+const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
+  projectName,
+  projectId,
+  minInvestmentAmount,
+}) => {
   const id = projectId;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+
   const [allSchemes, setAllSchemes] = useState<InvestmentSchemeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fetchedProjectName, setFetchedProjectName] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
 
   const itemsPerPage = 4;
 
+  /* --------------------------------------------------- */
+  /*  FETCH SCHEMES                                      */
+  /* --------------------------------------------------- */
   useEffect(() => {
     const fetchSchemes = async () => {
       if (!id) {
@@ -58,15 +68,15 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
       }
       try {
         setLoading(true);
-
-        // Fetch schemes using the new API service (all schemes for client-side pagination)
         const response = await schemeApi.listByProject({ project_id: id });
         setAllSchemes(response?.data.schemes ?? []);
         setCurrentPage(1);
-        setLoading(false);
       } catch (err) {
         console.error('Error fetching schemes:', err);
-        setError('Failed to fetch investment schemes. Please check your connection and try again.');
+        setError(
+          'Failed to fetch investment schemes. Please check your connection and try again.'
+        );
+      } finally {
         setLoading(false);
       }
     };
@@ -74,12 +84,16 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     fetchSchemes();
   }, [id]);
 
-  const paginatedSchemes = useMemo(() => 
-    allSchemes.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    ),
-    [allSchemes, currentPage, itemsPerPage]
+  /* --------------------------------------------------- */
+  /*  PAGINATION                                         */
+  /* --------------------------------------------------- */
+  const paginatedSchemes = useMemo(
+    () =>
+      allSchemes.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      ),
+    [allSchemes, currentPage]
   );
 
   const totalPages = Math.ceil(allSchemes.length / itemsPerPage);
@@ -87,30 +101,34 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  /* --------------------------------------------------- */
+  /*  HELPERS                                            */
+  /* --------------------------------------------------- */
   const formatCurrency = (amount: number | null | undefined): string => {
-    if (amount == null || isNaN(amount)) return "N/A";
-    if (amount === 0) return "₹0";
+    if (amount == null || isNaN(amount)) return 'N/A';
+    if (amount === 0) return '₹0';
 
-    const absAmount = Math.abs(amount);
-
-    if (absAmount >= 1_00_00_000) {
-      const value = (absAmount / 1_00_00_000).toFixed(2).replace(/\.00$/, "");
-      return `₹${value} crore`;
-    } else if (absAmount >= 1_00_000) {
-      const value = (absAmount / 1_00_000).toFixed(2).replace(/\.00$/, "");
-      return `₹${value} lakh`;
-    } else if (absAmount >= 1_000) {
-      const value = (absAmount / 1_000).toFixed(2).replace(/\.00$/, "");
-      return `₹${value} K`;
-    } else {
-      return `₹${absAmount.toLocaleString("en-IN")}`;
+    const abs = Math.abs(amount);
+    if (abs >= 1_00_00_000) {
+      const v = (abs / 1_00_00_000).toFixed(2).replace(/\.00$/, '');
+      return `₹${v} crore`;
     }
+    if (abs >= 1_00_000) {
+      const v = (abs / 1_00_000).toFixed(2).replace(/\.00$/, '');
+      return `₹${v} lakh`;
+    }
+    if (abs >= 1_000) {
+      const v = (abs / 1_000).toFixed(2).replace(/\.00$/, '');
+      return `₹${v} K`;
+    }
+    return `₹${abs.toLocaleString('en-IN')}`;
   };
 
-  const getSchemeTypeColor = (schemeType: SchemeType) => {
-    switch (schemeType) {
+  const getSchemeTypeColor = (type: SchemeType) => {
+    switch (type) {
       case SchemeType.SINGLE_PAYMENT:
         return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white';
       case SchemeType.INSTALLMENT:
@@ -120,14 +138,14 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     }
   };
 
-  const getSchemeTypeDisplayName = (schemeType: SchemeType) => {
-    switch (schemeType) {
+  const getSchemeTypeDisplayName = (type: SchemeType) => {
+    switch (type) {
       case SchemeType.SINGLE_PAYMENT:
-        return 'One-Time';
+        return 'One‑Time';
       case SchemeType.INSTALLMENT:
         return 'EMI';
       default:
-        return schemeType;
+        return type;
     }
   };
 
@@ -135,38 +153,48 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     if (isAuthenticated) {
       navigate(`/purchase/${id}`, { state: { selectedSchemeId: schemeId } });
     } else {
-      navigate('/login', { state: { from: `/purchase/${id}`, selectedSchemeId: schemeId } });
+      navigate('/login', {
+        state: { from: `/purchase/${id}`, selectedSchemeId: schemeId },
+      });
     }
   };
 
   const displayProjectName = projectName || 'Project';
 
+  /* --------------------------------------------------- */
+  /*  RENDER – LOADING                                   */
+  /* --------------------------------------------------- */
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="flex items-center justify-center min-h-screen pt-20">
-          <div className="text-center space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-yellow-500 mx-auto" />
-            <div>
-              <p className="text-xl font-semibold text-foreground">Loading Investment Schemes</p>
-              <p className="text-sm text-muted-foreground mt-1">Please wait while we fetch the details...</p>
-            </div>
-          </div>
+        <div className="flex flex-col items-center justify-center min-h-screen pt-20 px-4">
+          <Loader2 className="w-12 h-12 animate-spin text-yellow-500 mb-4" />
+          <p className="text-lg font-semibold text-foreground">
+            Loading Investment Schemes
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please wait while we fetch the details...
+          </p>
         </div>
       </div>
     );
   }
 
+  /* --------------------------------------------------- */
+  /*  RENDER – ERROR                                     */
+  /* --------------------------------------------------- */
   if (error || !id) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex items-center justify-center min-h-screen pt-20 p-4">
-          <Alert className="max-w-md border-red-200 bg-red-50">
+          <Alert className="max-w-md w-full border-red-200 bg-red-50">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <AlertDescription className="ml-2">
-              <p className="font-semibold text-red-800 mb-1">Error Loading Schemes</p>
+              <p className="font-semibold text-red-800 mb-1">
+                Error Loading Schemes
+              </p>
               <p className="text-red-700 text-sm">{error || 'Invalid project ID'}</p>
             </AlertDescription>
           </Alert>
@@ -175,73 +203,86 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
     );
   }
 
+  /* --------------------------------------------------- */
+  /*  MAIN RENDER                                        */
+  /* --------------------------------------------------- */
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 text-white py-16 px-4 mt-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-4">
-            <Badge className="bg-white/20 text-white border-white/30 px-4 py-1.5 text-sm font-medium">
-              {displayProjectName}
-            </Badge>
-            <h1 className="text-5xl font-bold tracking-tight glow-text">
-              Investment Schemes
-            </h1>
-            <p className="text-xl text-yellow-100 max-w-2xl mx-auto">
-              Discover exclusive investment opportunities tailored for your financial goals
-            </p>
-          </div>
+      {/* ---------- HERO ---------- */}
+      <header className="bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 text-white py-12 px-4 mt-16 sm:py-16">
+        <div className="max-w-7xl mx-auto text-center space-y-4">
+          <Badge className="bg-white/20 text-white border-white/30 px-3 py-1 text-xs sm:text-sm">
+            {displayProjectName}
+          </Badge>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+            Investment Schemes
+          </h1>
+          <p className="text-base sm:text-lg md:text-xl text-yellow-100 max-w-2xl mx-auto">
+            Discover exclusive investment opportunities tailored for your
+            financial goals
+          </p>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Stats Bar */}
+      {/* ---------- CONTENT ---------- */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* ---- Stats Bar ---- */}
         {allSchemes.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <Card className="border-border shadow-lg bg-card">
-              <CardContent className="pt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 sm:mb-12">
+            {/* Total Schemes */}
+            <Card className="shadow-lg">
+              <CardContent className="pt-5 sm:pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Schemes</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{allSchemes.length}</p>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                      Total Schemes
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
+                      {allSchemes.length}
+                    </p>
                   </div>
-                  <div className="h-12 w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-yellow-500" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-border shadow-lg bg-card">
-              <CardContent className="pt-6">
+            {/* Starting From */}
+            <Card className="shadow-lg">
+              <CardContent className="pt-5 sm:pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Starting From</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                      Starting From
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
                       {formatCurrency(minInvestmentAmount)}
                     </p>
                   </div>
-                  <div className="h-12 w-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-emerald-500" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-border shadow-lg bg-card">
-              <CardContent className="pt-6">
+            {/* Max Area */}
+            <Card className="shadow-lg">
+              <CardContent className="pt-5 sm:pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Max Area</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">
-                      {Math.max(...allSchemes.map(s => s.area_sqft)) || 0} sqft
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                      Max Area
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
+                      {Math.max(...allSchemes.map((s) => s.area_sqft)) || 0} sqft
                     </p>
                   </div>
-                  <div className="h-12 w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <Building className="w-6 h-6 text-yellow-500" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                    <Building className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
                   </div>
                 </div>
               </CardContent>
@@ -249,133 +290,158 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
           </div>
         )}
 
-        {/* Schemes Grid */}
+        {/* ---- Schemes List ---- */}
         {allSchemes.length === 0 ? (
           <Alert className="max-w-2xl mx-auto border-yellow-500/30 bg-yellow-500/10">
             <AlertCircle className="h-5 w-5 text-yellow-500" />
             <AlertDescription className="ml-2">
-              <p className="font-semibold text-foreground mb-1">No Schemes Available</p>
+              <p className="font-semibold text-foreground mb-1">
+                No Schemes Available
+              </p>
               <p className="text-muted-foreground text-sm">
-                There are currently no investment schemes available for this project. Please check back later or contact our support team.
+                There are currently no investment schemes available for this
+                project. Please check back later or contact our support team.
               </p>
             </AlertDescription>
           </Alert>
         ) : (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Cards – 1 col on mobile, 2 col on lg */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
               {paginatedSchemes.map((scheme) => (
-                <Card key={scheme.id} className="border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
-                  <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
+                <Card
+                  key={scheme.id}
+                  className="border-border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                >
+                  <div className="h-1 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
 
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <CardTitle className="text-lg font-bold text-foreground">
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <CardTitle className="text-base sm:text-lg font-bold text-foreground">
                         {scheme.scheme_name}
                       </CardTitle>
-                      <Badge className={`${getSchemeTypeColor(scheme.scheme_type)} px-2.5 py-0.5 text-xs font-semibold`}>
+                      <Badge
+                        className={`${getSchemeTypeColor(
+                          scheme.scheme_type
+                        )} px-2 py-0.5 text-xs font-semibold`}
+                      >
                         {getSchemeTypeDisplayName(scheme.scheme_type)}
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
                         <Building className="w-3.5 h-3.5" />
                         <span>{scheme.area_sqft} sqft</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{new Date(scheme.start_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
+                        <span>
+                          {new Date(scheme.start_date).toLocaleDateString(
+                            'en-IN',
+                            { month: 'short', year: 'numeric' }
+                          )}
+                        </span>
                       </div>
                     </div>
                   </CardHeader>
 
                   <CardContent className="space-y-3 pt-0">
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Small info tiles – 1 col on mobile, 2 col on sm+ */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                       {/* Booking Advance */}
-                      {(scheme.booking_advance && scheme.booking_advance > 0) && (
-                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
+                      {scheme.booking_advance && scheme.booking_advance > 0 && (
+                        <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-1.5 mb-1">
                             <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-xs font-medium text-muted-foreground">
                               Booking Advance
                             </span>
                           </div>
-                          <span className="text-base font-bold text-emerald-600">
+                          <span className="text-sm sm:text-base font-bold text-emerald-600">
                             {formatCurrency(scheme.booking_advance)}
                           </span>
                         </div>
                       )}
 
-                      {/* Monthly EMI for installment plans */}
+                      {/* EMI (installment) */}
                       {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
+                        <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-1.5 mb-1">
                             <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">Monthly EMI</span>
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Monthly EMI
+                            </span>
                           </div>
-                          <span className="text-base font-bold text-foreground">
+                          <span className="text-sm sm:text-base font-bold text-foreground">
                             {formatCurrency(scheme.monthly_installment_amount)}
                           </span>
                         </div>
                       )}
 
-                      {/* Balance Payment Days for single payment */}
-                      {scheme.scheme_type === SchemeType.SINGLE_PAYMENT && scheme.balance_payment_days && (
-                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">Balance Payment</span>
+                      {/* Balance days (single) */}
+                      {scheme.scheme_type === SchemeType.SINGLE_PAYMENT &&
+                        scheme.balance_payment_days && (
+                          <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Balance Payment
+                              </span>
+                            </div>
+                            <span className="text-sm sm:text-base font-bold text-foreground">
+                              {scheme.balance_payment_days} days
+                            </span>
                           </div>
-                          <span className="text-base font-bold text-foreground">
-                            {scheme.balance_payment_days} days
-                          </span>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Duration for installment plans */}
+                      {/* Duration (installment) */}
                       {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                        <div className="bg-background p-3 rounded-lg border border-border hover:shadow-md transition-shadow">
-                          <span className="text-xs font-medium text-muted-foreground block mb-1">Duration</span>
-                          <span className="text-base font-bold text-foreground">
+                        <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
+                          <div className="text-xs font-medium text-muted-foreground mb-1">
+                            Duration
+                          </div>
+                          <span className="text-sm sm:text-base font-bold text-foreground">
                             {scheme.total_installments || 'N/A'} months
                           </span>
                         </div>
                       )}
 
-                      {/*  NEW — Monthly Rental Income */}
+                      {/* Monthly Rental Income */}
                       {scheme.monthly_rental_income && (
-                        <div className="bg-background p-3 rounded-lg border hover:shadow-md transition-shadow">
+                        <div className="bg-background p-2.5 rounded-lg border hover:shadow-md transition-shadow col-span-1 sm:col-span-2">
                           <div className="flex items-center gap-1.5 mb-1">
                             <TrendingUp className="w-3.5 h-3.5" />
-                            <span className="text-xs font-medium">Monthly Rental Income</span>
+                            <span className="text-xs font-medium">
+                              Monthly Rental Income
+                            </span>
                           </div>
-                          <span className="text-primary font-bold ">
+                          <span className="text-sm sm:text-base font-bold text-primary">
                             {formatCurrency(scheme.monthly_rental_income)}
                           </span>
                         </div>
                       )}
                     </div>
 
-
-                    {/* Rental Information */}
+                    {/* Rental start month badge */}
                     {scheme.rental_start_month && (
-                      <div className="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30">
+                      <div className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/30 text-xs sm:text-sm">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                          <span className="font-medium flex items-center gap-1">
                             <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
                             Rental Returns Start
                           </span>
-                          <span className="text-sm font-bold text-emerald-500">
+                          <span className="font-bold text-emerald-500">
                             Month {scheme.rental_start_month}
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {/* Action Button */}
+                    {/* Invest Button */}
                     <Button
                       onClick={() => handleInvestNow(scheme.id)}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 group"
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-4 sm:py-5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group"
                     >
                       <DollarSign className="w-4 h-4 mr-2" />
                       Invest Now
@@ -386,11 +452,11 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
               ))}
             </div>
 
-            {/* Pagination */}
+            {/* ---- Pagination ---- */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center mt-12">
+              <div className="flex justify-center mt-10 sm:mt-12">
                 <Pagination>
-                  <PaginationContent>
+                  <PaginationContent className="flex flex-wrap gap-1 sm:gap-2">
                     <PaginationItem>
                       <PaginationPrevious
                         href="#"
@@ -398,38 +464,40 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
                           e.preventDefault();
                           if (currentPage > 1) handlePageChange(currentPage - 1);
                         }}
-                        className="hover:bg-yellow-100 text-yellow-700"
+                        className="px-3 py-2 text-sm sm:text-base"
                       />
                     </PaginationItem>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handlePageChange(page);
-                          }}
-                          className={`mx-1 rounded-md px-4 py-2 transition-colors duration-200 
-                            ${
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(page);
+                            }}
+                            className={`px-3 py-2 text-sm sm:text-base rounded-md transition-colors ${
                               currentPage === page
                                 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold shadow-md'
                                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-yellow-50'
                             }`}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
 
                     <PaginationItem>
                       <PaginationNext
                         href="#"
                         onClick={(e) => {
                           e.preventDefault();
-                          if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                          if (currentPage < totalPages)
+                            handlePageChange(currentPage + 1);
                         }}
-                        className="hover:bg-yellow-100 text-yellow-700"
+                        className="px-3 py-2 text-sm sm:text-base"
                       />
                     </PaginationItem>
                   </PaginationContent>
@@ -438,7 +506,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 };
