@@ -81,12 +81,13 @@ const Footer = () => {
               <a
                 key={i}
                 href={s.href}
-                className="w-10 h-10 bg-gray-100 hover:bg-yellow-500 rounded-full flex items-center justify-center transition-all duration-300 group"
+                className="w-12 h-12 bg-yellow-500 hover:bg-yellow-600 rounded-full flex items-center justify-center transition-all duration-300 group shadow-md"
               >
-                <s.icon className="w-5 h-5 text-gray-700 group-hover:text-white" />
+                <s.icon className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
               </a>
             ))}
           </div>
+
         </div>
 
         {/* 2️⃣ Company Info */}
@@ -196,32 +197,28 @@ const Footer = () => {
       {/* Bottom Footer */}
       <div className="border-t border-gray-200 bg-gray-50/60 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-800">
-            <div className="text-center md:text-left">
+          <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-800">
+            {/* Left side - Copyright */}
+            <div className="text-center md:text-left mb-3 md:mb-0">
               <p>© 2024 Ramya Constructions Ltd. All rights reserved.</p>
-              <div className="mt-1 text-xs text-gray-600">
-                <a href="/privacy" className="hover:text-yellow-600 mr-3">
-                  Privacy
-                </a>
-                <a href="/terms" className="hover:text-yellow-600 mr-3">
-                  Terms
-                </a>
-                <a href="/disclaimer" className="hover:text-yellow-600">
-                  Disclaimer
-                </a>
-              </div>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 items-center text-xs text-gray-700">
-              <span>RERA Approved</span>
-              <span className="hidden sm:inline">•</span>
-              <span>Returns subject to T&C</span>
-              <span className="hidden sm:inline">•</span>
-              <span>ISO Certified</span>
+            {/* Right side - Policy links */}
+            <div className="flex space-x-6 text-[15px] text-gray-700 font-medium">
+              <a href="/privacy" className="hover:text-yellow-600 transition-colors duration-200">
+                Privacy
+              </a>
+              <a href="/terms" className="hover:text-yellow-600 transition-colors duration-200">
+                Terms
+              </a>
+              <a href="/disclaimer" className="hover:text-yellow-600 transition-colors duration-200">
+                Disclaimer
+              </a>
             </div>
           </div>
         </div>
       </div>
+
     </footer>
   );
 };

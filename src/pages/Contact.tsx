@@ -23,7 +23,7 @@ const Contact = () => {
   const [contactInfo, setContactInfo] = useState([{
     icon: MapPin,
     title: "Visit Our Office",
-    details: ["40-14-3/1, Chandramoulipuram", "Near Benz Circle, Vijayawada", "Andhra Pradesh, India - 520010"],
+    details: ["Survey 115/1, ISB Rd, Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
   },
   {
     icon: Phone,
@@ -63,7 +63,7 @@ const Contact = () => {
           {
             icon: MapPin,
             title: "Visit Our Office",
-            details: ["40-14-3/1, Chandramoulipuram", "Near Benz Circle, Vijayawada", "Andhra Pradesh, India - 520010"],
+            details: ["Survey 115/1, ISB Rd, Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
           },
           {
             icon: Phone,
@@ -74,7 +74,7 @@ const Contact = () => {
           {
             icon: Mail,
             title: "Email Us",
-            details: [...activeEmails.map((email) => email.value), "Quick response guaranteed"],
+            details: [...activeEmails.map((email) => email.value), ],
             emails: activeEmails.map((email) => email.value),
           },
         ]);
