@@ -5,10 +5,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, LogIn, Phone } from "lucide-react";
+import { ArrowLeft, LogIn, Phone, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { userApi } from "@/api/userApi";
+
+// Country code data
+const COUNTRY_CODES = [
+  { code: "IN", name: "India", dialCode: "+91" },
+  { code: "US", name: "United States", dialCode: "+1" },
+  { code: "GB", name: "United Kingdom", dialCode: "+44" },
+  { code: "AE", name: "UAE", dialCode: "+971" },
+  { code: "SA", name: "Saudi Arabia", dialCode: "+966" },
+  { code: "QA", name: "Qatar", dialCode: "+974" },
+  { code: "KW", name: "Kuwait", dialCode: "+965" },
+  { code: "BH", name: "Bahrain", dialCode: "+973" },
+  { code: "OM", name: "Oman", dialCode: "+968" },
+  { code: "SG", name: "Singapore", dialCode: "+65" },
+  { code: "MY", name: "Malaysia", dialCode: "+60" },
+  { code: "CA", name: "Canada", dialCode: "+1" },
+  { code: "AU", name: "Australia", dialCode: "+61" },
+];
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -18,6 +35,8 @@ const Login = () => {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]); // Default to India
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -29,16 +48,31 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const validatePhoneNumber = (phone: string) => /^\+\d{1,3}\d{10}$/.test(phone);
+  // Validate phone number (only digits, length varies by country)
+  const validatePhoneNumber = (phone: string) => {
+    const digitsOnly = phone.replace(/\D/g, '');
+    // Basic validation - at least 6 digits for phone numbers
+    return digitsOnly.length >= 6 && digitsOnly.length <= 15;
+  };
+
   const validateOtp = (otp: string) => /^\d{6}$/.test(otp);
 
+  // Get full phone number with country code
+  const getFullPhoneNumber = () => {
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    return selectedCountry.dialCode + digitsOnly;
+  };
+
   const handleSendOtp = async () => {
-    if (!phoneNumber.trim()) {
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    if (!digitsOnly) {
       toast({ title: "Error", description: "Please enter your phone number", variant: "destructive" });
       return;
     }
+    
     if (!validatePhoneNumber(phoneNumber)) {
-      toast({ title: "Error", description: "Invalid phone number format", variant: "destructive" });
+      toast({ title: "Error", description: "Please enter a valid phone number", variant: "destructive" });
       return;
     }
 
@@ -47,7 +81,8 @@ const Login = () => {
     setOtpLoading(true);
 
     try {
-      const response = await userApi.sendOtp({ phone_no: phoneNumber });
+      const fullPhoneNumber = getFullPhoneNumber();
+      const response = await userApi.sendOtp({ phone_no: fullPhoneNumber });
       const data = response.data;
 
       if (data.status === "success") {
@@ -80,7 +115,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await userApi.login({ phone_no: phoneNumber, otp });
+      const fullPhoneNumber = getFullPhoneNumber();
+      const response = await userApi.login({ phone_no: fullPhoneNumber, otp });
       const data = response.data;
 
       if (data.token) {
@@ -98,6 +134,24 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Format phone number with spaces for better readability
+  const formatPhoneNumber = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly.length <= 3) return digitsOnly;
+    if (digitsOnly.length <= 6) return `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3)}`;
+    return `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 6)} ${digitsOnly.slice(6, 10)}`;
+  };
+
+  const handlePhoneNumberChange = (value: string) => {
+    const formatted = formatPhoneNumber(value);
+    setPhoneNumber(formatted);
+  };
+
+  const handleCountrySelect = (country: typeof COUNTRY_CODES[0]) => {
+    setSelectedCountry(country);
+    setShowCountryDropdown(false);
   };
 
   return (
@@ -141,16 +195,51 @@ const Login = () => {
                   Phone Number
                 </Label>
                 <div className="flex gap-2">
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+918688475255"
-                    required
-                    disabled={showOtpField}
-                    className="flex-1 bg-background border-border focus:border-primary focus:ring-primary"
-                  />
+                  {/* Country Code Dropdown */}
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-24 justify-between bg-background border-border hover:bg-muted"
+                      onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                    >
+                      <span className="text-xs">{selectedCountry.dialCode}</span>
+                      <ChevronDown className="w-4 h-4 opacity-50" />
+                    </Button>
+                    
+                    {showCountryDropdown && (
+                      <div className="absolute top-full left-0 mt-1 w-48 max-h-60 overflow-y-auto bg-background border border-border rounded-md shadow-lg z-10">
+                        {COUNTRY_CODES.map((country) => (
+                          <button
+                            key={country.code}
+                            type="button"
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                              selectedCountry.code === country.code ? 'bg-primary text-primary-foreground' : ''
+                            }`}
+                            onClick={() => handleCountrySelect(country)}
+                          >
+                            <span className="font-medium">{country.dialCode}</span>
+                            <span className="text-muted-foreground ml-2">{country.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Phone Number Input */}
+                  <div className="flex-1">
+                    <Input
+                      id="phoneNumber"
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                      placeholder="123 456 7890"
+                      required
+                      disabled={showOtpField}
+                      className="bg-background border-border focus:border-primary focus:ring-primary"
+                    />
+                  </div>
+
                   {!showOtpField && (
                     <Button
                       type="button"
@@ -172,13 +261,17 @@ const Login = () => {
                     </Button>
                   )}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Selected: {selectedCountry.name} {selectedCountry.dialCode}
+                </p>
               </div>
 
               {showOtpField && (
+                <>
                   <div className="space-y-2">
-                  <Label htmlFor="otp" className="text-foreground">
-                    Enter OTP
-                  </Label>
+                    <Label htmlFor="otp" className="text-foreground">
+                      Enter OTP
+                    </Label>
                     <Input
                       id="otp"
                       type="text"
@@ -187,7 +280,7 @@ const Login = () => {
                       placeholder="Enter 6-digit OTP"
                       required
                       maxLength={6}
-                    className="bg-background border-border focus:border-primary focus:ring-primary"
+                      className="bg-background border-border focus:border-primary focus:ring-primary"
                     />
                     <button
                       type="button"
@@ -201,10 +294,7 @@ const Login = () => {
                       Change phone number
                     </button>
                   </div>
-              )}
 
-              {showOtpField && (
-                <>
                   <Button 
                     type="submit" 
                     variant="luxury"
@@ -224,8 +314,21 @@ const Login = () => {
                     )}
                   </Button>
 
-                  <Button type="button" variant="outline" onClick={handleSendOtp} disabled={otpLoading} className="w-full">
-                    Resend OTP
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleSendOtp} 
+                    disabled={otpLoading} 
+                    className="w-full"
+                  >
+                    {otpLoading ? (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        Resending...
+                      </div>
+                    ) : (
+                      "Resend OTP"
+                    )}
                   </Button>
                 </>
               )}
@@ -233,13 +336,13 @@ const Login = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-              New user?{" "}
+                New user?{" "}
                 <Link
                   to="/register"
                   className="text-primary hover:underline font-medium"
                 >
-                Register here
-              </Link>
+                  Register here
+                </Link>
               </p>
             </div>
           </CardContent>

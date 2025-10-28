@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,52 +41,52 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
   const id = projectId;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [allSchemes, setAllSchemes] = useState<InvestmentSchemeData[]>([]);
+  const [currentSchemes, setCurrentSchemes] = useState<InvestmentSchemeData[]>([]);
+  const [totalSchemes, setTotalSchemes] = useState(0);
+  const [totalInvestmentAmount, setTotalInvestmentAmount] = useState(0.0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchedProjectName, setFetchedProjectName] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
 
-  const itemsPerPage = 4;
+  const limit = 4;
+
+  const fetchSchemes = useCallback(async (page: number) => {
+    if (!id) {
+      setError('No project ID provided');
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const params = { project_id: id, page, limit };
+      const response = await schemeApi.listByProject(params);
+      const data = response?.data;
+      setCurrentSchemes(data?.schemes ?? []);
+      setTotalPages(data?.total_pages ?? 1);
+      setTotalSchemes(data?.total_schemes ?? 0);
+      setTotalInvestmentAmount(data?.total_invertment_amount ?? 0);
+      setCurrentPage(page);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching schemes:', err);
+      setError('Failed to fetch investment schemes. Please check your connection and try again.');
+      setCurrentSchemes([]);
+      setTotalPages(1);
+      setTotalSchemes(0);
+      setTotalInvestmentAmount(0);
+      setLoading(false);
+    }
+  }, [id, limit]);
 
   useEffect(() => {
-    const fetchSchemes = async () => {
-      if (!id) {
-        setError('No project ID provided');
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-
-        // Fetch schemes using the new API service (all schemes for client-side pagination)
-        const response = await schemeApi.listByProject({ project_id: id });
-        setAllSchemes(response?.data.schemes ?? []);
-        setCurrentPage(1);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching schemes:', err);
-        setError('Failed to fetch investment schemes. Please check your connection and try again.');
-        setLoading(false);
-      }
-    };
-
-    fetchSchemes();
-  }, [id]);
-
-  const paginatedSchemes = useMemo(() => 
-    allSchemes.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    ),
-    [allSchemes, currentPage, itemsPerPage]
-  );
-
-  const totalPages = Math.ceil(allSchemes.length / itemsPerPage);
+    fetchSchemes(1);
+  }, [fetchSchemes]);
 
   const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
+    fetchSchemes(page);
   };
 
   const formatCurrency = (amount: number | null | undefined): string => {
@@ -199,14 +199,14 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Stats Bar */}
-        {allSchemes.length > 0 && (
+        {totalSchemes > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <Card className="border-border shadow-lg bg-card">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Schemes</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{allSchemes.length}</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{totalSchemes}</p>
                   </div>
                   <div className="h-12 w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-yellow-500" />
@@ -235,13 +235,13 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Max Area</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Investment Amount</p>
                     <p className="text-3xl font-bold text-foreground mt-1">
-                      {Math.max(...allSchemes.map(s => s.area_sqft)) || 0} sqft
+                      {formatCurrency(totalInvestmentAmount)}
                     </p>
                   </div>
-                  <div className="h-12 w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <Building className="w-6 h-6 text-yellow-500" />
+                  <div className="h-12 w-12 bg-indigo-500/20 rounded-full flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-indigo-500" />
                   </div>
                 </div>
               </CardContent>
@@ -250,7 +250,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
         )}
 
         {/* Schemes Grid */}
-        {allSchemes.length === 0 ? (
+        {totalSchemes === 0 ? (
           <Alert className="max-w-2xl mx-auto border-yellow-500/30 bg-yellow-500/10">
             <AlertCircle className="h-5 w-5 text-yellow-500" />
             <AlertDescription className="ml-2">
@@ -263,7 +263,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({ projectName, proj
         ) : (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {paginatedSchemes.map((scheme) => (
+              {currentSchemes.map((scheme) => (
                 <Card key={scheme.id} className="border-border shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
                   <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
 
