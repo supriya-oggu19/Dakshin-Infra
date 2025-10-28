@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -48,59 +48,52 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
   const id = projectId;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-
-  const [allSchemes, setAllSchemes] = useState<InvestmentSchemeData[]>([]);
+  const [currentSchemes, setCurrentSchemes] = useState<InvestmentSchemeData[]>([]);
+  const [totalSchemes, setTotalSchemes] = useState(0);
+  const [totalInvestmentAmount, setTotalInvestmentAmount] = useState(0.0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [fetchedProjectName, setFetchedProjectName] = useState<string>('');
 
-  const itemsPerPage = 4;
+  const limit = 4;
 
-  /* --------------------------------------------------- */
-  /*  FETCH SCHEMES                                      */
-  /* --------------------------------------------------- */
+  const fetchSchemes = useCallback(async (page: number) => {
+    if (!id) {
+      setError('No project ID provided');
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const params = { project_id: id, page, limit };
+      const response = await schemeApi.listByProject(params);
+      const data = response?.data;
+      setCurrentSchemes(data?.schemes ?? []);
+      setTotalPages(data?.total_pages ?? 1);
+      setTotalSchemes(data?.total_schemes ?? 0);
+      setTotalInvestmentAmount(data?.total_invertment_amount ?? 0);
+      setCurrentPage(page);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching schemes:', err);
+      setError('Failed to fetch investment schemes. Please check your connection and try again.');
+      setCurrentSchemes([]);
+      setTotalPages(1);
+      setTotalSchemes(0);
+      setTotalInvestmentAmount(0);
+      setLoading(false);
+    }
+  }, [id, limit]);
+
   useEffect(() => {
-    const fetchSchemes = async () => {
-      if (!id) {
-        setError('No project ID provided');
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        const response = await schemeApi.listByProject({ project_id: id });
-        setAllSchemes(response?.data.schemes ?? []);
-        setCurrentPage(1);
-      } catch (err) {
-        console.error('Error fetching schemes:', err);
-        setError(
-          'Failed to fetch investment schemes. Please check your connection and try again.'
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSchemes();
-  }, [id]);
-
-  /* --------------------------------------------------- */
-  /*  PAGINATION                                         */
-  /* --------------------------------------------------- */
-  const paginatedSchemes = useMemo(
-    () =>
-      allSchemes.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-      ),
-    [allSchemes, currentPage]
-  );
-
-  const totalPages = Math.ceil(allSchemes.length / itemsPerPage);
+    fetchSchemes(1);
+  }, [fetchSchemes]);
 
   const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
+    fetchSchemes(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -226,22 +219,17 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
         </div>
       </header>
 
-      {/* ---------- CONTENT ---------- */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* ---- Stats Bar ---- */}
-        {allSchemes.length > 0 && (
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Stats Bar */}
+        {totalSchemes > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 sm:mb-12">
-            {/* Total Schemes */}
             <Card className="shadow-lg">
               <CardContent className="pt-5 sm:pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                      Total Schemes
-                    </p>
-                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
-                      {allSchemes.length}
-                    </p>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Schemes</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{totalSchemes}</p>
                   </div>
                   <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
@@ -274,15 +262,13 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
               <CardContent className="pt-5 sm:pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                      Max Area
-                    </p>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Investment Amount</p>
                     <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
-                      {Math.max(...allSchemes.map((s) => s.area_sqft)) || 0} sqft
+                      {formatCurrency(totalInvestmentAmount)}
                     </p>
                   </div>
                   <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <Building className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
+                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
                   </div>
                 </div>
               </CardContent>
@@ -290,8 +276,8 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
           </div>
         )}
 
-        {/* ---- Schemes List ---- */}
-        {allSchemes.length === 0 ? (
+        {/* Schemes Grid */}
+        {totalSchemes === 0 ? (
           <Alert className="max-w-2xl mx-auto border-yellow-500/30 bg-yellow-500/10">
             <AlertCircle className="h-5 w-5 text-yellow-500" />
             <AlertDescription className="ml-2">
@@ -306,13 +292,9 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
           </Alert>
         ) : (
           <>
-            {/* Cards – 1 col on mobile, 2 col on lg */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
-              {paginatedSchemes.map((scheme) => (
-                <Card
-                  key={scheme.id}
-                  className="border-border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                >
+              {currentSchemes.map((scheme) => (
+                <Card key={scheme.id} className="border-border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
                   <div className="h-1 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
 
                   <CardHeader className="pb-2 sm:pb-3">
@@ -506,7 +488,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
             )}
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 };

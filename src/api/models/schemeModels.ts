@@ -44,7 +44,6 @@ export interface InvestmentSchemeListRequest {
 
 export interface InvestmentSchemeListResponse {
   total_count: any;
-  total_count: any;
   message: string;
   page: number;
   limit: number;
@@ -52,6 +51,7 @@ export interface InvestmentSchemeListResponse {
   is_previous: boolean;
   is_next: boolean;
   total_schemes: number;
+  total_invertment_amount: number;
   schemes: InvestmentSchemeData[];
 }
 
