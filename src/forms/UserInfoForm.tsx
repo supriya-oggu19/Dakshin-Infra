@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,14 +37,41 @@ const UserInfoForm = ({
   });
   const [aadharFile, setAadharFile] = useState<File | null>(null);
 
+  // Reset verification when document numbers change
+  useEffect(() => {
+    const currentData = account.data;
+    const newVerifiedState = { ...account.verified };
+    
+    if (currentData.pan_number && !validatePAN(currentData.pan_number)) {
+      newVerifiedState.pan = false;
+    }
+    if (currentData.aadhar_number && !validateAadhaar(currentData.aadhar_number)) {
+      newVerifiedState.aadhar = false;
+      setAadharFile(null);
+    }
+    if (currentData.gst_number && !validateGSTIN(currentData.gst_number)) {
+      newVerifiedState.gst = false;
+    }
+    if (currentData.passport_number && !validatePassport(currentData.passport_number)) {
+      newVerifiedState.passport = false;
+    }
+    
+    // Only update if something changed
+    if (JSON.stringify(newVerifiedState) !== JSON.stringify(account.verified)) {
+      onVerifiedUpdate(newVerifiedState);
+    }
+  }, [
+    account.data.pan_number, 
+    account.data.aadhar_number, 
+    account.data.gst_number, 
+    account.data.passport_number
+  ]);
+
   const handleChange = (field: keyof (UserInfo | JointAccountInfo), value: string | boolean) => {
     onUpdate({
       ...account.data,
       [field]: value
     });
-    if (field === 'aadhar_number') {
-      setAadharFile(null);
-    }
   };
 
   const handleAddressChange = (type: 'present' | 'permanent', field: keyof Address, value: string) => {
@@ -96,12 +123,6 @@ const UserInfoForm = ({
       return;
     }
 
-    if (!data.name || !data.surname) {
-      setErrors(prev => ({ ...prev, pan: 'Full name is required for PAN verification' }));
-      toast({ title: 'Error', description: 'Full name is required', variant: 'destructive' });
-      return;
-    }
-
     setLoading(prev => ({ ...prev, pan: true }));
     try {
       const res = await documentApi.verifyPan({
@@ -109,7 +130,7 @@ const UserInfoForm = ({
         full_name: `${data.surname} ${data.name}`,
       });
       
-      if (res.data.pan_status === 'VALID') {
+      if (res.data.pan_status === 'valid' || res.data.pan_status === 'VALID') {
         onVerifiedUpdate({ pan: true });
         setErrors(prev => ({ ...prev, pan: '' }));
         toast({ title: 'Success', description: 'PAN verified successfully' });
@@ -119,8 +140,9 @@ const UserInfoForm = ({
         toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
       }
     } catch (error: any) {
-      setErrors(prev => ({ ...prev, pan: 'Error verifying PAN' }));
-      toast({ title: 'Error', description: 'Error verifying PAN', variant: 'destructive' });
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || 'Error verifying PAN';
+      setErrors(prev => ({ ...prev, pan: errorMsg }));
+      toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
     } finally {
       setLoading(prev => ({ ...prev, pan: false }));
     }
@@ -163,7 +185,8 @@ const UserInfoForm = ({
     try {
       const res = await documentApi.verifyAadhar(data.aadhar_number, aadharFile);
       
-      if (res.data.aadhar_status === 'VALID') {
+      // FIXED: Check for correct response field
+      if (res.data.aadhar_status === 'valid' || res.data.aadhar_status === 'VALID') {
         onVerifiedUpdate({ aadhar: true });
         setErrors(prev => ({ ...prev, aadhar: '' }));
         toast({ title: 'Success', description: 'Aadhaar verified successfully' });
@@ -173,8 +196,9 @@ const UserInfoForm = ({
         toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
       }
     } catch (error: any) {
-      setErrors(prev => ({ ...prev, aadhar: 'Error verifying Aadhaar' }));
-      toast({ title: 'Error', description: 'Error verifying Aadhaar', variant: 'destructive' });
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || 'Error verifying Aadhaar';
+      setErrors(prev => ({ ...prev, aadhar: errorMsg }));
+      toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
     } finally {
       setLoading(prev => ({ ...prev, aadhar: false }));
     }
@@ -203,11 +227,13 @@ const UserInfoForm = ({
 
     setLoading(prev => ({ ...prev, gst: true }));
     try {
+      // FIXED: Use correct field name for GST verification
       const res = await documentApi.verifyGstin({
-        gst_number: data.gst_number,
+        gstin: data.gst_number,
       });
       
-      if (res.data.detail === 'GST verified successfully') {
+      // FIXED: Check for correct response field
+      if (res.data.gst_status === 'valid' || res.data.detail === 'GST verified successfully') {
         onVerifiedUpdate({ gst: true });
         setErrors(prev => ({ ...prev, gst: '' }));
         toast({ title: 'Success', description: 'GST verified successfully' });
@@ -217,8 +243,9 @@ const UserInfoForm = ({
         toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
       }
     } catch (error: any) {
-      setErrors(prev => ({ ...prev, gst: 'Error verifying GST' }));
-      toast({ title: 'Error', description: 'Error verifying GST', variant: 'destructive' });
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || 'Error verifying GST';
+      setErrors(prev => ({ ...prev, gst: errorMsg }));
+      toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
     } finally {
       setLoading(prev => ({ ...prev, gst: false }));
     }
@@ -245,21 +272,23 @@ const UserInfoForm = ({
       return;
     }
 
-    if (!data.name || !data.surname || !data.dob) {
-      setErrors(prev => ({ ...prev, passport: 'Full name and DOB are required for Passport verification' }));
-      toast({ title: 'Error', description: 'Full name and DOB are required', variant: 'destructive' });
+    if (!data.dob) {
+      setErrors(prev => ({ ...prev, passport: 'Date of birth is required for Passport verification' }));
+      toast({ title: 'Error', description: 'Date of birth is required', variant: 'destructive' });
       return;
     }
 
     setLoading(prev => ({ ...prev, passport: true }));
     try {
+      // FIXED: Use correct field names for passport verification
       const res = await documentApi.verifyPassport({
-        passport_number: data.passport_number,
-        full_name: `${data.surname} ${data.name}`,
+        file_number: data.passport_number, // Changed from passport_number to file_number
         dob: data.dob,
+        name: data.name ? `${data.surname} ${data.name}` : undefined,
       });
       
-      if (res.data.detail === 'Passport verified successfully') {
+      // FIXED: Check for correct response field
+      if (res.data.passport_status === 'valid' || res.data.detail === 'Passport verified successfully') {
         onVerifiedUpdate({ passport: true });
         setErrors(prev => ({ ...prev, passport: '' }));
         toast({ title: 'Success', description: 'Passport verified successfully' });
@@ -269,11 +298,18 @@ const UserInfoForm = ({
         toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
       }
     } catch (error: any) {
-      setErrors(prev => ({ ...prev, passport: 'Error verifying Passport' }));
-      toast({ title: 'Error', description: 'Error verifying Passport', variant: 'destructive' });
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || 'Error verifying Passport';
+      setErrors(prev => ({ ...prev, passport: errorMsg }));
+      toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
     } finally {
       setLoading(prev => ({ ...prev, passport: false }));
     }
+  };
+
+  // Update the file input handler to not reset on Aadhaar number change
+  const handleAadharFileChange = (file: File | null) => {
+    setAadharFile(file);
+    // Don't reset verification here - let the useEffect handle it
   };
 
   const hasAddressFields = !!account.data.present_address;
@@ -556,7 +592,7 @@ const UserInfoForm = ({
                   />
                   <Button
                     onClick={verifyPan}
-                    disabled={loading.pan || !data.pan_number || !data.name || !data.surname || !validatePAN(data.pan_number)}
+                    disabled={loading.pan || !data.pan_number || !validatePAN(data.pan_number)}
                     className="flex items-center gap-2"
                   >
                     {loading.pan ? 'Verifying...' : verified.pan ? <CheckCircle className="w-4 h-4 text-green-500" /> : 'Verify'}
@@ -595,12 +631,14 @@ const UserInfoForm = ({
                 <Input
                   type="file"
                   accept="image/jpeg,image/png"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) setAadharFile(file);
-                  }}
+                  onChange={(e) => handleAadharFileChange(e.target.files?.[0] || null)}
                   className="mt-2"
                 />
+                {aadharFile && (
+                  <p className="text-xs text-green-600 mt-1">
+                    File selected: {aadharFile.name}
+                  </p>
+                )}
                 {getFieldError('aadhar_number', data.aadhar_number) && (
                   <p className="text-red-500 text-xs mt-1">
                     {getFieldError('aadhar_number', data.aadhar_number)}
@@ -660,7 +698,7 @@ const UserInfoForm = ({
                 />
                 <Button
                   onClick={verifyPassport}
-                  disabled={loading.passport || !data.passport_number || !data.name || !data.surname || !data.dob || !validatePassport(data.passport_number)}
+                  disabled={loading.passport || !data.passport_number || !data.dob || !validatePassport(data.passport_number)}
                   className="flex items-center gap-2"
                 >
                   {loading.passport ? 'Verifying...' : verified.passport ? <CheckCircle className="w-4 h-4 text-green-500" /> : 'Verify'}

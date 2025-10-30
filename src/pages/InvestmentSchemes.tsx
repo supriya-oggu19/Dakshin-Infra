@@ -391,7 +391,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
 
                       {/* Monthly Rental Income */}
                       {scheme.monthly_rental_income && (
-                        <div className="bg-background p-2.5 rounded-lg border hover:shadow-md transition-shadow col-span-1 sm:col-span-2">
+                        <div className="bg-background p-2.5 rounded-lg border hover:shadow-md transition-shadow col-span-1">
                           <div className="flex items-center gap-1.5 mb-1">
                             <TrendingUp className="w-3.5 h-3.5" />
                             <span className="text-xs font-medium">

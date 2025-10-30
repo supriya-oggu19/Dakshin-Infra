@@ -94,7 +94,7 @@ const ProjectDetail = () => {
           ? `${projectData.available_units} sqft`
           : "N/A",
         gallery:
-          projectData.gallery_images?.map((i: any) => i.url) || [],
+          projectData.gallery_images?.map((i: any) => i) || [],
         highlights: projectData.key_highlights || [],
         amenities:
           projectData.amenities?.map((a: any) => ({
