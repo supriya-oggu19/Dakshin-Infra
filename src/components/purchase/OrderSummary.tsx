@@ -128,7 +128,7 @@ const OrderDetails: React.FC<any> = ({ selectedPlan, getMinPayment, formatCurren
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Remaining Amount</span>
         <span className="font-medium">
-          {formatCurrency(selectedPlan.price - selectedPlan.paymentAmount)}
+          {formatCurrency((selectedPlan.totalInvestment * selectedPlan.units) - selectedPlan.paymentAmount)}
         </span>
       </div>
     )}

@@ -84,20 +84,40 @@ const KYCForm = ({
 
   const getPrimaryAddress = (type: 'present' | 'permanent') => {
     if (!userInfo) return 'Address not available';
-    const addr = userInfo[type + '_address'];
-    return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`.trim().replace(/,\s*,/g, ',').replace(/,\s*-/g, '');
+
+    // If sameAddress is true, always use present_address
+    const addr =
+      userInfo.sameAddress || type === 'present'
+        ? userInfo.present_address
+        : userInfo.permanent_address;
+
+    return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`
+      .trim()
+      .replace(/,\s*,/g, ',')  // clean double commas
+      .replace(/,\s*-/g, '');  // clean ", -"
   };
 
   const getJointAddress = (jointAccount: JointAccountInfo, type: 'present' | 'permanent') => {
-    const addr = jointAccount[type + '_address'] as any;
+    if (!jointAccount) return 'Address not available';
+
+    // Use present address if sameAddress is true or if type is 'present'
+    const addr =
+      jointAccount.sameAddress || type === 'present'
+        ? jointAccount.present_address
+        : jointAccount.permanent_address;
+
     if (!addr) return 'Address not available';
-    return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`.trim().replace(/,\s*,/g, ',').replace(/,\s*-/g, '');
+
+    return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`
+      .trim()
+      .replace(/,\s*,/g, ',')  // remove duplicate commas
+      .replace(/,\s*-/g, '');  // clean ", -"
   };
 
   const primaryDocs = getPrimaryDocs();
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-3 sm:p-5 lg:p-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Primary Account Holder Details */}
       <Card className="border-2 border-yellow-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b-2 border-yellow-200 p-3 sm:p-5">
