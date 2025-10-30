@@ -89,8 +89,8 @@ const Projects = () => {
         status: formatStatus(project.status),
         type: project.property_type.charAt(0).toUpperCase() + project.property_type.slice(1),
         price: `₹${(project.base_price / 100000).toFixed(0)} Lakhs`,
-        area: project.pricing_details?.sqft ? `${project.pricing_details.sqft} sqft onwards` : 'N/A',
-        image: project.gallery_images?.[0]?.url || null,
+        area: project.available_units + " Sq.ft" || "N/A",
+        image: project.gallery_images?.[0] || null,
         priceRange: getPriceRange(project.base_price),
       }));
       

@@ -25,9 +25,9 @@ export const documentApi = {
     });
   },
 
-  verifyGstin: (data: { gst_number: string }) =>
+  verifyGstin: (data: { gstin: string }) =>
     mainAxiosClient.post<VerifyResponse>(ENDPOINTS.DOCUMENTS.VERIFY_GSTIN, data),
 
-  verifyPassport: (data: { passport_number: string; full_name: string; dob: string }) =>
+  verifyPassport: (data: { file_number: string; name: string; dob: string }) =>
     mainAxiosClient.post<VerifyResponse>(ENDPOINTS.DOCUMENTS.VERIFY_PASSPORT, data),
 };
