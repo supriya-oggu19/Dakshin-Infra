@@ -214,13 +214,6 @@ const UserInfoPage = ({ accounts: initialAccounts, onSubmit, onAccountsChange }:
           <Plus className="w-5 h-5" />
           Add Another Account Holder
         </Button>
-
-        <Button
-          onClick={handleSubmit}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          Submit All Accounts
-        </Button>
       </div>
     </div>
   );
