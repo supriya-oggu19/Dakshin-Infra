@@ -8,7 +8,7 @@ interface VerifyResponse {
   message?: string;
   pan_status?: string;
   aadhar_status?: string;
-  gst_status?: string;
+  valid?: Boolean;
   passport_status?: string;
 }
 
@@ -25,7 +25,7 @@ export const documentApi = {
     });
   },
 
-  verifyGstin: (data: { gstin: string }) =>
+  verifyGstin: (data: { GSTIN: string }) =>
     mainAxiosClient.post<VerifyResponse>(ENDPOINTS.DOCUMENTS.VERIFY_GSTIN, data),
 
   verifyPassport: (data: { file_number: string; name: string; dob: string }) =>
