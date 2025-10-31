@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ const UserInfoForm = ({
     passport: '',
   });
   const [aadharFile, setAadharFile] = useState<File | null>(null);
+  const aadharInputRef = useRef<HTMLInputElement | null>(null);
 
   // Reset verification when document numbers change
   useEffect(() => {
@@ -47,6 +48,9 @@ const UserInfoForm = ({
     }
     if (currentData.aadhar_number && !validateAadhaar(currentData.aadhar_number)) {
       newVerifiedState.aadhar = false;
+      if (aadharInputRef.current) {
+        aadharInputRef.current.value = "";
+      }
       setAadharFile(null);
     }
     if (currentData.gst_number && !validateGSTIN(currentData.gst_number)) {
@@ -175,8 +179,8 @@ const UserInfoForm = ({
       return;
     }
 
-    if (aadharFile.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png'].includes(aadharFile.type)) {
-      setErrors(prev => ({ ...prev, aadhar: 'File must be JPEG/PNG under 5MB' }));
+    if (aadharFile.size > 10 * 1024 * 1024 || !['image/jpeg', 'image/png'].includes(aadharFile.type)) {
+      setErrors(prev => ({ ...prev, aadhar: 'File must be JPEG/PNG under 10MB' }));
       toast({ title: 'Error', description: 'Invalid file type or size', variant: 'destructive' });
       return;
     }
@@ -229,11 +233,11 @@ const UserInfoForm = ({
     try {
       // FIXED: Use correct field name for GST verification
       const res = await documentApi.verifyGstin({
-        gstin: data.gst_number,
+        GSTIN: data.gst_number,
       });
       
       // FIXED: Check for correct response field
-      if (res.data.gst_status === 'valid' || res.data.detail === 'GST verified successfully') {
+      if (res.data.valid === true || res.data.message === "GSTIN Exists") {
         onVerifiedUpdate({ gst: true });
         setErrors(prev => ({ ...prev, gst: '' }));
         toast({ title: 'Success', description: 'GST verified successfully' });
@@ -288,7 +292,7 @@ const UserInfoForm = ({
       });
       
       // FIXED: Check for correct response field
-      if (res.data.passport_status === 'valid' || res.data.detail === 'Passport verified successfully') {
+      if (res.data.passport_status === 'valid' || res.data.passport_status === 'VALID') {
         onVerifiedUpdate({ passport: true });
         setErrors(prev => ({ ...prev, passport: '' }));
         toast({ title: 'Success', description: 'Passport verified successfully' });
@@ -365,6 +369,7 @@ const UserInfoForm = ({
                 type="date"
                 value={data.dob}
                 onChange={(e) => handleChange('dob', e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker()}
               />
             </div>
           </div>
@@ -628,11 +633,15 @@ const UserInfoForm = ({
                     {loading.aadhar ? 'Verifying...' : verified.aadhar ? <CheckCircle className="w-4 h-4 text-green-500" /> : 'Verify'}
                   </Button>
                 </div>
-                <Input
+                <input className="mt-2 block w-full text-sm text-gray-500"
                   type="file"
-                  accept="image/jpeg,image/png"
-                  onChange={(e) => handleAadharFileChange(e.target.files?.[0] || null)}
-                  className="mt-2"
+                  ref={aadharInputRef}
+
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setAadharFile(file);
+                  }
+                }
                 />
                 {aadharFile && (
                   <p className="text-xs text-green-600 mt-1">
@@ -686,15 +695,15 @@ const UserInfoForm = ({
           )}
           {data.user_type === 'NRI' && (
             <div className="md:col-span-2">
-              <Label htmlFor={`passport_number-${account.id}`}>Passport Number *</Label>
+              <Label htmlFor={`passport_number-${account.id}`}>Passport File Number *</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id={`passport_number-${account.id}`}
                   value={data.passport_number}
                   onChange={(e) => handleChange('passport_number', e.target.value.toUpperCase())}
-                  placeholder="A1234567"
+                  placeholder="PA1079341954215"
                   className={errors.passport || getFieldError('passport_number', data.passport_number) ? 'border-red-500' : ''}
-                  maxLength={12}
+                  maxLength={18}
                 />
                 <Button
                   onClick={verifyPassport}
