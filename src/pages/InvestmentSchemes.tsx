@@ -30,6 +30,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
+import { IndianRupee } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { schemeApi } from '@/api/schemeApi';
 import { InvestmentSchemeData, SchemeType } from '@/api/models/schemeModels';
@@ -251,7 +252,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
                     </p>
                   </div>
                   <div className="h-10 w-10 sm:h-12 sm:w-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
+                    <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
                   </div>
                 </div>
               </CardContent>
@@ -268,7 +269,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
                     </p>
                   </div>
                   <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
+                    <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
                   </div>
                 </div>
               </CardContent>
@@ -459,11 +460,10 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
                               e.preventDefault();
                               handlePageChange(page);
                             }}
-                            className={`px-3 py-2 text-sm sm:text-base rounded-md transition-colors ${
-                              currentPage === page
-                                ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold shadow-md'
-                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-yellow-50'
-                            }`}
+                            className={`px-3 py-2 text-sm sm:text-base rounded-md transition-colors ${currentPage === page
+                              ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold shadow-md'
+                              : 'bg-white text-gray-700 border border-gray-200 hover:bg-yellow-50'
+                              }`}
                           >
                             {page}
                           </PaginationLink>
