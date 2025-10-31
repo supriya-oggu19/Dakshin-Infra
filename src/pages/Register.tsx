@@ -71,8 +71,54 @@ const Register = () => {
   };
 
   const handleCountrySelect = (country: typeof COUNTRY_CODES[0]) => {
+    // If OTP field is showing and country changes, reset OTP state
+    if (showOtpField && country.code !== selectedCountry.code) {
+      setShowOtpField(false);
+      setOtp("");
+      setSuccess("");
+    }
     setSelectedCountry(country);
     setShowCountryDropdown(false);
+  };
+
+  // Reset OTP state when any field changes during OTP phase
+  const handleNameChange = (value: string) => {
+    // If OTP field is showing and name changes, reset OTP state
+    if (showOtpField && value !== name) {
+      setShowOtpField(false);
+      setOtp("");
+      setSuccess("");
+    }
+    setName(value);
+  };
+
+  const handleEmailChange = (value: string) => {
+    // If OTP field is showing and email changes, reset OTP state
+    if (showOtpField && value !== email) {
+      setShowOtpField(false);
+      setOtp("");
+      setSuccess("");
+    }
+    setEmail(value);
+  };
+
+  const handlePhoneNumberChangeWithReset = (value: string) => {
+    const formatted = formatPhoneNumber(value);
+    
+    // If OTP field is showing and phone number changes, reset OTP state
+    if (showOtpField && formatted !== phoneNumber) {
+      setShowOtpField(false);
+      setOtp("");
+      setSuccess("");
+    }
+    
+    setPhoneNumber(formatted);
+  };
+
+  const handleResetOtpProcess = () => {
+    setShowOtpField(false);
+    setOtp("");
+    setSuccess("");
   };
 
   const handleSendOtp = async () => {
@@ -102,7 +148,7 @@ const Register = () => {
 
     try {
       const fullPhoneNumber = getFullPhoneNumber();
-      const response = await userApi.sendOtp({ phone_no: fullPhoneNumber });
+      const response = await userApi.sendOtpNew({ phone_no: fullPhoneNumber });
       const data = response.data;
 
       if (data.status === "success") {
@@ -117,7 +163,7 @@ const Register = () => {
           variant: "destructive",
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       const backendMessage = err.response?.data?.message || "Failed to send OTP.";
       setError(backendMessage);
       toast({
@@ -160,14 +206,32 @@ const Register = () => {
           variant: "destructive",
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       const backendMessage = err.response?.data?.message || "Registration failed.";
-      setError(backendMessage);
-      toast({
-        title: "Error",
-        description: backendMessage,
-        variant: "destructive",
-      });
+      
+      // Handle specific backend error messages
+      if (backendMessage === "User already exists. Please login") {
+        setError("User already exists. Please login instead.");
+        toast({
+          title: "User Exists",
+          description: "This phone number is already registered. Please login to your account.",
+          variant: "destructive",
+        });
+      } else if (backendMessage === "Invalid or expired OTP") {
+        setError("Invalid or expired OTP. Please request a new OTP.");
+        toast({
+          title: "Invalid OTP",
+          description: "The OTP you entered is invalid or has expired. Please request a new one.",
+          variant: "destructive",
+        });
+      } else {
+        setError(backendMessage);
+        toast({
+          title: "Error",
+          description: backendMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -195,7 +259,19 @@ const Register = () => {
             <form onSubmit={handleRegister} className="space-y-4">
               {error && (
                 <Alert className="border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-700">{error}</AlertDescription>
+                  <AlertDescription className="text-red-700">
+                    {error}
+                    {error === "User already exists. Please login instead." && (
+                      <div className="mt-2">
+                        <Link
+                          to="/login"
+                          className="text-primary hover:underline font-medium"
+                        >
+                          Login to your account here
+                        </Link>
+                      </div>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
               {success && (
@@ -213,10 +289,9 @@ const Register = () => {
                     id="name"
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => handleNameChange(e.target.value)}
                     placeholder="Enter your full name"
                     required
-                    disabled={showOtpField}
                     className="pl-10 bg-background border-border focus:border-primary focus:ring-primary"
                   />
                 </div>
@@ -231,10 +306,9 @@ const Register = () => {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="Enter your email"
                     required
-                    disabled={showOtpField}
                     className="pl-10 bg-background border-border focus:border-primary focus:ring-primary"
                   />
                 </div>
@@ -251,7 +325,6 @@ const Register = () => {
                       variant="outline"
                       className="w-24 justify-between bg-background border-border hover:bg-muted"
                       onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                      disabled={showOtpField}
                     >
                       <span className="text-xs">{selectedCountry.dialCode}</span>
                       <ChevronDown className="w-4 h-4 opacity-50" />
@@ -283,10 +356,9 @@ const Register = () => {
                       id="phoneNumber"
                       type="tel"
                       value={phoneNumber}
-                      onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                      onChange={(e) => handlePhoneNumberChangeWithReset(e.target.value)}
                       placeholder="123 456 7890"
                       required
-                      disabled={showOtpField}
                       className="pl-10 bg-background border-border focus:border-primary focus:ring-primary"
                     />
                   </div>
@@ -331,11 +403,7 @@ const Register = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowOtpField(false);
-                        setOtp("");
-                        setSuccess("");
-                      }}
+                      onClick={handleResetOtpProcess}
                       className="text-sm text-muted-foreground hover:text-foreground"
                     >
                       Change details
