@@ -356,7 +356,7 @@ const PaymentInputSection: React.FC<any> = ({
               {selectedPlan.type === "single" ? "Balance Due (within 90 days):" : "Remaining Investment:"}
             </span>
             <span className={`font-medium ${selectedPlan.type === "single" ? "text-orange-600" : ""}`}>
-              {formatCurrency(balance)}
+              {formatCurrency((selectedPlan.totalInvestment * selectedPlan.units) - selectedPlan.paymentAmount)}
             </span>
           </div>
         </div>
