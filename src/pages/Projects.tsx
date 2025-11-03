@@ -304,7 +304,7 @@ const Projects = () => {
             {/* Desktop Filters */}
             <div className={`${showFilters ? 'block' : 'hidden'} sm:block`}>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
-                <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4 flex-1">
+                <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4 flex-1 mt-1">
                   <Select 
                     value={statusFilter} 
                     onValueChange={(value) => handleFilterChange('status', value)}

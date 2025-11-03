@@ -177,6 +177,9 @@ const ProjectDetail = () => {
   };
 
   const handleBuyNow = () => {
+    // Clear any existing purchase state for this project
+    sessionStorage.removeItem(`purchaseState_${id}`);
+    sessionStorage.setItem('currentProjectId', id);
     if (isAuthenticated) navigate(`/purchase/${id}`, { state: { projectName: project.title } });
     else navigate("/login", { state: { from: `/purchase/${id}` } });
   };
