@@ -14,18 +14,33 @@ import {
   Download,
   Eye,
   Loader2,
+  CreditCard,
+  User,
+  Mail,
+  Phone,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { portfolioApi } from "../api/portfolio-api";
-import { PortfolioItem, InvestmentSummaryResponse } from "../api/models/portfolio.model";
+import {
+  PortfolioItem,
+  InvestmentSummaryResponse,
+} from "../api/models/portfolio.model";
 
+// Payment Modal Component
+// In your MyUnits.tsx, add this import at the top
+import PaymentModal from "@/components/PaymentModal";
 const MyUnits = () => {
   const { token } = useAuth();
   const [portfolioData, setPortfolioData] = useState<PortfolioItem[]>([]);
-  const [investmentSummary, setInvestmentSummary] = useState<InvestmentSummaryResponse | null>(null);
+  const [investmentSummary, setInvestmentSummary] =
+    useState<InvestmentSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<PortfolioItem | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [loadingCustomerInfo, setLoadingCustomerInfo] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -38,20 +53,60 @@ const MyUnits = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch portfolio data and investment summary using the API service
       const [portfolioResponse, summaryResponse] = await Promise.all([
         portfolioApi.getPortfolio(token),
-        portfolioApi.getInvestmentSummary(token)
+        portfolioApi.getInvestmentSummary(token),
       ]);
 
       setPortfolioData(portfolioResponse.data.portfolio || []);
       setInvestmentSummary(summaryResponse.data);
-
     } catch (err: any) {
       console.error("Error fetching user data:", err);
       setError(err.response?.data?.message || "Failed to fetch data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMakePayment = async (unit: PortfolioItem) => {
+    if (!token) return;
+
+    setSelectedUnit(unit);
+    setLoadingCustomerInfo(true);
+
+    try {
+      // Fetch customer info from the API
+      const customerInfoResponse = await fetch(
+        `http://127.0.0.1:8001/api/payments/customer-info/${unit.unit_number}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (customerInfoResponse.ok) {
+        const customerData = await customerInfoResponse.json();
+        setCustomerInfo(customerData);
+      } else {
+        // If no customer info found, use default values
+        setCustomerInfo({
+          customer_name: "",
+          customer_email: "",
+          customer_phone: "",
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching customer info:", err);
+      setCustomerInfo({
+        customer_name: "",
+        customer_email: "",
+        customer_phone: "",
+      });
+    } finally {
+      setLoadingCustomerInfo(false);
+      setShowPaymentModal(true);
     }
   };
 
@@ -527,8 +582,14 @@ const MyUnits = () => {
                           <Button
                             size="sm"
                             className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600"
+                            onClick={() => handleMakePayment(property)}
+                            disabled={loadingCustomerInfo}
                           >
-                            <Clock className="w-4 h-4 mr-2" />
+                            {loadingCustomerInfo ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 mr-2" />
+                            )}
                             Make Payment
                           </Button>
                         )}
@@ -541,6 +602,20 @@ const MyUnits = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedUnit && (
+        <PaymentModal
+          unit={selectedUnit}
+          customerInfo={customerInfo}
+          token={token}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedUnit(null);
+            setCustomerInfo(null);
+          }}
+        />
+      )}
     </div>
   );
 };

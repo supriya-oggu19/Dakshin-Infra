@@ -18,14 +18,20 @@ import {
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { investmentApi } from "../api/investmentApi";
-import { InvestmentUnit, PaymentListResponse, Payment } from "../api/models/investment.model";
+import {
+  InvestmentUnit,
+  PaymentListResponse,
+  Payment,
+} from "../api/models/investment.model";
 import { portfolioApi } from "../api/portfolio-api";
 
 const SipTracker = () => {
   const { token } = useAuth();
   const [selectedUnit, setSelectedUnit] = useState("");
   const [portfolioData, setPortfolioData] = useState<InvestmentUnit[]>([]);
-  const [paymentData, setPaymentData] = useState<PaymentListResponse | null>(null);
+  const [paymentData, setPaymentData] = useState<PaymentListResponse | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +53,8 @@ const SipTracker = () => {
       setError(null);
 
       const response = await portfolioApi.getPortfolio(token);
-      const portfolio = response.data.portfolio || response.data.data || response.data || [];
+      const portfolio =
+        response.data.portfolio || response.data.data || response.data || [];
       setPortfolioData(portfolio);
 
       if (response.data.portfolio && response.data.portfolio.length > 0) {
@@ -85,7 +92,7 @@ const SipTracker = () => {
     } else if (amount >= 1000) {
       return `₹${(amount / 1000).toFixed(1)}K`;
     }
-    return `₹${amount.toLocaleString('en-IN')}`;
+    return `₹${amount.toLocaleString("en-IN")}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -146,7 +153,8 @@ const SipTracker = () => {
     if (!unit || !unit.total_investment) return 0;
 
     const totalPaid =
-      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
+      0;
     return (totalPaid / unit.total_investment) * 100;
   };
 
@@ -165,7 +173,8 @@ const SipTracker = () => {
         0
       ) || 0;
     const totalPaid =
-      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
+      0;
 
     return { totalRebates, totalPenalties, totalPaid };
   };
@@ -246,7 +255,9 @@ const SipTracker = () => {
   const currentUnit = portfolioData.find((u) => u.unit_number === selectedUnit);
   const { totalRebates, totalPenalties, totalPaid } = calculateTotals();
   const progress = calculatePaymentProgress();
-  const balanceAmount = currentUnit ? currentUnit.total_investment - totalPaid : 0;
+  const balanceAmount = currentUnit
+    ? currentUnit.total_investment - totalPaid
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -369,7 +380,9 @@ const SipTracker = () => {
                       Payment Progress
                     </CardTitle>
                     {currentUnit && (
-                      <Badge className={getStatusColor(currentUnit.payment_status)}>
+                      <Badge
+                        className={getStatusColor(currentUnit.payment_status)}
+                      >
                         {getStatusText(currentUnit.payment_status)}
                       </Badge>
                     )}
@@ -391,7 +404,9 @@ const SipTracker = () => {
                       <Progress value={progress} className="h-3 sm:h-4 mb-4" />
                       <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
                         <span>{formatCurrency(totalPaid)} paid</span>
-                        <span>{formatCurrency(currentUnit?.total_investment)} total</span>
+                        <span>
+                          {formatCurrency(currentUnit?.total_investment)} total
+                        </span>
                       </div>
                     </div>
 
@@ -404,13 +419,18 @@ const SipTracker = () => {
                               Next Payment Due
                             </p>
                             <p className="text-xs sm:text-sm text-amber-700">
-                              {formatDate(paymentData.next_installment.due_date)}
+                              {formatDate(
+                                paymentData.next_installment.due_date
+                              )}
                             </p>
                             <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
-                              {formatCurrency(paymentData.next_installment.amount)}
+                              {formatCurrency(
+                                paymentData.next_installment.amount
+                              )}
                             </p>
                             <p className="text-xs sm:text-sm text-amber-700 mt-1">
-                              Installment #{paymentData.next_installment.installment_number}
+                              Installment #
+                              {paymentData.next_installment.installment_number}
                             </p>
                           </div>
                           <Button
@@ -469,7 +489,8 @@ const SipTracker = () => {
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {paymentData?.payments && paymentData.payments.length > 0 ? (
+                    {paymentData?.payments &&
+                    paymentData.payments.length > 0 ? (
                       paymentData.payments
                         .slice()
                         .reverse()
@@ -489,7 +510,9 @@ const SipTracker = () => {
                                 />
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-foreground text-sm">
-                                    {getTransactionTypeText(payment.transaction_type)}
+                                    {getTransactionTypeText(
+                                      payment.transaction_type
+                                    )}
                                     {payment.installment_number &&
                                       payment.installment_number > 0 &&
                                       ` #${payment.installment_number}`}
@@ -505,25 +528,27 @@ const SipTracker = () => {
                                 </p>
                               </div>
                             </div>
-                            
+
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
                               <div className="flex flex-wrap gap-1">
-                                {payment.rebate_amount && payment.rebate_amount > 0 && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-green-600 border-green-200 text-xs"
-                                  >
-                                    +{formatCurrency(payment.rebate_amount)}
-                                  </Badge>
-                                )}
-                                {payment.penalty_amount && payment.penalty_amount > 0 && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-red-600 border-red-200 text-xs"
-                                  >
-                                    -{formatCurrency(payment.penalty_amount)}
-                                  </Badge>
-                                )}
+                                {payment.rebate_amount &&
+                                  payment.rebate_amount > 0 && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-green-600 border-green-200 text-xs"
+                                    >
+                                      +{formatCurrency(payment.rebate_amount)}
+                                    </Badge>
+                                  )}
+                                {payment.penalty_amount &&
+                                  payment.penalty_amount > 0 && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-red-600 border-red-200 text-xs"
+                                    >
+                                      -{formatCurrency(payment.penalty_amount)}
+                                    </Badge>
+                                  )}
                               </div>
                               {payment.payment_status === "completed" && (
                                 <Button
@@ -666,7 +691,9 @@ const SipTracker = () => {
                             />
                             <div>
                               <p className="font-medium text-foreground">
-                                {getTransactionTypeText(payment.transaction_type)}
+                                {getTransactionTypeText(
+                                  payment.transaction_type
+                                )}
                                 {payment.installment_number &&
                                   payment.installment_number > 0 &&
                                   ` #${payment.installment_number}`}
@@ -677,25 +704,31 @@ const SipTracker = () => {
                               <p className="text-xs text-muted-foreground">
                                 Receipt: {payment.receipt_id}
                               </p>
-                              {(payment.rebate_amount && payment.rebate_amount > 0 ||
-                                payment.penalty_amount && payment.penalty_amount > 0) && (
+                              {((payment.rebate_amount &&
+                                payment.rebate_amount > 0) ||
+                                (payment.penalty_amount &&
+                                  payment.penalty_amount > 0)) && (
                                 <div className="flex gap-2 mt-1">
-                                  {payment.rebate_amount && payment.rebate_amount > 0 && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-green-600 border-green-200 text-xs"
-                                    >
-                                      Rebate: +{formatCurrency(payment.rebate_amount)}
-                                    </Badge>
-                                  )}
-                                  {payment.penalty_amount && payment.penalty_amount > 0 && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-red-600 border-red-200 text-xs"
-                                    >
-                                      Penalty: -{formatCurrency(payment.penalty_amount)}
-                                    </Badge>
-                                  )}
+                                  {payment.rebate_amount &&
+                                    payment.rebate_amount > 0 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-green-600 border-green-200 text-xs"
+                                      >
+                                        Rebate: +
+                                        {formatCurrency(payment.rebate_amount)}
+                                      </Badge>
+                                    )}
+                                  {payment.penalty_amount &&
+                                    payment.penalty_amount > 0 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-red-600 border-red-200 text-xs"
+                                      >
+                                        Penalty: -
+                                        {formatCurrency(payment.penalty_amount)}
+                                      </Badge>
+                                    )}
                                 </div>
                               )}
                             </div>
