@@ -116,7 +116,7 @@ const App = () => (
                 element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>}
               />
               <Route
-                path="/purchase/:id"
+                path="/purchase/:id/:step?"
                 element={<ProtectedRoute><AppLayout><PurchaseFlow /></AppLayout></ProtectedRoute>}
               />
               <Route
