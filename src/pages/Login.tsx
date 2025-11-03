@@ -91,12 +91,15 @@ const Login = () => {
         setOtp("");
         toast({ title: "Success", description: data.message || "OTP sent successfully" });
       } else {
-        setError(data.message || "Failed to send OTP");
-        toast({ title: "Error", description: data.message || "Failed to send OTP", variant: "destructive" });
+        const errorMsg = data.message || "Failed to send OTP";
+        setError(errorMsg);
+        toast({ title: "Error", description: errorMsg, variant: "destructive" });
       }
-    } catch (err) {
-      setError("Failed to send OTP. Please check your connection.");
-      toast({ title: "Error", description: "Failed to send OTP. Please check your connection.", variant: "destructive" });
+    } catch (err: any) {
+      // Properly extract error message from backend
+      const backendMessage = err.response?.data?.message || "Failed to send OTP. Please check your connection.";
+      setError(backendMessage);
+      toast({ title: "Error", description: backendMessage, variant: "destructive" });
     } finally {
       setOtpLoading(false);
     }
@@ -128,9 +131,29 @@ const Login = () => {
         setError(errMsg);
         toast({ title: "Error", description: errMsg, variant: "destructive" });
       }
-    } catch (err) {
-      setError("Login failed. Please check your connection.");
-      toast({ title: "Error", description: "Login failed. Please check your connection.", variant: "destructive" });
+    } catch (err: any) {
+      // Properly extract error message from backend
+      const backendMessage = err.response?.data?.message || "Login failed. Please check your connection.";
+      
+      // Handle specific backend error messages
+      if (backendMessage === "User not found. Please register") {
+        setError("User not found. Please register first.");
+        toast({ 
+          title: "User Not Found", 
+          description: "This phone number is not registered. Please create an account first.", 
+          variant: "destructive" 
+        });
+      } else if (backendMessage === "Invalid or expired OTP") {
+        setError("Invalid or expired OTP. Please request a new OTP.");
+        toast({ 
+          title: "Invalid OTP", 
+          description: "The OTP you entered is invalid or has expired. Please request a new one.", 
+          variant: "destructive" 
+        });
+      } else {
+        setError(backendMessage);
+        toast({ title: "Error", description: backendMessage, variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
@@ -150,8 +173,34 @@ const Login = () => {
   };
 
   const handleCountrySelect = (country: typeof COUNTRY_CODES[0]) => {
+    // If OTP field is showing and country changes, reset OTP state
+    if (showOtpField && country.code !== selectedCountry.code) {
+      setShowOtpField(false);
+      setOtp("");
+      setSuccess("");
+    }
     setSelectedCountry(country);
     setShowCountryDropdown(false);
+  };
+
+  // Reset OTP state when phone number changes during OTP phase
+  const handlePhoneNumberChangeWithReset = (value: string) => {
+    const formatted = formatPhoneNumber(value);
+    
+    // If OTP field is showing and phone number actually changes, reset OTP state
+    if (showOtpField && formatted !== phoneNumber) {
+      setShowOtpField(false);
+      setOtp("");
+      setSuccess("");
+    }
+    
+    setPhoneNumber(formatted);
+  };
+
+  const handleResetOtpProcess = () => {
+    setShowOtpField(false);
+    setOtp("");
+    setSuccess("");
   };
 
   return (
@@ -181,7 +230,19 @@ const Login = () => {
             <form onSubmit={handleLogin} className="space-y-4">
               {error && (
                 <Alert className="border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-700">{error}</AlertDescription>
+                  <AlertDescription className="text-red-700">
+                    {error}
+                    {error === "User not found. Please register first." && (
+                      <div className="mt-2">
+                        <Link
+                          to="/register"
+                          className="text-primary hover:underline font-medium"
+                        >
+                          Create an account here
+                        </Link>
+                      </div>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
               {success && (
@@ -232,10 +293,9 @@ const Login = () => {
                       id="phoneNumber"
                       type="tel"
                       value={phoneNumber}
-                      onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                      onChange={(e) => handlePhoneNumberChangeWithReset(e.target.value)}
                       placeholder="123 456 7890"
                       required
-                      disabled={showOtpField}
                       className="bg-background border-border focus:border-primary focus:ring-primary"
                     />
                   </div>
@@ -284,11 +344,7 @@ const Login = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowOtpField(false);
-                        setOtp("");
-                        setSuccess("");
-                      }}
+                      onClick={handleResetOtpProcess}
                       className="text-sm text-muted-foreground hover:text-foreground"
                     >
                       Change phone number

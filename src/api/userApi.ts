@@ -13,6 +13,9 @@ export const userApi = {
   sendOtp: (data: SendOtpRequest) =>
     mainAxiosClient.post<SendOtpResponse>(ENDPOINTS.USER.SEND_OTP, data),
 
+  sendOtpNew:(data: SendOtpRequest) =>
+    mainAxiosClient.post<SendOtpResponse>(ENDPOINTS.USER.SEND_OTP_NEW, data),
+
   register: (data: RegisterUserRequest) =>
     mainAxiosClient.post<RegisterUserResponse>(ENDPOINTS.USER.REGISTER, data),
 

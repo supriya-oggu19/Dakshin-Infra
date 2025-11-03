@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -59,6 +59,8 @@ const PurchaseFlow = () => {
   const [totalInvestment, setTotalInvestment] = useState<number>(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userProfileIds, setUserProfileIds] = useState<string[]>([]);
+  const location = useLocation();
+  const projectName = location.state?.projectName || "Project";
 
   // Update when accounts change
   useEffect(() => {
@@ -584,6 +586,7 @@ const PurchaseFlow = () => {
         return selectedPlan ? (
           <div className="space-y-6">
             <PurchaseUnitConfirmation
+              projectName={projectName}
               projectId={id!}
               schemeId={selectedPlan.planId}
               totalInvestmentOfProject={totalInvestment}

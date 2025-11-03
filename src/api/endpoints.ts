@@ -9,6 +9,7 @@ export const ENDPOINTS = {
 
   USER: {
     SEND_OTP: "/user/send_otp",
+    SEND_OTP_NEW:"user/send_otp_new",
     REGISTER: "/user/register",
     LOGIN: "/user/login",
     UPDATE: "/user/update",
