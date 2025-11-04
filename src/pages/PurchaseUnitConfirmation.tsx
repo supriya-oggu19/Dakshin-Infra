@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building, FileText, Users, IndianRupee, CheckCircle, AlertCircle, Shield } from "lucide-react";
+import { Building, FileText, Users, IndianRupee, CheckCircle,ClipboardClock, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { paymentApi } from "@/api/paymentApi"; // Adjust path as needed based on your project structure
@@ -44,7 +44,7 @@ const PurchaseUnitConfirmation = ({
   userProfileIds,
   schemeData,
   paymentAmount,
-  projectName = projectId
+  projectName
 }: PurchaseUnitConfirmationProps) => {
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: '',
@@ -287,10 +287,10 @@ const PurchaseUnitConfirmation = ({
   const isInstallment = schemeData?.scheme_type === 'installment';
 
   return (
-    <Card className="border-2 border-green-200 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-green-200">
-        <CardTitle className="flex items-center gap-2 text-green-800">
-          <CheckCircle className="w-6 h-6" />
+    <Card className="border-2 border-amber-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-50 border-b-2 border-amber-200">
+        <CardTitle className="flex items-center gap-2 text-amber-500">
+          <ClipboardClock className="w-6 h-6" />
           Purchase Confirmation
         </CardTitle>
       </CardHeader>

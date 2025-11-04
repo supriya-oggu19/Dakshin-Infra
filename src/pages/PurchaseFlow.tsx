@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -32,13 +32,48 @@ import {
 import { validatePhone } from "@/utils/validation"; // Assuming this exists
 
 const PurchaseFlow = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, step: urlStep } = useParams<{ id: string; step?: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+
+  // Step mapping between URL and internal state
+  const stepMapping = {
+    'plan': 'plan-selection',
+    'user-info': 'user-info',
+    'kyc': 'kyc', 
+    'payment': 'payment',
+    'confirmation': 'confirmation'
+  } as const;
+
+  const reverseStepMapping = {
+    'plan-selection': 'plan',
+    'user-info': 'user-info',
+    'kyc': 'kyc',
+    'payment': 'payment', 
+    'confirmation': 'confirmation'
+  } as const;
+
+  // Initialize currentStep from URL parameter
+  const [currentStep, setCurrentStep] = useState<PurchaseStep>(() => {
+    const mappedStep = urlStep ? stepMapping[urlStep as keyof typeof stepMapping] : null;
+    return mappedStep || 'plan-selection';
+  });
+  
+  // Sync URL when step changes
+  useEffect(() => {
+    const stepParam = reverseStepMapping[currentStep as keyof typeof reverseStepMapping];
+    
+    if (stepParam && stepParam !== urlStep) {
+      navigate(`/purchase/${id}/${stepParam}`, { 
+        replace: true,
+        state: location.state // Preserve existing state
+      });
+    }
+  }, [currentStep, id, navigate, urlStep, location.state]);
 
   // State declarations
-  const [currentStep, setCurrentStep] = useState<PurchaseStep>("plan-selection");
   const [selectedPlan, setSelectedPlan] = useState<PlanSelection | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<number>(1);
   const [customPayment, setCustomPayment] = useState<number>(0);
@@ -59,6 +94,38 @@ const PurchaseFlow = () => {
   const [totalInvestment, setTotalInvestment] = useState<number>(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userProfileIds, setUserProfileIds] = useState<string[]>([]);
+  const projectName = location.state?.projectName || "Project";
+  const [restoringState, setRestoringState] = useState(true);
+
+  useEffect(() => {
+    const savedState = sessionStorage.getItem(`purchaseState_${id}`);
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      setSelectedPlan(parsedState.selectedPlan);
+      setSelectedUnits(parsedState.selectedUnits || 1);
+      setAccounts(parsedState.accounts || []);
+      setUserProfileIds(parsedState.userProfileIds || []);
+      setKycAccepted(parsedState.kycAccepted || false);
+      setJointKycAccepted(parsedState.jointKycAccepted || []);
+      setCustomPayment(parsedState.customPayment || 0);
+    }
+    setRestoringState(false);
+  }, [id]);
+
+  // Save state when it changes
+  useEffect(() => {
+    const stateToSave = {
+      selectedPlan,
+      selectedUnits,
+      accounts,
+      currentStep,
+      userProfileIds, // Add this
+      kycAccepted,    // Add this
+      jointKycAccepted, // Add this
+      customPayment   // Add this
+    };
+    sessionStorage.setItem(`purchaseState_${id}`, JSON.stringify(stateToSave));
+  }, [selectedPlan, selectedUnits, accounts, currentStep, userProfileIds, kycAccepted, jointKycAccepted, customPayment, id]);
 
   // Update when accounts change
   useEffect(() => {
@@ -584,6 +651,7 @@ const PurchaseFlow = () => {
         return selectedPlan ? (
           <div className="space-y-6">
             <PurchaseUnitConfirmation
+              projectName={projectName}
               projectId={id!}
               schemeId={selectedPlan.planId}
               totalInvestmentOfProject={totalInvestment}
@@ -612,6 +680,13 @@ const PurchaseFlow = () => {
   };
 
   if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  if (restoringState) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

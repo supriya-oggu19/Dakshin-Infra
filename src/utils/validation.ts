@@ -14,9 +14,10 @@ export const validateGSTIN = (gstin: string): boolean => {
   return gstinRegex.test(gstin);
 };
 
-export const validatePassport = (passport: string): boolean => {
-  const passportRegex = /^[A-PR-WY][1-9]\d\s?\d{4}[1-9]$/;
-  return passportRegex.test(passport);
+export const validatePassport = (fileNumber: string): boolean => {
+  const normalized = fileNumber.trim().toUpperCase();
+  const universalRegex = /^[A-Z]{1,4}\d{6,14}$/;
+  return universalRegex.test(normalized);
 };
 
 export const validatePhone = (phone: string): boolean => {

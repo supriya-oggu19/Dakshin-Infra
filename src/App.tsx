@@ -195,6 +195,14 @@ const App = () => (
                     </AppLayout>
                   </ProtectedRoute>
                 }
+                path="/purchase/:id/:step?"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <PurchaseFlow />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/my-units"

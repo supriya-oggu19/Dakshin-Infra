@@ -72,6 +72,16 @@ const ProjectDetail = () => {
   useEffect(() => {
     if (id) fetchProject(id);
   }, [id]);
+  
+  useEffect(() => {
+    if (!project?.gallery?.length) return;
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex((i) => (i + 1) % project.gallery.length);
+    }, 4000); // every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [project]);
 
   const fetchProject = async (projectId: string) => {
     try {
@@ -167,7 +177,10 @@ const ProjectDetail = () => {
   };
 
   const handleBuyNow = () => {
-    if (isAuthenticated) navigate(`/purchase/${id}`);
+    // Clear any existing purchase state for this project
+    sessionStorage.removeItem(`purchaseState_${id}`);
+    sessionStorage.setItem('currentProjectId', id);
+    if (isAuthenticated) navigate(`/purchase/${id}`, { state: { projectName: project.title } });
     else navigate("/login", { state: { from: `/purchase/${id}` } });
   };
 
@@ -223,22 +236,22 @@ const ProjectDetail = () => {
         {/* Gallery Nav (hidden on xs) */}
         {project.gallery.length > 1 && (
           <>
-            <div className="absolute inset-y-0 left-2 sm:left-4 flex items-center">
+            <div className="absolute inset-y-0 left-2 sm:left-4 flex items-center z-20">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={prevImage}
-                className="bg-black/30 border-white/30 text-white hover:bg-black/50"
+                className="z-20 bg-black/30 border-white/30 text-white hover:bg-black/50"
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
             </div>
-            <div className="absolute inset-y-0 right-2 sm:right-4 flex items-center">
+            <div className="absolute inset-y-0 right-2 sm:right-4 flex items-center z-20">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={nextImage}
-                className="bg-black/30 border-white/30 text-white hover:bg-black/50"
+                className="z-20 bg-black/30 border-white/30 text-white hover:bg-black/50"
               >
                 <ChevronRight className="w-5 h-5" />
               </Button>
