@@ -194,7 +194,7 @@ const Register = () => {
       const data = response.data;
 
       if (data.token) {
-        login(data.token);
+        login(data.token, { username: name });
         setSuccess(data.message || "Registration successful");
         toast({ title: "Success", description: data.message });
         setTimeout(() => navigate("/projects"), 500);

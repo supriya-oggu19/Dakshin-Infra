@@ -372,22 +372,23 @@ const PurchaseFlow = () => {
     if (!kycAccepted) return false;
     const primary = accounts[0]?.data as UserInfo;
     if (!primary) return false;
-    if (primary.user_type === 'individual' && (!kycDocuments.pan || !kycDocuments.aadhar)) return false;
-    if (primary.user_type === 'business' && !kycDocuments.gst) return false;
-    if (primary.user_type === 'NRI' && !kycDocuments.passport) return false;
+    if (primary.user_type === 'individual' && (!kycDocuments.pan || !kycDocuments.aadhar || !kycDocuments.photo)) return false;
+    if (primary.user_type === 'business' && (!kycDocuments.gst || !kycDocuments.photo)) return false;
+    if (primary.user_type === 'NRI' && (!kycDocuments.passport || !kycDocuments.photo)) return false;
 
     if (accounts.length > 1 && !jointKycAccepted.every(Boolean)) return false;
 
     const jointAccounts = accounts
       .filter(account => account.type === 'joint')
       .map(account => account.data as JointAccountInfo);
-    jointAccounts.forEach((joint, i) => {
+    for (let i = 0; i < jointAccounts.length; i++) {
+      const joint = jointAccounts[i];
       const idx = i + 1;
       const base = `joint${idx}`;
-      if (joint.user_type === 'individual' && (!kycDocuments[`${base}Pan`] || !kycDocuments[`${base}Aadhar`])) return false;
-      if (joint.user_type === 'business' && !kycDocuments[`${base}Gst`]) return false;
-      if (joint.user_type === 'NRI' && !kycDocuments[`${base}Passport`]) return false;
-    });
+      if (joint.user_type === 'individual' && (!kycDocuments[`${base}Pan`] || !kycDocuments[`${base}Aadhar`] || !kycDocuments[`${base}Photo`])) return false;
+      if (joint.user_type === 'business' && (!kycDocuments[`${base}Gst`] || !kycDocuments[`${base}Photo`])) return false;
+      if (joint.user_type === 'NRI' && (!kycDocuments[`${base}Passport`] || !kycDocuments[`${base}Photo`])) return false;
+    }
 
     return true;
   };

@@ -1,4 +1,3 @@
-// AuthContext.tsx - Token-based Authentication Context
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface AuthContextType {
@@ -9,6 +8,7 @@ interface AuthContextType {
   logout: () => void;
   getToken: () => string | null;
   setUser: (user: any) => void;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,24 +17,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUserState] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   // Initialize auth state from sessionStorage on mount
   useEffect(() => {
-    const storedToken = sessionStorage.getItem("auth_token");
-    const storedUser = sessionStorage.getItem("auth_user");
-    
-    if (storedToken) {
-      setToken(storedToken);
-      setIsAuthenticated(true);
-    }
-    
-    if (storedUser) {
+    const initializeAuth = () => {
       try {
-        setUserState(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse stored user:", e);
+        const storedToken = sessionStorage.getItem("auth_token");
+        const storedUser = sessionStorage.getItem("auth_user");
+        
+        if (storedToken) {
+          setToken(storedToken);
+          setIsAuthenticated(true);
+        }
+        
+        if (storedUser) {
+          setUserState(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        // Clear corrupted storage
+        sessionStorage.removeItem("auth_token");
+        sessionStorage.removeItem("auth_user");
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    initializeAuth();
   }, []);
 
   const login = (newToken: string, userData?: any) => {
@@ -77,7 +87,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login, 
         logout, 
         getToken,
-        setUser
+        setUser,
+        isLoading
       }}
     >
       {children}

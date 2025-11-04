@@ -18,10 +18,11 @@ import Agreements from "./pages/Agreements";
 import PurchaseFlow from "./pages/PurchaseFlow";
 import NotFound from "./pages/NotFound";
 import InvestmentSchemes from "./pages/InvestmentSchemes";
-import React from "react";
+import React, { useEffect } from "react";
 import FAQ from "./components/FAQ";
 import Footer from "./components/Footer";
 import PaymentResult from "./pages/PaymentResult";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -66,17 +67,53 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <span className="text-muted-foreground">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
 };
 
-// ✅ AppLayout: Show footer only on home page
+const HomeRouteHandler = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname === "/") {
+      // Replace the current entry so user can’t go back to previous route
+      window.history.pushState(null, "", window.location.href);
+      window.onpopstate = () => {
+        // Prevent navigating back past home
+        window.history.go(1);
+      };
+    } else {
+      // Clean up if user navigates away
+      window.onpopstate = null;
+    }
+
+    return () => {
+      window.onpopstate = null;
+    };
+  }, [location.pathname]);
+
+  return <>{children}</>;
+};
+
+// AppLayout: Show footer only on home page
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isHome = location.pathname === "/";
@@ -98,7 +135,16 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+              <Route 
+                path="/" 
+                element={
+                  <HomeRouteHandler>
+                    <AppLayout>
+                      <Index />
+                    </AppLayout>
+                  </HomeRouteHandler>
+                } 
+              />
               <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
               <Route path="/projects/:id" element={<AppLayout><ProjectDetail /></AppLayout>} />
               <Route path="/about" element={<AppLayout><About /></AppLayout>} />
@@ -113,23 +159,53 @@ const App = () => (
               {/* Protected Routes */}
               <Route
                 path="/profile"
-                element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Profile />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/purchase/:id/:step?"
-                element={<ProtectedRoute><AppLayout><PurchaseFlow /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <PurchaseFlow />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/my-units"
-                element={<ProtectedRoute><AppLayout><MyUnits /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <MyUnits />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/sip"
-                element={<ProtectedRoute><AppLayout><SipTracker /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <SipTracker />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/agreements"
-                element={<ProtectedRoute><AppLayout><Agreements /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Agreements />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
 
               {/* 404 */}
