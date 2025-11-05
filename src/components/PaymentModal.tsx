@@ -49,26 +49,32 @@ const PaymentModal = ({
     null
   );
 
+  // Check if it's an installment scheme
+  const isInstallmentScheme = unit.scheme.scheme_type === "installment";
+
   // Calculate suggested amounts
-  const installmentAmount = unit.scheme.monthly_installment_amount;
-  const balanceAmount = unit.balance_amount;
-  const advanceAmount = unit.scheme.booking_advance;
+  const installmentAmount = unit.scheme.monthly_installment_amount || 0;
+  const balanceAmount = unit.balance_amount || 0;
+  const advanceAmount = unit.scheme.booking_advance || 0;
 
   // Since you're using sandbox, set mode to "sandbox"
   const CASHFREE_MODE = "sandbox"; // Change to 'production' for live
 
   useEffect(() => {
-    // Set default amount based on selected option
-    if (selectedOption === "installment") {
-      setPaymentAmount(installmentAmount.toString());
-      setCustomAmountError(null);
-    } else if (selectedOption === "advance") {
-      setPaymentAmount(advanceAmount.toString());
-      setCustomAmountError(null);
+    // Set default amount based on selected option and scheme type
+    if (isInstallmentScheme) {
+      if (selectedOption === "installment") {
+        setPaymentAmount(installmentAmount.toString());
+        setCustomAmountError(null);
+      } else if (selectedOption === "custom") {
+        setPaymentAmount("");
+      }
     } else {
-      setPaymentAmount("");
+      // For single payment scheme, default to custom amount
+      setSelectedOption("custom");
+      setPaymentAmount(balanceAmount > 0 ? balanceAmount.toString() : "");
     }
-  }, [selectedOption, installmentAmount, advanceAmount]);
+  }, [selectedOption, installmentAmount, isInstallmentScheme, balanceAmount]);
 
   // Validate custom amount when it changes
   useEffect(() => {
@@ -87,7 +93,12 @@ const PaymentModal = ({
       return false;
     }
 
-    if (amountNum < installmentAmount) {
+    if (amountNum <= 0) {
+      setCustomAmountError("Amount must be greater than 0");
+      return false;
+    }
+
+    if (isInstallmentScheme && amountNum < installmentAmount) {
       setCustomAmountError(
         `Amount must be at least ${formatCurrency(
           installmentAmount
@@ -256,7 +267,7 @@ const PaymentModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Make Payment
+            {isInstallmentScheme ? "Make Payment" : "Complete Payment"}
           </DialogTitle>
         </DialogHeader>
 
@@ -289,14 +300,16 @@ const PaymentModal = ({
                   {formatCurrency(unit.balance_amount)}
                 </p>
               </div>
-              <div className="col-span-2">
-                <span className="text-muted-foreground">
-                  Monthly Installment:
-                </span>
-                <p className="font-medium text-green-600">
-                  {formatCurrency(installmentAmount)}
-                </p>
-              </div>
+              {isInstallmentScheme && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">
+                    Monthly Installment:
+                  </span>
+                  <p className="font-medium text-green-600">
+                    {formatCurrency(installmentAmount)}
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -327,66 +340,134 @@ const PaymentModal = ({
           </Card>
         )}
 
-        {/* Payment Options */}
-        <div className="space-y-4">
-          <Label className="text-base font-medium">Select Payment Type</Label>
+        {/* Payment Options - Only show for installment schemes */}
+        {isInstallmentScheme ? (
+          <div className="space-y-4">
+            <Label className="text-base font-medium">Select Payment Type</Label>
 
-          <RadioGroup
-            value={selectedOption}
-            onValueChange={setSelectedOption}
-            className="space-y-3"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="installment" id="installment" />
-              <Label htmlFor="installment" className="flex-1 cursor-pointer">
-                <div className="flex justify-between items-center">
-                  <span>Monthly Installment</span>
-                  <span className="font-semibold text-amber-600">
-                    {formatCurrency(installmentAmount)}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Pay your regular monthly installment
-                </p>
-              </Label>
-            </div>
+            <RadioGroup
+              value={selectedOption}
+              onValueChange={setSelectedOption}
+              className="space-y-3"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="installment" id="installment" />
+                <Label htmlFor="installment" className="flex-1 cursor-pointer">
+                  <div className="flex justify-between items-center">
+                    <span>Monthly Installment</span>
+                    <span className="font-semibold text-amber-600">
+                      {formatCurrency(installmentAmount)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pay your regular monthly installment
+                  </p>
+                </Label>
+              </div>
+            </RadioGroup>
 
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="custom" id="custom" />
-              <Label htmlFor="custom" className="flex-1 cursor-pointer">
-                <div className="flex justify-between items-center">
-                  <span>Custom Amount</span>
-                  <span className="text-xs font-medium text-amber-600">
-                    Min: {formatCurrency(installmentAmount)}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter amount more than monthly installment
+            {/* Amount Input for Custom Option */}
+            {selectedOption === "custom" && (
+              <div className="space-y-3">
+                <Label htmlFor="amount" className="text-sm font-semibold">
+                  Enter Amount (Minimum: {formatCurrency(installmentAmount)})
+                </Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder={`Enter amount from ${formatCurrency(
+                    installmentAmount
+                  )} to ${formatCurrency(balanceAmount)}`}
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  min={installmentAmount}
+                  max={balanceAmount}
+                  className={`
+                    border-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 
+                    ${
+                      customAmountError
+                        ? "border-red-500 border-2"
+                        : "border-gray-300"
+                    }
+                    py-2 px-3 text-base
+                  `}
+                />
+
+                {/* Custom Amount Error */}
+                {customAmountError && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-2 rounded-md border border-red-200">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-medium">{customAmountError}</span>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground font-medium">
+                  Valid range: {formatCurrency(installmentAmount)} to{" "}
+                  {formatCurrency(balanceAmount)}
                 </p>
-              </Label>
-            </div>
-          </RadioGroup>
-          {/* Amount Input */}
-          {selectedOption === "custom" && (
+              </div>
+            )}
+
+            {/* Quick Amount Buttons for Custom Option */}
+            {selectedOption === "custom" && (
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Quick Amounts:</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    installmentAmount,
+                    installmentAmount * 2,
+                    installmentAmount * 3,
+                    balanceAmount,
+                  ].map((amount, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentAmount(amount.toString())}
+                      className={`
+                        text-xs font-medium border-2 
+                        ${
+                          paymentAmount === amount.toString()
+                            ? "border-amber-500 bg-amber-50 text-amber-700"
+                            : "border-gray-300 hover:border-amber-400"
+                        }
+                        transition-all duration-200
+                      `}
+                      disabled={amount > balanceAmount}
+                    >
+                      {formatCurrency(amount)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Single Payment Scheme - Direct custom amount input
+          <div className="space-y-4">
+            <Label className="text-base font-medium">
+              Enter Payment Amount
+            </Label>
             <div className="space-y-3">
-              <Label htmlFor="amount" className="text-sm font-semibold">
-                Enter Amount (Minimum: {formatCurrency(installmentAmount)})
-              </Label>
               <Input
                 id="amount"
                 type="number"
-                placeholder={`Enter amount from ${formatCurrency(
-                  installmentAmount
-                )} to ${formatCurrency(balanceAmount)}`}
+                placeholder={`Enter amount up to ${formatCurrency(
+                  balanceAmount
+                )}`}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
-                min={installmentAmount}
+                min={1}
                 max={balanceAmount}
                 className={`
-        border-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 
-        ${customAmountError ? "border-red-500 border-2" : "border-gray-300"}
-        py-2 px-3 text-base
-      `}
+                  border-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 
+                  ${
+                    customAmountError
+                      ? "border-red-500 border-2"
+                      : "border-gray-300"
+                  }
+                  py-2 px-3 text-base
+                `}
               />
 
               {/* Custom Amount Error */}
@@ -398,46 +479,44 @@ const PaymentModal = ({
               )}
 
               <p className="text-xs text-muted-foreground font-medium">
-                Valid range: {formatCurrency(installmentAmount)} to{" "}
-                {formatCurrency(balanceAmount)}
+                Maximum amount: {formatCurrency(balanceAmount)}
               </p>
             </div>
-          )}
 
-          {/* Quick Amount Buttons for Custom Option */}
-          {selectedOption === "custom" && (
+            {/* Quick Amount Buttons for Single Payment */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold">Quick Amounts:</Label>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  installmentAmount,
-                  installmentAmount * 2,
-                  installmentAmount * 3,
+                  balanceAmount * 0.25,
+                  balanceAmount * 0.5,
+                  balanceAmount * 0.75,
                   balanceAmount,
                 ].map((amount, index) => (
                   <Button
                     key={index}
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaymentAmount(amount.toString())}
+                    onClick={() =>
+                      setPaymentAmount(Math.floor(amount).toString())
+                    }
                     className={`
-            text-xs font-medium border-2 
-            ${
-              paymentAmount === amount.toString()
-                ? "border-amber-500 bg-amber-50 text-amber-700"
-                : "border-gray-300 hover:border-amber-400"
-            }
-            transition-all duration-200
-          `}
-                    disabled={amount > balanceAmount}
+                      text-xs font-medium border-2 
+                      ${
+                        paymentAmount === Math.floor(amount).toString()
+                          ? "border-amber-500 bg-amber-50 text-amber-700"
+                          : "border-gray-300 hover:border-amber-400"
+                      }
+                      transition-all duration-200
+                    `}
                   >
-                    {formatCurrency(amount)}
+                    {formatCurrency(Math.floor(amount))}
                   </Button>
                 ))}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Payment Summary */}
         {paymentAmount && !customAmountError && (
@@ -453,7 +532,8 @@ const PaymentModal = ({
                   {formatCurrency(parseFloat(paymentAmount))}
                 </span>
               </div>
-              {selectedOption === "custom" &&
+              {isInstallmentScheme &&
+                selectedOption === "custom" &&
                 parseFloat(paymentAmount) > installmentAmount && (
                   <div className="mt-2 text-xs text-green-600">
                     ✓ This includes your monthly installment plus additional
@@ -494,7 +574,7 @@ const PaymentModal = ({
             ) : (
               <>
                 <CreditCard className="w-4 h-4 mr-2" />
-                Pay Now
+                {isInstallmentScheme ? "Pay Now" : "Make Payment"}
               </>
             )}
           </Button>
