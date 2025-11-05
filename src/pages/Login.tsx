@@ -123,7 +123,7 @@ const Login = () => {
       const data = response.data;
 
       if (data.token) {
-        login(data.token);
+        login(data.token, { username: data.name });
         toast({ title: "Success", description: data.message || "Login successful" });
         setTimeout(() => navigate("/projects"), 500);
       } else {

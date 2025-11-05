@@ -1,3 +1,4 @@
+// src/api/endpoints.ts
 export const ENDPOINTS = {
   ADMIN: {
     LOGIN: "/admins/login",
@@ -9,7 +10,7 @@ export const ENDPOINTS = {
 
   USER: {
     SEND_OTP: "/user/send_otp",
-    SEND_OTP_NEW:"user/send_otp_new",
+    SEND_OTP_NEW: "user/send_otp_new",
     REGISTER: "/user/register",
     LOGIN: "/user/login",
     UPDATE: "/user/update",
@@ -45,7 +46,10 @@ export const ENDPOINTS = {
 
   PAYMENTS: {
     CREATE_ORDER: "/payments/create-order-with-unit",
+    MAKE_PAYMENT: "/payments/make-payment",
+    CUSTOMER_INFO: "/payments/customer-info",
     LIST: "/payments/list",
+    VERIFY_ORDER: (orderId: string) => `/payments/verify-order/${orderId}`,
   },
 
   USER_PROFILE: {
@@ -85,6 +89,6 @@ export const ENDPOINTS = {
   },
 
   INVESTMENT: {
-    PORTFOLIO: "/users/portfolio", // ✅ fixed: removed /api
+    PORTFOLIO: "/users/portfolio",
   },
 };

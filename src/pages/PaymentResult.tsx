@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate  } from "react-router-dom";
 import { CheckCircle, XCircle, Clock, Download, Copy, Home, Receipt, Building, AlertCircle } from "lucide-react";
+import { paymentApi } from "@/api/paymentApi";
 
 interface PaymentDetails {
   order_info?: {
@@ -46,17 +47,15 @@ export default function PaymentResult(): JSX.Element {
       sessionStorage.removeItem(`purchaseState_${projectId}`);
       sessionStorage.removeItem('currentProjectId');
     }
-    navigate("/my-units", { replace: true });
+    navigate("/my-units");
     } else {
       // Extract project ID from order data or use a different method
       const projectId = sessionStorage.getItem('currentProjectId') ||
         new URLSearchParams(window.location.search).get('project_id');
       
       if (projectId) {
-        // Navigate directly to the payment step
         navigate(`/purchase/${projectId}/payment`);
       } else {
-        // Fallback: go back to projects
         navigate("/projects");
       }
     }
@@ -66,24 +65,16 @@ export default function PaymentResult(): JSX.Element {
     async function verifyPayment() {
       if (!orderId) return;
       try {
-        const response = await fetch(
-          `http://localhost:8000/api/payments/verify-order/${orderId}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to verify payment");
-        }
-
-        const data: PaymentDetails = await response.json();
-        setResult(data);
+        const response = await paymentApi.verifyOrder(orderId);
+        setResult(response.data);
       } catch (error) {
         console.error("Payment verification failed:", error);
-        setResult({ 
+        setResult({
           order_info: {
             unit_number: orderId,
             order_status: "FAILED",
             order_amount: 0,
-            cf_order_id: ""
+            cf_order_id: "",
           },
           transaction_info: {
             payment_status: "FAILED",
@@ -92,8 +83,8 @@ export default function PaymentResult(): JSX.Element {
             payment_amount: 0,
             bank_reference: "",
             payment_time: "",
-            cf_payment_id: ""
-          }
+            cf_payment_id: "",
+          },
         });
       } finally {
         setLoading(false);
@@ -477,7 +468,7 @@ export default function PaymentResult(): JSX.Element {
               }`}
             >
               <Home className="w-5 h-5" />
-              {isSuccess ? "Go to Dashboard" : "Back to Projects"}
+              {isSuccess ? "Go to Dashboard" : "Back to Payment"}
             </a>
           </div>
 
