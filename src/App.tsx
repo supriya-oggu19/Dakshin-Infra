@@ -124,7 +124,7 @@ const App = () => (
                 }
               />
               <Route
-                path="/projects/: id"
+                path="/projects/:id"
                 element={
                   <AppLayout>
                     <ProjectDetail />
@@ -187,14 +187,6 @@ const App = () => (
                 }
               />
               <Route
-                path="/purchase/:id"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <PurchaseFlow />
-                    </AppLayout>
-                  </ProtectedRoute>
-                }
                 path="/purchase/:id/:step?"
                 element={
                   <ProtectedRoute>

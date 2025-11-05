@@ -479,98 +479,6 @@ const SipTracker = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Payment History - Mobile Optimized */}
-              <Card className="border-0 shadow-md card-luxury lg:hidden">
-                <CardHeader className="border-b bg-card p-4">
-                  <CardTitle className="text-lg text-foreground">
-                    Payment History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {paymentData?.payments &&
-                    paymentData.payments.length > 0 ? (
-                      paymentData.payments
-                        .slice()
-                        .reverse()
-                        .map((payment, index) => (
-                          <div
-                            key={index}
-                            className="p-3 bg-card/50 rounded-lg border border-border"
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex items-start gap-2 flex-1">
-                                <div
-                                  className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                                    payment.payment_status === "completed"
-                                      ? "bg-green-500"
-                                      : "bg-muted"
-                                  }`}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-foreground text-sm">
-                                    {getTransactionTypeText(
-                                      payment.transaction_type
-                                    )}
-                                    {payment.installment_number &&
-                                      payment.installment_number > 0 &&
-                                      ` #${payment.installment_number}`}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatDate(payment.payment_date)}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-semibold text-foreground text-sm">
-                                  {formatCurrency(payment.amount)}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                              <div className="flex flex-wrap gap-1">
-                                {payment.rebate_amount &&
-                                  payment.rebate_amount > 0 && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-green-600 border-green-200 text-xs"
-                                    >
-                                      +{formatCurrency(payment.rebate_amount)}
-                                    </Badge>
-                                  )}
-                                {payment.penalty_amount &&
-                                  payment.penalty_amount > 0 && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-red-600 border-red-200 text-xs"
-                                    >
-                                      -{formatCurrency(payment.penalty_amount)}
-                                    </Badge>
-                                  )}
-                              </div>
-                              {payment.payment_status === "completed" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDownloadReceipt(payment)}
-                                  className="text-xs h-7"
-                                >
-                                  <Download className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
-                        No payment history available
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Sidebar Info */}
@@ -610,7 +518,7 @@ const SipTracker = () => {
               </Card>
 
               <Card className="border-0 shadow-md card-luxury">
-                <CardHeader className="border-b bg-card p-4 sm:p-6">
+                {/* <CardHeader className="border-b bg-card p-4 sm:p-6">
                   <CardTitle className="text-base sm:text-lg text-foreground">
                     Quick Stats
                   </CardTitle>
@@ -657,105 +565,129 @@ const SipTracker = () => {
                       </span>
                     </div>
                   </div>
-                </CardContent>
+                </CardContent> */}
               </Card>
             </div>
           </div>
 
-          {/* Payment History - Desktop */}
-          <div className="mt-8 hidden lg:block">
+          {/* Payment History - Single Responsive Component */}
+          <div className="mt-6 sm:mt-8">
             <Card className="border-0 shadow-md card-luxury">
-              <CardHeader className="border-b bg-card">
-                <CardTitle className="text-xl text-foreground">
+              <CardHeader className="border-b bg-card p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl text-foreground">
                   Payment History
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+              <CardContent className="p-0">
+                <div className="max-h-96 overflow-y-auto">
                   {paymentData?.payments && paymentData.payments.length > 0 ? (
-                    paymentData.payments
-                      .slice()
-                      .reverse()
-                      .map((payment, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-4">
+                    <div className="divide-y divide-border">
+                      {paymentData.payments
+                        .slice()
+                        .reverse()
+                        .map((payment, index, array) => {
+                          const isLatestPayment = index === 0;
+                          const maxInstallment = Math.max(
+                            ...array.map((p) => p.installment_number || 0)
+                          );
+                          const isLastInstallment =
+                            payment.installment_number === maxInstallment &&
+                            maxInstallment > 0;
+
+                          return (
                             <div
-                              className={`w-3 h-3 rounded-full ${
-                                payment.payment_status === "completed"
-                                  ? "bg-green-500"
-                                  : "bg-muted"
-                              }`}
-                            />
-                            <div>
-                              <p className="font-medium text-foreground">
-                                {getTransactionTypeText(
-                                  payment.transaction_type
-                                )}
-                                {payment.installment_number &&
-                                  payment.installment_number > 0 &&
-                                  ` #${payment.installment_number}`}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatDate(payment.payment_date)}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Receipt: {payment.receipt_id}
-                              </p>
-                              {((payment.rebate_amount &&
-                                payment.rebate_amount > 0) ||
-                                (payment.penalty_amount &&
-                                  payment.penalty_amount > 0)) && (
-                                <div className="flex gap-2 mt-1">
-                                  {payment.rebate_amount &&
-                                    payment.rebate_amount > 0 && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-green-600 border-green-200 text-xs"
-                                      >
-                                        Rebate: +
-                                        {formatCurrency(payment.rebate_amount)}
-                                      </Badge>
-                                    )}
-                                  {payment.penalty_amount &&
-                                    payment.penalty_amount > 0 && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-red-600 border-red-200 text-xs"
-                                      >
-                                        Penalty: -
-                                        {formatCurrency(payment.penalty_amount)}
-                                      </Badge>
-                                    )}
+                              key={payment.payment_id || index}
+                              className={`
+                      p-4 transition-all
+                      ${
+                        isLatestPayment
+                          ? "bg-blue-50 border-l-4 border-l-blue-500"
+                          : isLastInstallment
+                          ? "bg-green-50 border-l-4 border-l-green-500"
+                          : "bg-card/50"
+                      }
+                    `}
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                {/* Left Section */}
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div
+                                    className={`
+                          w-2 h-2 rounded-full mt-2 flex-shrink-0
+                          ${
+                            payment.payment_status === "completed"
+                              ? "bg-green-500"
+                              : "bg-muted"
+                          }
+                        `}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                      <p className="font-medium text-foreground text-sm sm:text-base">
+                                        {getTransactionTypeText(
+                                          payment.transaction_type
+                                        )}
+                                        {payment.installment_number &&
+                                          payment.installment_number > 0 && (
+                                            <span className="text-blue-600">
+                                              {" "}
+                                              #{payment.installment_number}
+                                            </span>
+                                          )}
+                                      </p>
+                                      {isLatestPayment && (
+                                        <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                                          Latest
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-2">
+                                      {formatDate(payment.payment_date)} •
+                                      Receipt: {payment.receipt_id}
+                                    </p>
+                                  </div>
                                 </div>
-                              )}
+
+                                {/* Right Section */}
+                                <div className="flex items-center justify-between sm:justify-end gap-3">
+                                  <div className="text-right">
+                                    <p
+                                      className={`
+                            font-semibold text-sm sm:text-base
+                            ${
+                              isLatestPayment
+                                ? "text-blue-600"
+                                : "text-foreground"
+                            }
+                          `}
+                                    >
+                                      {formatCurrency(payment.amount)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground capitalize">
+                                      {payment.payment_method}
+                                    </p>
+                                  </div>
+                                  {payment.payment_status === "completed" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleDownloadReceipt(payment)
+                                      }
+                                      className="flex-shrink-0"
+                                    >
+                                      <Download className="w-3 h-3 sm:mr-1" />
+                                      <span className="hidden sm:inline">
+                                        Receipt
+                                      </span>
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="font-medium text-foreground">
-                                {formatCurrency(payment.amount)}
-                              </p>
-                              <p className="text-xs text-muted-foreground capitalize">
-                                {payment.payment_method}
-                              </p>
-                            </div>
-                            {payment.payment_status === "completed" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDownloadReceipt(payment)}
-                                className="text-xs"
-                              >
-                                <Download className="w-3 h-3 mr-1" />
-                                Receipt
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))
+                          );
+                        })}
+                    </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       No payment history available
