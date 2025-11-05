@@ -22,8 +22,7 @@ export const paymentApi = {
     mainAxiosClient.get(`${ENDPOINTS.PAYMENTS.CUSTOMER_INFO}/${unitNumber}`),
   
   // Verify order status
-  verifyOrder: (orderId: string) => 
-    mainAxiosClient.get(`${ENDPOINTS.PAYMENTS.VERIFY_ORDER}/${orderId}`),
+  verifyOrder: (orderId: string) =>mainAxiosClient.get(ENDPOINTS.PAYMENTS.VERIFY_ORDER(orderId)),
   
   // Get payment list for a unit
   getPaymentList: (unitNumber: string) => 

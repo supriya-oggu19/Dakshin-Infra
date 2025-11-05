@@ -59,6 +59,7 @@ export interface KYCDocuments {
   aadhar?: File;
   gst?: File;
   passport?: File;
+  photo?: File;
   // Add joint if needed
   jointPan?: File;
   jointAadhar?: File;

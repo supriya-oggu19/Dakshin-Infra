@@ -370,6 +370,7 @@ const UserInfoForm = ({
                 value={data.dob}
                 onChange={(e) => handleChange('dob', e.target.value)}
                 onClick={(e) => e.currentTarget.showPicker()}
+                max={new Date().toISOString().split("T")[0]}
               />
             </div>
           </div>
@@ -635,6 +636,7 @@ const UserInfoForm = ({
                 </div>
                 <input className="mt-2 block w-full text-sm text-gray-500"
                   type="file"
+                  accept="image/jpeg,image/png"
                   ref={aadharInputRef}
 
                   onChange={(e) => {

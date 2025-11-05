@@ -57,7 +57,7 @@ const Navigation = () => {
       <div className="container-professional">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
+          <Link to="/" className="flex items-center space-x-3">
             <img 
               src="src/assets/ramya constructions logo.png" 
               alt="Kapil Group logo featuring a stylized building icon on a white background, representing professionalism and trust in a modern construction business setting"
@@ -67,7 +67,7 @@ const Navigation = () => {
             <span className="text-2xl font-bold text-display text-foreground">
               Ramya <span className="text-gold-elegant">Constructions</span>
             </span>
-            </Link>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-2">
@@ -92,10 +92,12 @@ const Navigation = () => {
 
             {/* Portfolio Dropdown - Only show when authenticated */}
             {isAuthenticated && (
-              <div className="relative">
+              <div 
+                className="relative"
+                onMouseEnter={() => setIsPortfolioOpen(true)}
+                onMouseLeave={() => setIsPortfolioOpen(false)}
+              >
                 <button
-                  onMouseEnter={() => setIsPortfolioOpen(true)}
-                  onMouseLeave={() => setIsPortfolioOpen(false)}
                   className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isPortfolioActive
                       ? "nav-item-active"
@@ -111,11 +113,15 @@ const Navigation = () => {
 
                 {/* Dropdown Menu */}
                 <div 
-                  className={`absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-border transition-all duration-200 ${
-                    isPortfolioOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
+                  className={`absolute top-full left-0 w-48 bg-white rounded-lg shadow-lg border border-border transition-all duration-200 ${
+                    isPortfolioOpen 
+                      ? 'opacity-100 visible translate-y-0' 
+                      : 'opacity-0 invisible -translate-y-2'
                   }`}
-                  onMouseEnter={() => setIsPortfolioOpen(true)}
-                  onMouseLeave={() => setIsPortfolioOpen(false)}
+                  style={{ 
+                    marginTop: '0.25rem', // mt-1 equivalent
+                    transition: 'all 0.2s ease-in-out'
+                  }}
                 >
                   <div className="py-2">
                     {portfolioItems.map((item) => {
@@ -125,7 +131,7 @@ const Navigation = () => {
                         <Link
                           key={item.name}
                           to={item.href}
-                          onClick={handlePortfolioItemClick}
+                          onClick={() => setIsPortfolioOpen(false)}
                           className={`flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 ${
                             isActive
                               ? "bg-primary/10 text-primary"

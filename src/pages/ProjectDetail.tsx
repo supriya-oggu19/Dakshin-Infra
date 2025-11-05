@@ -587,20 +587,6 @@ const ProjectDetail = () => {
                       {project.building_permission || "N/A"}
                     </dd>
                   </div>
-                  {project.total_units && (
-                    <>
-                      <div className="flex justify-between">
-                        <dt className="text-muted-foreground">Total Units</dt>
-                        <dd className="font-medium">{project.total_units}</dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-muted-foreground">Available Units</dt>
-                        <dd className="font-medium text-green-600">
-                          {project.available_units}
-                        </dd>
-                      </div>
-                    </>
-                  )}
                 </dl>
               </div>
             </aside>
