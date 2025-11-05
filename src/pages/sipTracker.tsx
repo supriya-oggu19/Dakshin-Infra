@@ -173,8 +173,10 @@ const SipTracker = () => {
         0
       ) || 0;
     const totalPaid =
-      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
-      0;
+      paymentData.payments
+        ?.filter((payment) => payment.payment_status === "completed")
+
+        ?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
 
     return { totalRebates, totalPenalties, totalPaid };
   };
@@ -436,7 +438,7 @@ const SipTracker = () => {
                           <Button
                             size="sm"
                             variant="luxury"
-                            onClick={handlePayNow}
+                            onClick={handlePayment}
                             className="w-full sm:w-auto"
                           >
                             <CreditCard className="w-4 h-4 mr-2" />
