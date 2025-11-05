@@ -1,7 +1,13 @@
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
@@ -26,7 +32,10 @@ import PaymentResult from "./pages/PaymentResult";
 const queryClient = new QueryClient();
 
 // Error Boundary
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
   state = { hasError: false };
 
   static getDerivedStateFromError(error: Error) {
@@ -98,42 +107,135 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-              <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
-              <Route path="/projects/:id" element={<AppLayout><ProjectDetail /></AppLayout>} />
-              <Route path="/about" element={<AppLayout><About /></AppLayout>} />
-              <Route path="/contact" element={<AppLayout><Contact /></AppLayout>} />
-              <Route path="/agents" element={<AppLayout><Agents /></AppLayout>} />
+              <Route
+                path="/"
+                element={
+                  <AppLayout>
+                    <Index />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <AppLayout>
+                    <Projects />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/projects/:id"
+                element={
+                  <AppLayout>
+                    <ProjectDetail />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/about"
+                element={
+                  <AppLayout>
+                    <About />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/contact"
+                element={
+                  <AppLayout>
+                    <Contact />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/agents"
+                element={
+                  <AppLayout>
+                    <Agents />
+                  </AppLayout>
+                }
+              />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/investment-schemes/:id" element={<AppLayout><InvestmentSchemes /></AppLayout>} />
-              <Route path="/faq" element={<AppLayout><FAQ /></AppLayout>} />
+              <Route
+                path="/investment-schemes/:id"
+                element={
+                  <AppLayout>
+                    <InvestmentSchemes />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/faq"
+                element={
+                  <AppLayout>
+                    <FAQ />
+                  </AppLayout>
+                }
+              />
               <Route path="/payment-result" element={<PaymentResult />} />
 
               {/* Protected Routes */}
               <Route
                 path="/profile"
-                element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Profile />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/purchase/:id/:step?"
-                element={<ProtectedRoute><AppLayout><PurchaseFlow /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <PurchaseFlow />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/my-units"
-                element={<ProtectedRoute><AppLayout><MyUnits /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <MyUnits />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/sip"
-                element={<ProtectedRoute><AppLayout><SipTracker /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <SipTracker />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/agreements"
-                element={<ProtectedRoute><AppLayout><Agreements /></AppLayout></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Agreements />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
               />
 
               {/* 404 */}
-              <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
+              <Route
+                path="*"
+                element={
+                  <AppLayout>
+                    <NotFound />
+                  </AppLayout>
+                }
+              />
             </Routes>
           </BrowserRouter>
         </ErrorBoundary>

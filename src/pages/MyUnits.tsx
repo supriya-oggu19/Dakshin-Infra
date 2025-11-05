@@ -14,18 +14,67 @@ import {
   Download,
   Eye,
   Loader2,
+  CreditCard,
+  Award,
+  AlertTriangle,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { portfolioApi } from "../api/portfolio-api";
-import { PortfolioItem, InvestmentSummaryResponse } from "../api/models/portfolio.model";
+import {
+  PortfolioItem,
+  InvestmentSummaryResponse,
+} from "../api/models/portfolio.model";
+import PaymentModal from "@/components/PaymentModal";
+import { Link } from "react-router-dom";
+
+// Payment Data Interfaces
+interface Payment {
+  transaction_type: string;
+  order_id: string;
+  amount: number;
+  payment_date: string;
+  due_date: string | null;
+  payment_method: string;
+  payment_status: string;
+  installment_number: number;
+  penalty_amount: number;
+  rebate_amount: number;
+  receipt_id: string;
+}
+
+interface PaymentData {
+  unit_number: string;
+  total_payments: number;
+  payments: Payment[];
+  next_installment?: {
+    installment_number: number;
+    due_date: string;
+    amount: number;
+    status: string;
+  };
+}
 
 const MyUnits = () => {
   const { token } = useAuth();
   const [portfolioData, setPortfolioData] = useState<PortfolioItem[]>([]);
-  const [investmentSummary, setInvestmentSummary] = useState<InvestmentSummaryResponse | null>(null);
+  const [investmentSummary, setInvestmentSummary] =
+    useState<InvestmentSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<PortfolioItem | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [loadingCustomerInfo, setLoadingCustomerInfo] = useState(false);
+
+  // Payment data state for each unit
+  const [paymentDataMap, setPaymentDataMap] = useState<
+    Record<string, PaymentData>
+  >({});
+  const [loadingPayments, setLoadingPayments] = useState<
+    Record<string, boolean>
+  >({});
+  const [activeTabs, setActiveTabs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchUserData();
@@ -38,20 +87,118 @@ const MyUnits = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch portfolio data and investment summary using the API service
       const [portfolioResponse, summaryResponse] = await Promise.all([
         portfolioApi.getPortfolio(token),
-        portfolioApi.getInvestmentSummary(token)
+        portfolioApi.getInvestmentSummary(token),
       ]);
 
-      setPortfolioData(portfolioResponse.data.portfolio || []);
+      const portfolio = portfolioResponse.data.portfolio || [];
+      setPortfolioData(portfolio);
       setInvestmentSummary(summaryResponse.data);
 
+      // Initialize active tabs for each unit
+      const initialTabs: Record<string, string> = {};
+      portfolio.forEach((unit) => {
+        initialTabs[unit.unit_number] = "overview";
+      });
+      setActiveTabs(initialTabs);
     } catch (err: any) {
       console.error("Error fetching user data:", err);
       setError(err.response?.data?.message || "Failed to fetch data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPaymentData = async (unitNumber: string) => {
+    if (!token) return;
+
+    try {
+      setLoadingPayments((prev) => ({ ...prev, [unitNumber]: true }));
+
+      const response = await fetch(
+        `http://127.0.0.1:8001/api/payments/list?unit_number=${unitNumber}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const paymentData = await response.json();
+        setPaymentDataMap((prev) => ({
+          ...prev,
+          [unitNumber]: paymentData,
+        }));
+      } else {
+        throw new Error("Failed to fetch payment data");
+      }
+    } catch (err: any) {
+      console.error("Error fetching payment data:", err);
+      setPaymentDataMap((prev) => ({
+        ...prev,
+        [unitNumber]: {
+          unit_number: unitNumber,
+          total_payments: 0,
+          payments: [],
+        },
+      }));
+    } finally {
+      setLoadingPayments((prev) => ({ ...prev, [unitNumber]: false }));
+    }
+  };
+
+  const handleTabChange = (unitNumber: string, value: string) => {
+    setActiveTabs((prev) => ({
+      ...prev,
+      [unitNumber]: value,
+    }));
+
+    // Fetch payment data when Payments tab is selected
+    if (value === "payments" && !paymentDataMap[unitNumber]) {
+      fetchPaymentData(unitNumber);
+    }
+  };
+
+  const handleMakePayment = async (unit: PortfolioItem) => {
+    if (!token) return;
+
+    setSelectedUnit(unit);
+    setLoadingCustomerInfo(true);
+
+    try {
+      const customerInfoResponse = await fetch(
+        `http://127.0.0.1:8001/api/payments/customer-info/${unit.unit_number}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (customerInfoResponse.ok) {
+        const customerData = await customerInfoResponse.json();
+        setCustomerInfo(customerData);
+      } else {
+        setCustomerInfo({
+          customer_name: "",
+          customer_email: "",
+          customer_phone: "",
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching customer info:", err);
+      setCustomerInfo({
+        customer_name: "",
+        customer_email: "",
+        customer_phone: "",
+      });
+    } finally {
+      setLoadingCustomerInfo(false);
+      setShowPaymentModal(true);
     }
   };
 
@@ -71,7 +218,7 @@ const MyUnits = () => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-IN", {
       day: "2-digit",
-      month: "2-digit",
+      month: "short",
       year: "numeric",
     });
   };
@@ -103,23 +250,245 @@ const MyUnits = () => {
     return "Unknown";
   };
 
-  const getInstallmentsInfo = (scheme: any, userPaid: number) => {
-    if (scheme.scheme_type === "single_payment") {
-      return {
-        paid: userPaid >= scheme.booking_advance ? "1/1" : "0/1",
-        progress: userPaid >= scheme.booking_advance ? 100 : 0,
-      };
-    } else if (scheme.scheme_type === "installment") {
-      const totalInstallments = scheme.total_installments || 1;
-      const installmentAmount =
-        scheme.monthly_installment_amount || scheme.booking_advance || 1;
-      const installmentsPaid = Math.floor(userPaid / installmentAmount);
-      return {
-        paid: `${installmentsPaid}/${totalInstallments}`,
-        progress: (installmentsPaid / totalInstallments) * 100,
-      };
+  // Calculate payment progress from payment data
+  const calculatePaymentProgress = (
+    unit: PortfolioItem,
+    paymentData: PaymentData
+  ) => {
+    if (!paymentData || !unit.total_investment) return 0;
+
+    const totalPaid =
+      paymentData.payments
+        ?.filter((payment) => payment.payment_status === "completed")
+        ?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+
+    return (totalPaid / unit.total_investment) * 100;
+  };
+
+  // Calculate totals from payment data
+  const calculateTotals = (paymentData: PaymentData) => {
+    if (!paymentData)
+      return { totalRebates: 0, totalPenalties: 0, totalPaid: 0 };
+
+    const totalRebates =
+      paymentData.payments?.reduce(
+        (sum, payment) => sum + (payment.rebate_amount || 0),
+        0
+      ) || 0;
+
+    const totalPenalties =
+      paymentData.payments?.reduce(
+        (sum, payment) => sum + (payment.penalty_amount || 0),
+        0
+      ) || 0;
+
+    const totalPaid =
+      paymentData.payments
+        ?.filter((payment) => payment.payment_status === "completed")
+        ?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+
+    return { totalRebates, totalPenalties, totalPaid };
+  };
+
+  const getTransactionTypeText = (type: string) => {
+    switch (type) {
+      case "advance":
+        return "Advance Payment";
+      case "installment":
+        return "Installment";
+      case "penalty":
+        return "Penalty";
+      case "rebate":
+        return "Rebate";
+      default:
+        return type;
     }
-    return { paid: "0/0", progress: 0 };
+  };
+
+  // Payment Progress Component for the Payments tab
+  const PaymentProgressSection = ({ unit }: { unit: PortfolioItem }) => {
+    const paymentData = paymentDataMap[unit.unit_number];
+    const isLoading = loadingPayments[unit.unit_number];
+    const isPaymentCompleted = unit.payment_status === "fully_paid";
+
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center h-32">
+          <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
+          <span className="text-sm text-muted-foreground">
+            Loading payment data...
+          </span>
+        </div>
+      );
+    }
+
+    if (isPaymentCompleted) {
+      return (
+        <div className="space-y-4">
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <p className="text-green-800 font-medium mb-2 text-sm sm:text-base">
+              ✓ Payment Completed
+            </p>
+            <p className="text-green-700 text-xs sm:text-sm">
+              All payments have been successfully completed for this unit.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm text-gray-600">Total Paid</p>
+              <p className="text-sm sm:text-base font-medium text-gray-900">
+                {formatCurrency(unit.user_paid)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm text-gray-600">Advance Paid</p>
+              <p className="text-sm sm:text-base font-medium text-gray-900">
+                {formatCurrency(unit.scheme.booking_advance)}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (!paymentData) {
+      return (
+        <div className="text-center text-muted-foreground py-8">
+          <p>No payment data available</p>
+        </div>
+      );
+    }
+
+    const { totalRebates, totalPenalties, totalPaid } =
+      calculateTotals(paymentData);
+    const progress = calculatePaymentProgress(unit, paymentData);
+
+    return (
+      <div className="space-y-6">
+        {/* Progress Bar */}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-xs sm:text-sm font-medium text-foreground">
+              Overall Progress
+            </span>
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              {paymentData.total_payments} payments
+            </span>
+          </div>
+          <Progress value={progress} className="h-3 sm:h-4 mb-4" />
+          <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
+            <span>{formatCurrency(totalPaid)} paid</span>
+            <span>{formatCurrency(unit.total_investment)} total</span>
+          </div>
+        </div>
+
+        {/* Next Payment */}
+        {paymentData.next_installment && (
+          <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-amber-800 mb-1 text-sm sm:text-base">
+                  Next Payment Due
+                </p>
+                <p className="text-xs sm:text-sm text-amber-700">
+                  {formatDate(paymentData.next_installment.due_date)}
+                </p>
+                <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
+                  {formatCurrency(paymentData.next_installment.amount)}
+                </p>
+                <p className="text-xs sm:text-sm text-amber-700 mt-1">
+                  Installment #{paymentData.next_installment.installment_number}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600"
+                onClick={() => handleMakePayment(unit)}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Pay Now
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Rebate & Penalties */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-green-600 mb-1">
+                  Total Rebates
+                </p>
+                <p className="text-lg sm:text-xl font-bold text-green-800">
+                  +{formatCurrency(totalRebates)}
+                </p>
+              </div>
+              <Award className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-red-600 mb-1">
+                  Total Penalties
+                </p>
+                <p className="text-lg sm:text-xl font-bold text-red-800">
+                  {formatCurrency(totalPenalties)}
+                </p>
+              </div>
+              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Payments Summary */}
+        {paymentData.payments && paymentData.payments.length > 0 && (
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium text-foreground mb-3">
+              Recent Payments
+            </p>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {paymentData.payments
+                .slice(-3)
+                .reverse()
+                .map((payment, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          payment.payment_status === "completed"
+                            ? "bg-green-500"
+                            : payment.payment_status === "failed"
+                            ? "bg-red-500"
+                            : "bg-yellow-500"
+                        }`}
+                      />
+                      <span className="font-medium">
+                        {getTransactionTypeText(payment.transaction_type)}
+                        {payment.installment_number > 0 &&
+                          ` #${payment.installment_number}`}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">
+                        {formatCurrency(payment.amount)}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {formatDate(payment.payment_date)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -256,10 +625,6 @@ const MyUnits = () => {
               </Card>
             ) : (
               portfolioData.map((property) => {
-                const installmentsInfo = getInstallmentsInfo(
-                  property.scheme,
-                  property.user_paid
-                );
                 const isPaymentCompleted =
                   property.payment_status === "fully_paid";
                 const isPaymentOngoing =
@@ -315,7 +680,13 @@ const MyUnits = () => {
                     </CardHeader>
 
                     <CardContent className="p-4 sm:p-6">
-                      <Tabs defaultValue="overview" className="w-full">
+                      <Tabs
+                        value={activeTabs[property.unit_number] || "overview"}
+                        onValueChange={(value) =>
+                          handleTabChange(property.unit_number, value)
+                        }
+                        className="w-full"
+                      >
                         <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-auto">
                           <TabsTrigger
                             value="overview"
@@ -375,74 +746,7 @@ const MyUnits = () => {
                         </TabsContent>
 
                         <TabsContent value="payments">
-                          {isPaymentCompleted ? (
-                            <div className="space-y-4">
-                              <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
-                                <p className="text-green-800 font-medium mb-2 text-sm sm:text-base">
-                                  ✓ Payment Completed
-                                </p>
-                                <p className="text-green-700 text-xs sm:text-sm">
-                                  All payments have been successfully completed
-                                  for this unit.
-                                </p>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                <div className="space-y-1">
-                                  <p className="text-xs sm:text-sm text-gray-600">
-                                    Total Paid
-                                  </p>
-                                  <p className="text-sm sm:text-base font-medium text-gray-900">
-                                    {formatCurrency(property.user_paid)}
-                                  </p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-xs sm:text-sm text-gray-600">
-                                    Advance Paid
-                                  </p>
-                                  <p className="text-sm sm:text-base font-medium text-gray-900">
-                                    {formatCurrency(
-                                      property.scheme.booking_advance
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div>
-                                <div className="flex justify-between items-center mb-2">
-                                  <span className="text-xs sm:text-sm font-medium text-gray-700">
-                                    Payment Progress
-                                  </span>
-                                  <span className="text-xs sm:text-sm text-gray-600">
-                                    {installmentsInfo.paid}
-                                  </span>
-                                </div>
-                                <Progress
-                                  value={installmentsInfo.progress}
-                                  className="h-2 sm:h-3"
-                                />
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                <div className="space-y-1">
-                                  <p className="text-xs sm:text-sm text-gray-600">
-                                    Amount Paid
-                                  </p>
-                                  <p className="text-sm sm:text-base font-medium text-gray-900">
-                                    {formatCurrency(property.user_paid)}
-                                  </p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-xs sm:text-sm text-gray-600">
-                                    Balance Amount
-                                  </p>
-                                  <p className="text-sm sm:text-base font-medium text-gray-900">
-                                    {formatCurrency(property.balance_amount)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          <PaymentProgressSection unit={property} />
                         </TabsContent>
 
                         <TabsContent value="rental">
@@ -511,24 +815,36 @@ const MyUnits = () => {
                           variant="outline"
                           size="sm"
                           className="w-full sm:w-auto"
+                          asChild
                         >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
+                          <Link to={`/sip?unit=${property.unit_number}`}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Link>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           className="w-full sm:w-auto"
+                          asChild
                         >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download Agreement
+                          <Link to={`/agreements?unit=${property.unit_number}`}>
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Agreement
+                          </Link>
                         </Button>
                         {!isPaymentCompleted && (
                           <Button
                             size="sm"
                             className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600"
+                            onClick={() => handleMakePayment(property)}
+                            disabled={loadingCustomerInfo}
                           >
-                            <Clock className="w-4 h-4 mr-2" />
+                            {loadingCustomerInfo ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 mr-2" />
+                            )}
                             Make Payment
                           </Button>
                         )}
@@ -541,6 +857,20 @@ const MyUnits = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedUnit && (
+        <PaymentModal
+          unit={selectedUnit}
+          customerInfo={customerInfo}
+          token={token}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedUnit(null);
+            setCustomerInfo(null);
+          }}
+        />
+      )}
     </div>
   );
 };
