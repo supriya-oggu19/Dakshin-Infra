@@ -36,10 +36,5 @@ export interface RegisterUserResponse {
 export interface LoginResponse {
   token?: string;
   message?: string;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-    phone_no: string;
-  };
+  name?: string;
 }
