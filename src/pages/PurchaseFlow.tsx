@@ -98,6 +98,9 @@ const PurchaseFlow = () => {
   const [restoringState, setRestoringState] = useState(true);
 
   useEffect(() => {
+      if (id) {
+      sessionStorage.setItem("currentProjectId", id);
+    }
     const savedState = sessionStorage.getItem(`purchaseState_${id}`);
     if (savedState) {
       const parsedState = JSON.parse(savedState);

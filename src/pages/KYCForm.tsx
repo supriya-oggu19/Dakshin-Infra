@@ -417,7 +417,7 @@ const KYCForm = ({
                               const file = e.target.files?.[0];
                               if (file) handleJointFileUpload(index, doc.key, file);
                             }}
-                            className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer"
+                            className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
                           />
                           <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 pointer-events-none" />
                         </div>

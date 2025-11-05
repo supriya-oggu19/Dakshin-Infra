@@ -46,6 +46,7 @@ export const ENDPOINTS = {
   PAYMENTS: {
     CREATE_ORDER: "/payments/create-order-with-unit",
     LIST: "/payments/list",
+    VERIFY_ORDER: (orderId: string) => `/payments/verify-order/${orderId}`,
   },
 
   USER_PROFILE: {
