@@ -19,8 +19,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
-import { useAuth } from "@/contexts/AuthContext";
 import { portfolioApi } from "../api/portfolio-api";
+import { paymentApi } from "../api/paymentApi";
 import {
   PortfolioItem,
   InvestmentSummaryResponse,
@@ -55,8 +55,11 @@ interface PaymentData {
   };
 }
 
+// Enum types
+type UnitStatus = 'payment_ongoing' | 'active' | 'rental_active' | 'none';
+type PaymentStatus = 'advance_paid' | 'partially_paid' | 'fully_paid' | 'none';
+
 const MyUnits = () => {
-  const { token } = useAuth();
   const [portfolioData, setPortfolioData] = useState<PortfolioItem[]>([]);
   const [investmentSummary, setInvestmentSummary] =
     useState<InvestmentSummaryResponse | null>(null);
@@ -78,18 +81,16 @@ const MyUnits = () => {
 
   useEffect(() => {
     fetchUserData();
-  }, [token]);
+  }, []);
 
   const fetchUserData = async () => {
-    if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
 
       const [portfolioResponse, summaryResponse] = await Promise.all([
-        portfolioApi.getPortfolio(token),
-        portfolioApi.getInvestmentSummary(token),
+        portfolioApi.getPortfolio(),
+        portfolioApi.getInvestmentSummary(),
       ]);
 
       const portfolio = portfolioResponse.data.portfolio || [];
@@ -111,30 +112,14 @@ const MyUnits = () => {
   };
 
   const fetchPaymentData = async (unitNumber: string) => {
-    if (!token) return;
-
     try {
       setLoadingPayments((prev) => ({ ...prev, [unitNumber]: true }));
-
-      const response = await fetch(
-        `http://127.0.0.1:8001/api/payments/list?unit_number=${unitNumber}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.ok) {
-        const paymentData = await response.json();
-        setPaymentDataMap((prev) => ({
-          ...prev,
-          [unitNumber]: paymentData,
-        }));
-      } else {
-        throw new Error("Failed to fetch payment data");
-      }
+      const response = await paymentApi.getPaymentList({ unit_number: unitNumber });
+      const paymentData = response.data;
+      setPaymentDataMap((prev) => ({
+        ...prev,
+        [unitNumber]: paymentData,
+      }));
     } catch (err: any) {
       console.error("Error fetching payment data:", err);
       setPaymentDataMap((prev) => ({
@@ -163,34 +148,18 @@ const MyUnits = () => {
   };
 
   const handleMakePayment = async (unit: PortfolioItem) => {
-    if (!token) return;
-
     setSelectedUnit(unit);
     setLoadingCustomerInfo(true);
 
     try {
-      const customerInfoResponse = await fetch(
-        `http://127.0.0.1:8001/api/payments/customer-info/${unit.unit_number}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await paymentApi.getCustomerInfo(unit.unit_number);
+      const customerData = response.data;
 
-      if (customerInfoResponse.ok) {
-        const customerData = await customerInfoResponse.json();
-        setCustomerInfo(customerData);
-      } else {
-        setCustomerInfo({
-          customer_name: "",
-          customer_email: "",
-          customer_phone: "",
-        });
-      }
+      setCustomerInfo(customerData);
     } catch (err) {
       console.error("Error fetching customer info:", err);
+
+      // fallback defaults
       setCustomerInfo({
         customer_name: "",
         customer_email: "",
@@ -223,28 +192,58 @@ const MyUnits = () => {
     });
   };
 
-  const getStatusColor = (paymentStatus: string, unitStatus: string) => {
-    if (paymentStatus === "none" && unitStatus === "none") {
+  // Validation functions using enums
+  const isPaymentFullyPaid = (paymentStatus: PaymentStatus): boolean => {
+    return paymentStatus === 'fully_paid';
+  };
+
+  const isPaymentOngoing = (paymentStatus: PaymentStatus): boolean => {
+    return paymentStatus === 'advance_paid' || paymentStatus === 'partially_paid';
+  };
+
+  const isRentalActive = (unitStatus: UnitStatus): boolean => {
+    return unitStatus === 'rental_active';
+  };
+
+  const isUnitActive = (unitStatus: UnitStatus): boolean => {
+    return unitStatus === 'active';
+  };
+
+  const isPaymentNone = (paymentStatus: PaymentStatus): boolean => {
+    return paymentStatus === 'none';
+  };
+
+  const isUnitStatusNone = (unitStatus: UnitStatus): boolean => {
+    return unitStatus === 'none';
+  };
+
+  const getStatusColor = (paymentStatus: PaymentStatus, unitStatus: UnitStatus) => {
+    if (isPaymentNone(paymentStatus) && isUnitStatusNone(unitStatus)) {
       return "bg-gray-100 text-gray-800 border-gray-200";
-    } else if (
-      paymentStatus === "advance_paid" ||
-      paymentStatus === "partially_paid"
-    ) {
+    } else if (isPaymentOngoing(paymentStatus)) {
       return "bg-blue-100 text-blue-800 border-blue-200";
-    } else if (paymentStatus === "fully_paid") {
+    } else if (isPaymentFullyPaid(paymentStatus)) {
       return "bg-green-100 text-green-800 border-green-200";
+    } else if (isRentalActive(unitStatus)) {
+      return "bg-purple-100 text-purple-800 border-purple-200";
+    } else if (isUnitActive(unitStatus)) {
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
     }
     return "bg-gray-100 text-gray-800 border-gray-200";
   };
 
-  const getStatusText = (paymentStatus: string, unitStatus: string) => {
-    if (paymentStatus === "none" && unitStatus === "none") {
+  const getStatusText = (paymentStatus: PaymentStatus, unitStatus: UnitStatus) => {
+    if (isPaymentNone(paymentStatus) && isUnitStatusNone(unitStatus)) {
       return "Not Started";
     } else if (paymentStatus === "advance_paid") {
       return "Advance Paid";
     } else if (paymentStatus === "partially_paid") {
       return "Payment Ongoing";
-    } else if (paymentStatus === "fully_paid") {
+    } else if (isPaymentFullyPaid(paymentStatus)) {
+      return "Fully Paid";
+    } else if (isRentalActive(unitStatus)) {
+      return "Rental Active";
+    } else if (isUnitActive(unitStatus)) {
       return "Active";
     }
     return "Unknown";
@@ -300,8 +299,23 @@ const MyUnits = () => {
         return "Penalty";
       case "rebate":
         return "Rebate";
+      case "balance_payment":
+        return "Balance Payment";
       default:
         return type;
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-500";
+      case "failed":
+        return "bg-red-500";
+      case "pending":
+        return "bg-yellow-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
@@ -309,7 +323,7 @@ const MyUnits = () => {
   const PaymentProgressSection = ({ unit }: { unit: PortfolioItem }) => {
     const paymentData = paymentDataMap[unit.unit_number];
     const isLoading = loadingPayments[unit.unit_number];
-    const isPaymentCompleted = unit.payment_status === "fully_paid";
+    const isPaymentCompleted = isPaymentFullyPaid(unit.payment_status as PaymentStatus);
 
     if (isLoading) {
       return (
@@ -404,6 +418,7 @@ const MyUnits = () => {
                 size="sm"
                 className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600"
                 onClick={() => handleMakePayment(unit)}
+                disabled={isPaymentFullyPaid(unit.payment_status as PaymentStatus)}
               >
                 <CreditCard className="w-4 h-4 mr-2" />
                 Pay Now
@@ -413,73 +428,103 @@ const MyUnits = () => {
         )}
 
         {/* Rebate & Penalties */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-green-600 mb-1">
-                  Total Rebates
-                </p>
-                <p className="text-lg sm:text-xl font-bold text-green-800">
-                  +{formatCurrency(totalRebates)}
-                </p>
+        {(totalRebates > 0 || totalPenalties > 0) && (
+          <div className="grid grid-cols-2 gap-4">
+            {totalRebates > 0 && (
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs sm:text-sm text-green-600 mb-1">
+                      Total Rebates
+                    </p>
+                    <p className="text-lg sm:text-xl font-bold text-green-800">
+                      +{formatCurrency(totalRebates)}
+                    </p>
+                  </div>
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
+                </div>
               </div>
-              <Award className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
-            </div>
-          </div>
-
-          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-red-600 mb-1">
-                  Total Penalties
-                </p>
-                <p className="text-lg sm:text-xl font-bold text-red-800">
-                  {formatCurrency(totalPenalties)}
-                </p>
+            )}
+            
+            {totalPenalties > 0 && (
+              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs sm:text-sm text-red-600 mb-1">
+                      Total Penalties
+                    </p>
+                    <p className="text-lg sm:text-xl font-bold text-red-800">
+                      {formatCurrency(totalPenalties)}
+                    </p>
+                  </div>
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
+                </div>
               </div>
-              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
-            </div>
+            )}
           </div>
-        </div>
+        )}
 
-        {/* Recent Payments Summary */}
+        {/* All Payments Section with Scroll */}
         {paymentData.payments && paymentData.payments.length > 0 && (
           <div className="border-t pt-4">
-            <p className="text-sm font-medium text-foreground mb-3">
-              Recent Payments
-            </p>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <p className="text-sm font-medium text-foreground">
+                All Payments ({paymentData.payments.length})
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Scroll to view more
+              </p>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
               {paymentData.payments
-                .slice(-3)
+                .slice()
                 .reverse()
                 .map((payment, index) => (
                   <div
-                    key={index}
-                    className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs"
+                    key={`${payment.order_id}-${index}`}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg text-xs border"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 flex-1">
                       <div
-                        className={`w-2 h-2 rounded-full ${
-                          payment.payment_status === "completed"
-                            ? "bg-green-500"
-                            : payment.payment_status === "failed"
-                            ? "bg-red-500"
-                            : "bg-yellow-500"
-                        }`}
+                        className={`w-3 h-3 rounded-full flex-shrink-0 ${getPaymentStatusColor(payment.payment_status)}`}
                       />
-                      <span className="font-medium">
-                        {getTransactionTypeText(payment.transaction_type)}
-                        {payment.installment_number > 0 &&
-                          ` #${payment.installment_number}`}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium block truncate">
+                          {getTransactionTypeText(payment.transaction_type)}
+                          {payment.installment_number > 0 &&
+                            ` #${payment.installment_number}`}
+                        </span>
+                        <span className="text-muted-foreground block mt-1">
+                          {formatDate(payment.payment_date)}
+                          {payment.payment_method && ` • ${payment.payment_method.replace('_', ' ')}`}
+                        </span>
+                        {payment.receipt_id && (
+                          <span className="text-xs text-blue-600 block mt-1">
+                            Receipt: {payment.receipt_id}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">
+                    <div className="text-right ml-4 flex-shrink-0">
+                      <p className="font-semibold text-sm">
                         {formatCurrency(payment.amount)}
                       </p>
-                      <p className="text-muted-foreground">
-                        {formatDate(payment.payment_date)}
+                      {payment.rebate_amount > 0 && (
+                        <p className="text-green-600 text-xs">
+                          +{formatCurrency(payment.rebate_amount)} rebate
+                        </p>
+                      )}
+                      {payment.penalty_amount > 0 && (
+                        <p className="text-red-600 text-xs">
+                          +{formatCurrency(payment.penalty_amount)} penalty
+                        </p>
+                      )}
+                      <p className={`text-xs mt-1 ${
+                        payment.payment_status === 'completed' ? 'text-green-600' :
+                        payment.payment_status === 'failed' ? 'text-red-600' :
+                        'text-yellow-600'
+                      }`}>
+                        {payment.payment_status}
                       </p>
                     </div>
                   </div>
@@ -625,11 +670,9 @@ const MyUnits = () => {
               </Card>
             ) : (
               portfolioData.map((property) => {
-                const isPaymentCompleted =
-                  property.payment_status === "fully_paid";
-                const isPaymentOngoing =
-                  property.payment_status === "advance_paid" ||
-                  property.payment_status === "partially_paid";
+                const isPaymentCompleted = isPaymentFullyPaid(property.payment_status as PaymentStatus);
+                const isPaymentInProgress = isPaymentOngoing(property.payment_status as PaymentStatus);
+                const isRentalActiveStatus = isRentalActive(property.unit_status as UnitStatus);
 
                 return (
                   <Card
@@ -666,13 +709,13 @@ const MyUnits = () => {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                           <Badge
                             className={getStatusColor(
-                              property.payment_status,
-                              property.unit_status
+                              property.payment_status as PaymentStatus,
+                              property.unit_status as UnitStatus
                             )}
                           >
                             {getStatusText(
-                              property.payment_status,
-                              property.unit_status
+                              property.payment_status as PaymentStatus,
+                              property.unit_status as UnitStatus
                             )}
                           </Badge>
                         </div>
@@ -751,13 +794,13 @@ const MyUnits = () => {
 
                         <TabsContent value="rental">
                           <div className="space-y-4">
-                            {isPaymentCompleted ? (
+                            {isRentalActiveStatus ? (
                               <>
-                                <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
-                                  <p className="text-blue-800 font-medium mb-2 text-sm sm:text-base">
+                                <div className="bg-purple-50 p-3 sm:p-4 rounded-lg border border-purple-200">
+                                  <p className="text-purple-800 font-medium mb-2 text-sm sm:text-base">
                                     💰 Rental Income Active
                                   </p>
-                                  <p className="text-blue-700 text-xs sm:text-sm">
+                                  <p className="text-purple-700 text-xs sm:text-sm">
                                     Monthly rental income:{" "}
                                     {formatCurrency(property.monthly_rental)}
                                   </p>
@@ -784,15 +827,16 @@ const MyUnits = () => {
                                       Total Received
                                     </p>
                                     <p className="text-sm sm:text-base font-medium text-gray-900">
-                                      ₹0
+                                      Not Available
                                     </p>
                                   </div>
                                 </div>
                               </>
                             ) : (
                               <div className="bg-orange-50 p-3 sm:p-4 rounded-lg border border-orange-200">
-                                <p className="text-orange-800 font-medium mb-2 text-sm sm:text-base">
-                                  ⏳ Rental Pending
+                                <p className="text-orange-800 font-medium mb-2 text-sm sm:text-base flex items-center gap-1.5">
+                                  <Clock className="w-4 h-4 text-orange-800" />
+                                  Rental Pending
                                 </p>
                                 <p className="text-orange-700 text-xs sm:text-sm">
                                   Rental income will start from{" "}
@@ -814,7 +858,7 @@ const MyUnits = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full sm:w-auto"
+                          className="w-full sm:w-auto border-gray-400"
                           asChild
                         >
                           <Link to={`/sip?unit=${property.unit_number}`}>
@@ -825,7 +869,7 @@ const MyUnits = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full sm:w-auto"
+                          className="w-full sm:w-auto border-gray-400"
                           asChild
                         >
                           <Link to={`/agreements?unit=${property.unit_number}`}>
@@ -838,7 +882,7 @@ const MyUnits = () => {
                             size="sm"
                             className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600"
                             onClick={() => handleMakePayment(property)}
-                            disabled={loadingCustomerInfo}
+                            disabled={loadingCustomerInfo || isPaymentFullyPaid(property.payment_status as PaymentStatus)}
                           >
                             {loadingCustomerInfo ? (
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -863,7 +907,6 @@ const MyUnits = () => {
         <PaymentModal
           unit={selectedUnit}
           customerInfo={customerInfo}
-          token={token}
           onClose={() => {
             setShowPaymentModal(false);
             setSelectedUnit(null);
