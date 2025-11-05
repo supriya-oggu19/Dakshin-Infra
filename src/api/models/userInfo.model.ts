@@ -168,6 +168,7 @@ export interface LegacyUserInfoFormProps {
 export type PurchaseStep = "plan-selection" | "user-info" | "kyc" | "payment" | "confirmation";
 
 export interface KYCFormProps {
+  projectName:String;
   kycDocuments: KYCDocuments;
   setKycDocuments: React.Dispatch<React.SetStateAction<KYCDocuments>>;
   kycAccepted: boolean;
