@@ -83,7 +83,7 @@ const Homepage = () => {
       icon: Users
     },
     {
-      title: "Business Stability",
+      title: "Steady Growth",
       description: "Navigate business off-seasons with confidence and consistent returns",
       icon: TrendingUp
     },
@@ -285,7 +285,7 @@ const Homepage = () => {
           <div className="text-center mt-16 animate-slide-in-up" style={{ animationDelay: '0.6s' }}>
             <Link to="/projects">
               <Button className="border-2 border-yellow-600 text-yellow-600 hover:bg-yellow-600 hover:text-white px-10 py-4 text-lg bg-transparent transition-all duration-300 hover:transform hover:scale-105">
-                View All Projects
+                Explore Investment Opurtunities
                 <ArrowRight className="ml-3 w-5 h-5" />
               </Button>
             </Link>
@@ -433,22 +433,7 @@ const Homepage = () => {
               ))}
             </div>
 
-            {/* --- Investment Highlight --- */}
-            <div
-              className="bg-white rounded-2xl p-6 shadow-lg border max-w-xl mx-auto mb-8 animate-fade-in-scale"
-              style={{ animationDelay: "0.3s" }}
-            >
-              <div className="text-sm text-gray-600 mb-1">Investment Highlight</div>
-              <div className="text-2xl md:text-3xl font-bold text-yellow-600 mb-2">
-                ₹36,00,000
-              </div>
-              <div className="text-sm text-gray-900 mb-3 font-medium">
-                Starting investment with rental income up to ₹6.48L annually*
-              </div>
-              <div className="text-xs text-gray-600">
-                *Based on 18%<sup>*</sup> annual returns. Terms and conditions apply.
-              </div>
-            </div>
+           
 
             {/* --- CTA Buttons --- */}
             <div

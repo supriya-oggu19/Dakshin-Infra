@@ -114,10 +114,10 @@ export default function ProjectCard({
 
         {/* Area & Premium Tags */}
         <div className="mt-3 flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
-          <div className="flex items-center gap-1.5 rounded-md bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700">
+          {/* <div className="flex items-center gap-1.5 rounded-md bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700">
             <Square className="size-3.5 text-gray-500" />
             {area}
-          </div>
+          </div> */}
           <div className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700">
             <Star className="size-3.5 fill-amber-500 text-amber-500" />
             Premium

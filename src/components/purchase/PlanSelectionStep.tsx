@@ -1,12 +1,40 @@
 // components/purchase/PlanSelectionStep.tsx
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Building, Plus, Minus, IndianRupee, AlertCircle } from 'lucide-react';
-import { Scheme, PlanSelection, SchemeType } from '@/api/models/purchase.model';
+
+// Mock types for demonstration
+interface Scheme {
+  id: string;
+  scheme_type: string;
+  area_sqft: number;
+  booking_advance: number;
+  total_installments?: number;
+  monthly_installment_amount?: number;
+  monthly_rental_income: number;
+  rental_start_month?: number;
+  balance_payment_days?: number;
+}
+
+interface PlanSelection {
+  planId: string;
+  type: string;
+  area: number;
+  price: number;
+  units: number;
+  installments?: number;
+  totalInvestment: number;
+  paymentAmount: number;
+}
+
+const SchemeType = {
+  SINGLE_PAYMENT: 'single_payment',
+  INSTALLMENT: 'installment'
+};
 
 interface PlanSelectionStepProps {
   schemes: Scheme[];
@@ -22,6 +50,8 @@ interface PlanSelectionStepProps {
   isValidPaymentAmount: () => boolean;
   getMinPayment: () => number;
   formatCurrency: (amount: number) => string;
+  // Add new prop for mobile scroll
+  onPlanSelected?: () => void;
 }
 
 const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
@@ -38,7 +68,28 @@ const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
   isValidPaymentAmount,
   getMinPayment,
   formatCurrency,
+  onPlanSelected,
 }) => {
+  const handlePlanSelection = (scheme: Scheme, units: number) => {
+    onPlanSelect(scheme, units);
+    
+    // Trigger mobile scroll only on mobile devices with a slight delay
+    if (window.innerWidth < 1024) {
+      // Add a small delay to ensure state updates complete
+      setTimeout(() => {
+        if (onPlanSelected) {
+          onPlanSelected();
+        } else {
+          // Fallback: scroll to order summary by ID if callback not provided
+          const orderSummary = document.getElementById('order-summary');
+          if (orderSummary) {
+            orderSummary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }, 100);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -108,7 +159,7 @@ const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
                 selectedPlan={selectedPlan}
                 selectedUnits={selectedUnits}
                 customPayment={customPayment}
-                onPlanSelect={onPlanSelect}
+                onPlanSelect={handlePlanSelection}
                 onCustomPaymentChange={onCustomPaymentChange}
                 isValidPaymentAmount={isValidPaymentAmount}
                 getMinPayment={getMinPayment}
@@ -120,7 +171,7 @@ const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
                 selectedPlan={selectedPlan}
                 selectedUnits={selectedUnits}
                 customPayment={customPayment}
-                onPlanSelect={onPlanSelect}
+                onPlanSelect={handlePlanSelection}
                 onCustomPaymentChange={onCustomPaymentChange}
                 isValidPaymentAmount={isValidPaymentAmount}
                 getMinPayment={getMinPayment}
@@ -133,6 +184,7 @@ const PlanSelectionStep: React.FC<PlanSelectionStepProps> = ({
     </div>
   );
 };
+
 
 // Single Payment Schemes Sub-component
 const SinglePaymentSchemes: React.FC<any> = ({

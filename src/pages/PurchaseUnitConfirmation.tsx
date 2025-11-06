@@ -398,7 +398,7 @@ const PurchaseUnitConfirmation = ({
             Your Information
           </h3>
           <p className="text-sm text-blue-700">
-            Please provide your details for the purchase agreement
+            Please provide your details for the payment reference
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

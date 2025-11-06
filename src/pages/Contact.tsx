@@ -23,7 +23,7 @@ const Contact = () => {
   const [contactInfo, setContactInfo] = useState([{
     icon: MapPin,
     title: "Visit Our Office",
-    details: ["Survey 115/1, ISB Rd, Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
+    details: ["Survey 115/1, ISB Rd , Kapil Towers, Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
   },
   {
     icon: Phone,
@@ -63,18 +63,18 @@ const Contact = () => {
           {
             icon: MapPin,
             title: "Visit Our Office",
-            details: ["Survey 115/1, ISB Rd, Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
+            details: ["Survey 115/1, ISB Rd, Kapil Towers, Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
           },
           {
             icon: Phone,
             title: "Call Us",
-            details: [...activePhones.map((phone) => phone.value), "Available 9 AM - 8 PM"],
+            details: [...activePhones.map((phone) => phone.value), ""],
             phoneNumbers: activePhones.map((phone) => phone.value),
           },
           {
             icon: Mail,
             title: "Email Us",
-            details: [...activeEmails.map((email) => email.value), ],
+            details: [...activeEmails.map((email) => email.value),],
             emails: activeEmails.map((email) => email.value),
           },
         ]);
@@ -305,42 +305,36 @@ const Contact = () => {
               <div className="lg:col-span-2">
                 <Card className="card-luxury border-0 shadow-lg lg:sticky lg:top-24">
                   <CardContent className="p-6 space-y-7">
-
                     <div className="pt-4 border-t border-border">
-                      <h4 className="font-semibold text-foreground mb-4 text-center md:text-left">Quick Actions</h4>
+                      <h4 className="font-semibold text-foreground mb-4 text-center md:text-left">
+                        Quick Actions
+                      </h4>
                       <div className="space-y-3">
-                        {contactInfo
-                          .find((i) => i.title === "Call Us")
-                          ?.phoneNumbers?.[0] && (
-                            <Button
-                              variant="outline-luxury"
-                              className="w-full justify-start h-12"
-                              onClick={() => handlePhoneClick(contactInfo.find(i => i.title === "Call Us")!.phoneNumbers![0])}
-                            >
-                              <Phone className="w-5 h-5 mr-3" />
-                              Call Now
-                            </Button>
-                          )}
+                        {/* Call Button */}
+                        <Button
+                          variant="outline-luxury"
+                          className="w-full justify-start h-12"
+                          onClick={() => (window.location.href = "tel:9289657657")}
+                        >
+                          <Phone className="w-5 h-5 mr-3" />
+                          Call Now
+                        </Button>
 
-
-
-                        {contactInfo
-                          .find((i) => i.title === "Email Us")
-                          ?.emails?.[0] && (
-                            <Button
-                              variant="outline-luxury"
-                              className="w-full justify-start h-12"
-                              onClick={() => handleEmailClick(contactInfo.find(i => i.title === "Email Us")!.emails![0])}
-                            >
-                              <Mail className="w-5 h-5 mr-3" />
-                              Send Email
-                            </Button>
-                          )}
+                        {/* Email Button */}
+                        <Button
+                          variant="outline-luxury"
+                          className="w-full justify-start h-12"
+                          onClick={() => (window.location.href = "mailto:info@ramyaconstructions.com")}
+                        >
+                          <Mail className="w-5 h-5 mr-3" />
+                          Send Email
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
+
             </div>
           </div>
         </section>

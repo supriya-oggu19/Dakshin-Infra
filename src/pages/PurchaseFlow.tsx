@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,18 +16,18 @@ import PurchaseProgress from "@/components/purchase/PurchaseProgress";
 // Import APIs and models
 import { purchaseApi } from "@/api/purchaseApi";
 import { userProfileApi } from "@/api/userProfileApi";
-import { 
-  Scheme, 
-  PurchaseStep, 
+import {
+  Scheme,
+  PurchaseStep,
   PlanSelection,
-  SchemeListRequest 
+  SchemeListRequest
 } from "@/api/models/purchase.model";
-import { 
-  UserInfo, 
-  JointAccountInfo, 
+import {
+  UserInfo,
+  JointAccountInfo,
   KYCDocuments,
   CreateUserProfileRequest,
-  Account 
+  Account
 } from "@/api/models/userInfo.model"; // Standardized to userInfo.model
 import { validatePhone } from "@/utils/validation"; // Assuming this exists
 
@@ -37,21 +37,34 @@ const PurchaseFlow = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  const orderSummaryRef = useRef<HTMLDivElement>(null);
+
 
   // Step mapping between URL and internal state
   const stepMapping = {
     'plan': 'plan-selection',
     'user-info': 'user-info',
-    'kyc': 'kyc', 
+    'kyc': 'kyc',
     'payment': 'payment',
     'confirmation': 'confirmation'
   } as const;
+
+  // Add this function for mobile scrolling
+  const scrollToOrderSummary = () => {
+    if (orderSummaryRef.current && window.innerWidth < 1024) {
+      orderSummaryRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
 
   const reverseStepMapping = {
     'plan-selection': 'plan',
     'user-info': 'user-info',
     'kyc': 'kyc',
-    'payment': 'payment', 
+    'payment': 'payment',
     'confirmation': 'confirmation'
   } as const;
 
@@ -60,13 +73,13 @@ const PurchaseFlow = () => {
     const mappedStep = urlStep ? stepMapping[urlStep as keyof typeof stepMapping] : null;
     return mappedStep || 'plan-selection';
   });
-  
+
   // Sync URL when step changes
   useEffect(() => {
     const stepParam = reverseStepMapping[currentStep as keyof typeof reverseStepMapping];
-    
+
     if (stepParam && stepParam !== urlStep) {
-      navigate(`/purchase/${id}/${stepParam}`, { 
+      navigate(`/purchase/${id}/${stepParam}`, {
         replace: true,
         state: location.state // Preserve existing state
       });
@@ -98,7 +111,7 @@ const PurchaseFlow = () => {
   const [restoringState, setRestoringState] = useState(true);
 
   useEffect(() => {
-      if (id) {
+    if (id) {
       sessionStorage.setItem("currentProjectId", id);
     }
     const savedState = sessionStorage.getItem(`purchaseState_${id}`);
@@ -614,6 +627,7 @@ const PurchaseFlow = () => {
             isValidPaymentAmount={isValidPaymentAmount}
             getMinPayment={getMinPayment}
             formatCurrency={formatCurrency}
+            onPlanSelected={scrollToOrderSummary}
           />
         );
 
@@ -632,7 +646,7 @@ const PurchaseFlow = () => {
         const jointAccounts = accounts
           .filter(account => account.type === 'joint')
           .map(account => account.data as JointAccountInfo);
-        
+
         return (
           <div className="space-y-6">
             <KYCForm
@@ -722,6 +736,7 @@ const PurchaseFlow = () => {
             </div>
 
             <OrderSummary
+              ref={orderSummaryRef}  // This line is crucial
               selectedPlan={selectedPlan}
               currentStep={currentStep}
               loading={loading}
@@ -739,5 +754,8 @@ const PurchaseFlow = () => {
     </div>
   );
 };
+
+
+
 
 export default PurchaseFlow;

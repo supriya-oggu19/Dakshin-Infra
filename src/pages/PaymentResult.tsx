@@ -484,7 +484,7 @@ export default function PaymentResult(): JSX.Element {
         </div>
 
         {/* Additional Info Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-2xl mt-6 no-print">
+        {/* <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-2xl mt-6 no-print">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Need Help?</h3>
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
@@ -497,7 +497,7 @@ export default function PaymentResult(): JSX.Element {
               <p className="text-gray-600">Mon - Sun: 9:00 AM - 6:00 PM</p>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Print View */}
