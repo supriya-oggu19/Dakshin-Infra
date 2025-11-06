@@ -874,7 +874,7 @@ const MyUnits = () => {
                         >
                           <Link to={`/agreements?unit=${property.unit_number}`}>
                             <Download className="w-4 h-4 mr-2" />
-                            Download Agreement
+                            View Agreement
                           </Link>
                         </Button>
                         {!isPaymentCompleted && (
