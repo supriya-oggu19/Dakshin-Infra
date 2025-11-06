@@ -503,8 +503,8 @@ export default function PaymentResult(): JSX.Element {
       {/* Print View */}
       <div className="print-only p-8">
         {/* Print Header */}
-        <div className="text-center mb-8 border-b-2 border-gray-300 pb-6 print-section">
-          <div className="flex items-center justify-center mb-4">
+        <div className="text-center mb-8 border-b-2 border-gray-300 pb-2 print-section">
+          <div className="flex items-center justify-center mb-2">
             <div className="text-center">
               <h1 className="text-3xl font-bold text-gray-900 font-playfair">RamyaConstructions</h1>
               <p className="text-lg text-gray-600 mt-2">Premium Real Estate Investments</p>
@@ -543,7 +543,7 @@ export default function PaymentResult(): JSX.Element {
         {/* Payment Details - Print */}
         <div className="grid grid-cols-2 gap-8 mb-6 print-break">
           {/* Order Information */}
-          <div className="print-section">
+          {/* <div className="print-section">
             <h3 className="text-lg font-bold text-gray-900 mb-3 border-b pb-2 font-playfair">Order Information</h3>
             <div className="space-y-2">
               <PrintDetailItem label="Unit Number" value={result?.order_info?.unit_number} />
@@ -551,16 +551,17 @@ export default function PaymentResult(): JSX.Element {
               <PrintDetailItem label="Order Status" value={result?.order_info?.order_status} />
               <PrintDetailItem label="Order ID" value={result?.order_info?.cf_order_id} />
             </div>
-          </div>
+          </div> */}
 
           {/* Transaction Information */}
           <div className="print-section">
-            <h3 className="text-lg font-bold text-gray-900 mb-3 border-b pb-2 font-playfair">Transaction Details</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-3 border-b font-playfair">Transaction Details</h3>
             <div className="space-y-2">
+              <PrintDetailItem label="Unit Number" value={result?.order_info?.unit_number} />
               <PrintDetailItem label="Transaction ID" value={result?.transaction_info?.cf_payment_id} />
               <PrintDetailItem label="Payment Method" value={result?.transaction_info?.payment_method || "Online Payment"} />
               <PrintDetailItem label="Payment Time" value={formatDate(result?.transaction_info?.payment_time || "")} />
-              <PrintDetailItem label="Bank Reference" value={result?.transaction_info?.bank_reference} />
+              {/* <PrintDetailItem label="Bank Reference" value={result?.transaction_info?.bank_reference} /> */}
               <PrintDetailItem label="Payment Amount" value={formatCurrency(result?.transaction_info?.payment_amount || 0)} />
             </div>
           </div>
@@ -574,7 +575,6 @@ export default function PaymentResult(): JSX.Element {
               <PrintDetailItem label="Customer Name" value={result.customer_info.customer_name} />
               <PrintDetailItem label="Customer Email" value={result.customer_info.customer_email} />
               <PrintDetailItem label="Customer Phone" value={result.customer_info.customer_phone} />
-              <PrintDetailItem label="Customer ID" value={result.customer_info.customer_id} />
             </div>
           </div>
         )}

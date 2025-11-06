@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { paymentApi } from "@/api/paymentApi";
 import {
   Loader2,
   CreditCard,
@@ -20,12 +21,14 @@ import {
   Building2,
   IndianRupee,
   AlertCircle,
+  Lock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 interface PaymentModalProps {
   unit: any;
   customerInfo: any;
-  token: string | null;
   onClose: () => void;
 }
 
@@ -38,73 +41,91 @@ declare global {
 const PaymentModal = ({
   unit,
   customerInfo,
-  token,
   onClose,
 }: PaymentModalProps) => {
-  const [paymentAmount, setPaymentAmount] = useState<string>("");
-  const [selectedOption, setSelectedOption] = useState<string>("installment");
+  const [paymentAmount, setPaymentAmount] = useState<string>("10000");
+  const [selectedOption, setSelectedOption] = useState<string>("custom");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [customAmountError, setCustomAmountError] = useState<string | null>(
-    null
-  );
+  const [customAmountError, setCustomAmountError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  // Calculate suggested amounts
-  const installmentAmount = unit.scheme.monthly_installment_amount;
-  const balanceAmount = unit.balance_amount;
-  const advanceAmount = unit.scheme.booking_advance;
+  // Constants
+  const MAX_PAYMENT_AMOUNT = 1000000; // 10 lakhs
+  const DEFAULT_AMOUNT = 10000;
+
+  // Check if it's an installment scheme
+  const isInstallmentScheme = unit.scheme.scheme_type === "installment";
+
+  // Calculate amounts
+  const installmentAmount = unit.scheme.monthly_installment_amount || 0;
+  const balanceAmount = unit.balance_amount || 0;
+  const advanceAmount = unit.scheme.booking_advance || 0;
 
   // Since you're using sandbox, set mode to "sandbox"
   const CASHFREE_MODE = "sandbox"; // Change to 'production' for live
 
   useEffect(() => {
-    // Set default amount based on selected option
-    if (selectedOption === "installment") {
-      setPaymentAmount(installmentAmount.toString());
-      setCustomAmountError(null);
-    } else if (selectedOption === "advance") {
-      setPaymentAmount(advanceAmount.toString());
-      setCustomAmountError(null);
-    } else {
-      setPaymentAmount("");
-    }
-  }, [selectedOption, installmentAmount, advanceAmount]);
+    // Initialize with default amount
+    setPaymentAmount(DEFAULT_AMOUNT.toString());
+    validateAmount(DEFAULT_AMOUNT.toString());
+  }, []);
 
-  // Validate custom amount when it changes
   useEffect(() => {
-    if (selectedOption === "custom" && paymentAmount) {
-      validateCustomAmount(paymentAmount);
-    } else {
-      setCustomAmountError(null);
+    if (selectedOption === "installment" && isInstallmentScheme) {
+      setPaymentAmount(installmentAmount.toString());
+      validateAmount(installmentAmount.toString());
     }
-  }, [paymentAmount, selectedOption]);
+  }, [selectedOption, installmentAmount, isInstallmentScheme]);
 
-  const validateCustomAmount = (amount: string) => {
+  // Validate amount whenever it changes
+  useEffect(() => {
+    if (paymentAmount) {
+      validateAmount(paymentAmount);
+    }
+  }, [paymentAmount]);
+
+  const validateAmount = (amount: string): boolean => {
+    const errors: string[] = [];
+    
+    // Parse amount
     const amountNum = parseFloat(amount);
 
+    // Basic validation
     if (isNaN(amountNum)) {
-      setCustomAmountError("Please enter a valid amount");
+      errors.push("Please enter a valid numeric amount");
+      setValidationErrors(errors);
       return false;
     }
 
-    if (amountNum < installmentAmount) {
-      setCustomAmountError(
-        `Amount must be at least ${formatCurrency(
-          installmentAmount
-        )} (monthly installment)`
-      );
-      return false;
+    if (amountNum <= 0) {
+      errors.push("Amount must be greater than ₹0");
+    }
+
+    if (amountNum > MAX_PAYMENT_AMOUNT) {
+      errors.push(`Amount cannot exceed ₹${MAX_PAYMENT_AMOUNT.toLocaleString('en-IN')} (10 lakhs)`);
     }
 
     if (amountNum > balanceAmount) {
-      setCustomAmountError(
-        `Amount cannot exceed balance of ${formatCurrency(balanceAmount)}`
-      );
-      return false;
+      errors.push(`Amount cannot exceed your balance of ₹${balanceAmount.toLocaleString('en-IN')}`);
     }
 
-    setCustomAmountError(null);
-    return true;
+    if (isInstallmentScheme && selectedOption === "installment" && amountNum !== installmentAmount) {
+      errors.push(`Installment amount must be exactly ₹${installmentAmount.toLocaleString('en-IN')}`);
+    }
+
+    if (isInstallmentScheme && selectedOption === "custom" && amountNum < installmentAmount) {
+      errors.push(`Amount must be at least ₹${installmentAmount.toLocaleString('en-IN')} for installment scheme`);
+    }
+
+    // Check for decimal values
+    if (!Number.isInteger(amountNum)) {
+      errors.push("Amount must be a whole number (no decimal places)");
+    }
+
+    setValidationErrors(errors);
+    setCustomAmountError(errors.length > 0 ? errors[0] : null);
+    return errors.length === 0;
   };
 
   const initiateCashfreePayment = (orderData: any) => {
@@ -113,6 +134,7 @@ const PaymentModal = ({
       initializeAndStartPayment(orderData);
       return;
     }
+
     // Dynamically load the Cashfree v3 script
     const script = document.createElement("script");
     script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
@@ -122,14 +144,11 @@ const PaymentModal = ({
     };
     script.onerror = () => {
       setLoading(false);
-      setError("Failed to load payment gateway. Please try again.");
+      setError("Failed to load payment gateway. Please refresh the page and try again.");
     };
+
     // Avoid duplicate scripts
-    if (
-      !document.querySelector(
-        'script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]'
-      )
-    ) {
+    if (!document.querySelector('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]')) {
       document.head.appendChild(script);
     } else {
       initializeAndStartPayment(orderData);
@@ -139,57 +158,51 @@ const PaymentModal = ({
   const initializeAndStartPayment = (orderData: any) => {
     if (!window.Cashfree) {
       setLoading(false);
-      setError("Payment gateway not available. Please refresh and try again.");
+      setError("Payment gateway not available. Please refresh the page and try again.");
       return;
     }
+
     try {
       // Initialize Cashfree with sandbox mode
       const cashfree = window.Cashfree({
         mode: CASHFREE_MODE,
       });
-      // Open the checkout page in a new tab (similar to original window.open behavior)
+
+      // Open the checkout page
       const checkoutOptions = {
         paymentSessionId: orderData.payment_session_id,
-        redirectTarget: "_blank", // Opens in new tab; use '_self' for same tab or '_modal' for modal overlay
+        redirectTarget: "_self",
       };
-      // For redirect, no promise; user will be redirected back to your return_url set in order creation
+
       cashfree.checkout(checkoutOptions);
-      // Close modal after initiating payment (similar to original)
+      
+      // Close modal after initiating payment
       onClose();
       setLoading(false);
     } catch (err: any) {
       console.error("Cashfree Initialization Error:", err);
       setLoading(false);
-      setError("Failed to initialize payment. Please try again.");
+      setError("Failed to initialize payment gateway. Please try again.");
     }
   };
 
   const handlePayment = async () => {
-    if (!token || !paymentAmount) {
-      setError("Please enter a valid payment amount");
+    // Clear previous errors
+    setError(null);
+
+    // Validate amount
+    if (!paymentAmount) {
+      setError("Please enter a payment amount");
       return;
     }
 
     const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount <= 0) {
-      setError("Please enter a valid payment amount");
-      return;
-    }
-
-    // Additional validation for custom amount
-    if (selectedOption === "custom") {
-      if (!validateCustomAmount(paymentAmount)) {
-        return;
-      }
-    }
-
-    if (amount > balanceAmount) {
-      setError("Payment amount cannot exceed balance amount");
+    if (!validateAmount(paymentAmount)) {
+      setError("Please fix the validation errors before proceeding");
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
       const paymentPayload = {
@@ -202,31 +215,35 @@ const PaymentModal = ({
         payment_methods: "upi,cc,dc,nb",
       };
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/payments/make-payment",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(paymentPayload),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to create payment order");
+      // Validate customer info
+      if (!paymentPayload.customer_name || !paymentPayload.customer_email || !paymentPayload.customer_phone) {
+        throw new Error("Complete customer information is required for payment processing");
       }
 
-      const paymentData = await response.json();
+      // Call payment API
+      const { data: paymentData } = await paymentApi.makePayment(paymentPayload);
 
-      // Initiate Cashfree payment using SDK
-      if (paymentData.payment_session_id) {
-        initiateCashfreePayment(paymentData);
+      // Validate response
+      if (!paymentData.payment_session_id) {
+        throw new Error("Invalid response from payment gateway");
       }
+
+      // Initiate Cashfree payment
+      initiateCashfreePayment(paymentData);
+
     } catch (err: any) {
       console.error("Payment error:", err);
-      setError(err.message || "Failed to process payment");
+      
+      // Handle different error types
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError("Failed to process payment. Please check your internet connection and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -241,13 +258,40 @@ const PaymentModal = ({
   };
 
   const isPaymentDisabled = () => {
-    if (loading || !paymentAmount) return true;
+    return loading || validationErrors.length > 0 || !paymentAmount;
+  };
 
-    if (selectedOption === "custom") {
-      return !!customAmountError;
+  const handleAmountChange = (value: string) => {
+    // Remove any non-numeric characters except digits
+    const numericValue = value.replace(/[^\d]/g, '');
+    
+    // Limit to 7 digits (10 lakhs)
+    if (numericValue.length > 7) return;
+    
+    // Don't allow values starting with 0 unless it's just "0"
+    if (numericValue.length > 1 && numericValue.startsWith('0')) {
+      setPaymentAmount(numericValue.replace(/^0+/, ''));
+    } else {
+      setPaymentAmount(numericValue);
     }
+  };
 
-    return false;
+  const getAmountSuggestions = () => {
+    if (isInstallmentScheme) {
+      return [
+        installmentAmount,
+        Math.min(installmentAmount * 3, MAX_PAYMENT_AMOUNT, balanceAmount),
+        Math.min(installmentAmount * 6, MAX_PAYMENT_AMOUNT, balanceAmount),
+        Math.min(balanceAmount, MAX_PAYMENT_AMOUNT)
+      ].filter(amount => amount > 0);
+    } else {
+      return [
+        DEFAULT_AMOUNT,
+        Math.min(50000, MAX_PAYMENT_AMOUNT, balanceAmount),
+        Math.min(100000, MAX_PAYMENT_AMOUNT, balanceAmount),
+        Math.min(balanceAmount, MAX_PAYMENT_AMOUNT)
+      ].filter(amount => amount > 0);
+    }
   };
 
   return (
@@ -256,7 +300,7 @@ const PaymentModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Make Payment
+            {isInstallmentScheme ? "Make Payment" : "Complete Payment"}
           </DialogTitle>
         </DialogHeader>
 
@@ -289,14 +333,16 @@ const PaymentModal = ({
                   {formatCurrency(unit.balance_amount)}
                 </p>
               </div>
-              <div className="col-span-2">
-                <span className="text-muted-foreground">
-                  Monthly Installment:
-                </span>
-                <p className="font-medium text-green-600">
-                  {formatCurrency(installmentAmount)}
-                </p>
-              </div>
+              {isInstallmentScheme && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">
+                    Monthly Installment:
+                  </span>
+                  <p className="font-medium text-green-600">
+                    {formatCurrency(installmentAmount)}
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -312,162 +358,190 @@ const PaymentModal = ({
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-muted-foreground" />
-                  <span>{customerInfo.customer_name || "Not provided"}</span>
+                  <span className={!customerInfo.customer_name ? "text-orange-600" : ""}>
+                    {customerInfo.customer_name || "Name not provided"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span>{customerInfo.customer_email || "Not provided"}</span>
+                  <span className={!customerInfo.customer_email ? "text-orange-600" : ""}>
+                    {customerInfo.customer_email || "Email not provided"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span>{customerInfo.customer_phone || "Not provided"}</span>
+                  <span className={!customerInfo.customer_phone ? "text-orange-600" : ""}>
+                    {customerInfo.customer_phone || "Phone not provided"}
+                  </span>
                 </div>
               </div>
+              {(!customerInfo.customer_name || !customerInfo.customer_email || !customerInfo.customer_phone) && (
+                <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
+                  <p className="text-xs text-orange-700">
+                    ⚠️ Complete customer information is required for payment processing
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Payment Options */}
         <div className="space-y-4">
-          <Label className="text-base font-medium">Select Payment Type</Label>
-
-          <RadioGroup
-            value={selectedOption}
-            onValueChange={setSelectedOption}
-            className="space-y-3"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="installment" id="installment" />
-              <Label htmlFor="installment" className="flex-1 cursor-pointer">
-                <div className="flex justify-between items-center">
-                  <span>Monthly Installment</span>
-                  <span className="font-semibold text-amber-600">
-                    {formatCurrency(installmentAmount)}
-                  </span>
+          {isInstallmentScheme && (
+            <>
+              <Label className="text-base font-medium">Select Payment Type</Label>
+              <RadioGroup
+                value={selectedOption}
+                onValueChange={setSelectedOption}
+                className="space-y-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="installment" id="installment" />
+                  <Label htmlFor="installment" className="flex-1 cursor-pointer">
+                    <div className="flex justify-between items-center">
+                      <span>Monthly Installment</span>
+                      <span className="font-semibold text-amber-600">
+                        {formatCurrency(installmentAmount)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pay your regular monthly installment
+                    </p>
+                  </Label>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Pay your regular monthly installment
-                </p>
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="custom" id="custom" />
-              <Label htmlFor="custom" className="flex-1 cursor-pointer">
-                <div className="flex justify-between items-center">
-                  <span>Custom Amount</span>
-                  <span className="text-xs font-medium text-amber-600">
-                    Min: {formatCurrency(installmentAmount)}
-                  </span>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="custom" id="custom" />
+                  <Label htmlFor="custom" className="flex-1 cursor-pointer">
+                    <div className="flex justify-between items-center">
+                      <span>Custom Amount</span>
+                      <span className="font-semibold text-blue-600">
+                        Up to {formatCurrency(Math.min(balanceAmount, MAX_PAYMENT_AMOUNT))}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pay any amount (min: {formatCurrency(installmentAmount)})
+                    </p>
+                  </Label>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter amount more than monthly installment
-                </p>
-              </Label>
-            </div>
-          </RadioGroup>
-          {/* Amount Input */}
-          {selectedOption === "custom" && (
-            <div className="space-y-3">
-              <Label htmlFor="amount" className="text-sm font-semibold">
-                Enter Amount (Minimum: {formatCurrency(installmentAmount)})
-              </Label>
-              <Input
-                id="amount"
-                type="number"
-                placeholder={`Enter amount from ${formatCurrency(
-                  installmentAmount
-                )} to ${formatCurrency(balanceAmount)}`}
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                min={installmentAmount}
-                max={balanceAmount}
-                className={`
-        border-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 
-        ${customAmountError ? "border-red-500 border-2" : "border-gray-300"}
-        py-2 px-3 text-base
-      `}
-              />
-
-              {/* Custom Amount Error */}
-              {customAmountError && (
-                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-2 rounded-md border border-red-200">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span className="font-medium">{customAmountError}</span>
-                </div>
-              )}
-
-              <p className="text-xs text-muted-foreground font-medium">
-                Valid range: {formatCurrency(installmentAmount)} to{" "}
-                {formatCurrency(balanceAmount)}
-              </p>
-            </div>
+              </RadioGroup>
+            </>
           )}
 
-          {/* Quick Amount Buttons for Custom Option */}
-          {selectedOption === "custom" && (
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold">Quick Amounts:</Label>
+          {/* Amount Input */}
+          <div className="space-y-3">
+            <Label htmlFor="amount" className="text-sm font-semibold">
+              {isInstallmentScheme && selectedOption === "installment" 
+                ? "Installment Amount" 
+                : "Enter Payment Amount"}
+            </Label>
+            <div className="relative w-full">
+              <IndianRupee
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none"
+              />
+              <Input
+                id="amount"
+                type="text"
+                inputMode="numeric"
+                placeholder={`Enter amount (max: ₹${MAX_PAYMENT_AMOUNT.toLocaleString('en-IN')})`}
+                value={paymentAmount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                className={`
+                  pl-9 pr-3 py-2 text-base
+                  focus:ring-amber-200 focus:ring-2 focus:border-amber-500
+                  ${
+                    validationErrors.length > 0
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }
+                `}
+                disabled={isInstallmentScheme && selectedOption === "installment"}
+              />
+            </div>
+
+            {/* Amount Suggestions */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Suggested Amounts:</Label>
               <div className="flex gap-2 flex-wrap">
-                {[
-                  installmentAmount,
-                  installmentAmount * 2,
-                  installmentAmount * 3,
-                  balanceAmount,
-                ].map((amount, index) => (
+                {getAmountSuggestions().map((amount, index) => (
                   <Button
                     key={index}
                     variant="outline"
                     size="sm"
                     onClick={() => setPaymentAmount(amount.toString())}
                     className={`
-            text-xs font-medium border-2 
-            ${
-              paymentAmount === amount.toString()
-                ? "border-amber-500 bg-amber-50 text-amber-700"
-                : "border-gray-300 hover:border-amber-400"
-            }
-            transition-all duration-200
-          `}
-                    disabled={amount > balanceAmount}
+                      text-xs font-medium border-2 
+                      ${
+                        paymentAmount === amount.toString()
+                          ? "border-amber-500 bg-amber-50 text-amber-700"
+                          : "border-gray-300 hover:border-amber-400"
+                      }
+                      transition-all duration-200
+                    `}
                   >
                     {formatCurrency(amount)}
                   </Button>
                 ))}
               </div>
             </div>
-          )}
+
+            <p className="text-xs text-muted-foreground font-medium">
+              Maximum payment amount: ₹{MAX_PAYMENT_AMOUNT.toLocaleString('en-IN')} (10 lakhs)
+              {isInstallmentScheme && selectedOption === "custom" && (
+                <span> • Minimum: {formatCurrency(installmentAmount)}</span>
+              )}
+            </p>
+          </div>
         </div>
 
-        {/* Payment Summary */}
-        {paymentAmount && !customAmountError && (
-          <Card className="bg-amber-50 border-amber-200">
-            <CardContent className="p-4">
-              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                <IndianRupee className="w-4 h-4" />
-                Payment Summary
-              </h4>
+        {/* Payment Summary - Always Visible */}
+        <Card className={`border-l-4 ${
+          validationErrors.length > 0 ? "border-l-red-500 bg-red-50" : "border-l-green-500 bg-green-50"
+        }`}>
+          <CardContent className="p-4">
+            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+              <IndianRupee className="w-4 h-4" />
+              Payment Summary
+            </h4>
+            <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm">Amount to Pay:</span>
-                <span className="text-lg font-bold text-amber-700">
-                  {formatCurrency(parseFloat(paymentAmount))}
+                <span className={`text-lg font-bold ${
+                  validationErrors.length > 0 ? "text-red-700" : "text-green-700"
+                }`}>
+                  {paymentAmount ? formatCurrency(parseFloat(paymentAmount)) : "₹0"}
                 </span>
               </div>
-              {selectedOption === "custom" &&
-                parseFloat(paymentAmount) > installmentAmount && (
-                  <div className="mt-2 text-xs text-green-600">
-                    ✓ This includes your monthly installment plus additional
-                    payment
-                  </div>
-                )}
-            </CardContent>
-          </Card>
-        )}
+              {isInstallmentScheme && selectedOption === "custom" && parseFloat(paymentAmount) > installmentAmount && (
+                <div className="text-xs text-green-600 bg-green-100 p-2 rounded">
+                  ✓ Includes monthly installment of {formatCurrency(installmentAmount)} + additional payment
+                </div>
+              )}
+              {validationErrors.length === 0 && paymentAmount && (
+                <div className="text-xs text-green-600">
+                  ✓ This amount is within acceptable limits
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Error Message */}
+        {/* Main Error Message */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{error}</p>
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="font-medium">Payment Error</span>
+            </div>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 text-xs"
+              onClick={() => setError(null)}
+            >
+              Dismiss
+            </Button>
           </div>
         )}
 
@@ -476,7 +550,7 @@ const PaymentModal = ({
           <Button
             variant="outline"
             onClick={onClose}
-            className="flex-1"
+            className="flex-1 border-gray-300"
             disabled={loading}
           >
             Cancel
@@ -484,7 +558,7 @@ const PaymentModal = ({
           <Button
             onClick={handlePayment}
             disabled={isPaymentDisabled()}
-            className="flex-1 bg-amber-500 hover:bg-amber-600"
+            className="flex-1 bg-amber-400 hover:bg-amber-500"
           >
             {loading ? (
               <>
@@ -494,17 +568,16 @@ const PaymentModal = ({
             ) : (
               <>
                 <CreditCard className="w-4 h-4 mr-2" />
-                Pay Now
+                {validationErrors.length > 0 ? "Fix Errors" : "Proceed to Pay"}
               </>
             )}
           </Button>
         </div>
 
         {/* Security Note */}
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">
-            🔒 Your payment is secure and encrypted
-          </p>
+        <div className="flex items-center justify-center space-x-1 text-xs text-muted-foreground">
+          <Lock className="w-4 h-4 fill-amber-300" strokeWidth={1.5} />
+          <span>Your payment is secure and encrypted</span>
         </div>
       </DialogContent>
     </Dialog>

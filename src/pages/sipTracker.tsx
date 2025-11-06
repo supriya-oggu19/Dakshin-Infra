@@ -14,6 +14,7 @@ import {
   Download,
   Loader2,
   Building2,
+  Eye,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,8 @@ import {
   Payment,
 } from "../api/models/investment.model";
 import { portfolioApi } from "../api/portfolio-api";
+import PaymentModal from "@/components/PaymentModal";
+import { Link } from "react-router-dom";
 
 const SipTracker = () => {
   const { token } = useAuth();
@@ -34,6 +37,13 @@ const SipTracker = () => {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Payment modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedUnitForPayment, setSelectedUnitForPayment] =
+    useState<InvestmentUnit | null>(null);
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [loadingCustomerInfo, setLoadingCustomerInfo] = useState(false);
 
   useEffect(() => {
     fetchPortfolioData();
@@ -80,6 +90,49 @@ const SipTracker = () => {
       setError(err.message || "Failed to fetch payment data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePayNow = async (unit: InvestmentUnit) => {
+    if (!token) return;
+
+    setSelectedUnitForPayment(unit);
+    setLoadingCustomerInfo(true);
+
+    try {
+      // Fetch customer info for the payment modal
+      const customerInfoResponse = await fetch(
+        `http://127.0.0.1:8000/api/payments/customer-info/${unit.unit_number}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (customerInfoResponse.ok) {
+        const customerData = await customerInfoResponse.json();
+        setCustomerInfo(customerData);
+      } else {
+        // Fallback customer info if API fails
+        setCustomerInfo({
+          customer_name: "",
+          customer_email: "",
+          customer_phone: "",
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching customer info:", err);
+      // Fallback customer info
+      setCustomerInfo({
+        customer_name: "",
+        customer_email: "",
+        customer_phone: "",
+      });
+    } finally {
+      setLoadingCustomerInfo(false);
+      setShowPaymentModal(true);
     }
   };
 
@@ -153,8 +206,9 @@ const SipTracker = () => {
     if (!unit || !unit.total_investment) return 0;
 
     const totalPaid =
-      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
-      0;
+      paymentData.payments
+        ?.filter((payment) => payment.payment_status === "completed")
+        ?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
     return (totalPaid / unit.total_investment) * 100;
   };
 
@@ -173,8 +227,9 @@ const SipTracker = () => {
         0
       ) || 0;
     const totalPaid =
-      paymentData.payments?.reduce((sum, payment) => sum + payment.amount, 0) ||
-      0;
+      paymentData.payments
+        ?.filter((payment) => payment.payment_status === "completed")
+        ?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
 
     return { totalRebates, totalPenalties, totalPaid };
   };
@@ -186,14 +241,6 @@ const SipTracker = () => {
         payment.transaction_type
       )}`
     );
-  };
-
-  const handlePayNow = () => {
-    if (paymentData?.next_installment) {
-      alert(
-        `Initiating payment for installment ${paymentData.next_installment.installment_number}`
-      );
-    }
   };
 
   if (loading && !paymentData) {
@@ -258,6 +305,11 @@ const SipTracker = () => {
   const balanceAmount = currentUnit
     ? currentUnit.total_investment - totalPaid
     : 0;
+  const isPaymentCompleted = currentUnit?.payment_status === "fully_paid";
+
+  // Check if current unit is installment scheme
+  const isInstallmentScheme =
+    currentUnit?.scheme?.scheme_type === "installment";
 
   return (
     <div className="min-h-screen bg-background">
@@ -410,38 +462,68 @@ const SipTracker = () => {
                       </div>
                     </div>
 
-                    {/* Next Payment */}
-                    {paymentData?.next_installment && (
-                      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                          <div className="flex-1">
-                            <p className="font-medium text-amber-800 mb-1 text-sm sm:text-base">
-                              Next Payment Due
-                            </p>
-                            <p className="text-xs sm:text-sm text-amber-700">
-                              {formatDate(
-                                paymentData.next_installment.due_date
+                    {/* Next Payment - Only show for installment schemes */}
+                    {isInstallmentScheme &&
+                      paymentData?.next_installment &&
+                      !isPaymentCompleted && (
+                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div className="flex-1">
+                              <p className="font-medium text-amber-800 mb-1 text-sm sm:text-base">
+                                Next Payment Due
+                              </p>
+                              <p className="text-xs sm:text-sm text-amber-700">
+                                {formatDate(
+                                  paymentData.next_installment.due_date
+                                )}
+                              </p>
+                              <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
+                                {formatCurrency(
+                                  paymentData.next_installment.amount
+                                )}
+                              </p>
+                              <p className="text-xs sm:text-sm text-amber-700 mt-1">
+                                Installment #
+                                {
+                                  paymentData.next_installment
+                                    .installment_number
+                                }
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="luxury"
+                              onClick={() =>
+                                currentUnit && handlePayNow(currentUnit)
+                              }
+                              disabled={loadingCustomerInfo}
+                              className="w-full sm:w-auto"
+                            >
+                              {loadingCustomerInfo ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <CreditCard className="w-4 h-4 mr-2" />
                               )}
+                              Pay Now
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Payment Completed Message */}
+                    {isPaymentCompleted && (
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="w-6 h-6 text-green-600" />
+                          <div>
+                            <p className="text-green-800 font-medium text-sm sm:text-base">
+                              Payment Completed
                             </p>
-                            <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
-                              {formatCurrency(
-                                paymentData.next_installment.amount
-                              )}
-                            </p>
-                            <p className="text-xs sm:text-sm text-amber-700 mt-1">
-                              Installment #
-                              {paymentData.next_installment.installment_number}
+                            <p className="text-green-700 text-xs sm:text-sm">
+                              All payments have been successfully completed for
+                              this unit.
                             </p>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="luxury"
-                            onClick={handlePayNow}
-                            className="w-full sm:w-auto"
-                          >
-                            <CreditCard className="w-4 h-4 mr-2" />
-                            Pay Now
-                          </Button>
                         </div>
                       </div>
                     )}
@@ -479,6 +561,50 @@ const SipTracker = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Action Buttons */}
+              {currentUnit && !isPaymentCompleted && (
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <Button
+                    size="sm"
+                    variant="luxury"
+                    onClick={() => handlePayNow(currentUnit)}
+                    disabled={loadingCustomerInfo}
+                    className="w-full sm:w-auto"
+                  >
+                    {loadingCustomerInfo ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <CreditCard className="w-4 h-4 mr-2" />
+                    )}
+                    {isInstallmentScheme ? "Pay Now" : "Make Payment"}
+                  </Button>
+
+                  {/* Additional action buttons */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    asChild
+                  >
+                    <Link to={`/sip?unit=${currentUnit.unit_number}`}>
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    asChild
+                  >
+                    <Link to={`/agreements?unit=${currentUnit.unit_number}`}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Agreement
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Sidebar Info */}
@@ -498,7 +624,7 @@ const SipTracker = () => {
                           Early Payment Rebates
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Rebates for timely payments
+                          Get rebates for paying before due date
                         </p>
                       </div>
                     </div>
@@ -509,7 +635,18 @@ const SipTracker = () => {
                           Late Payment Penalty
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Penalties for delayed payments
+                          Penalties apply after due date
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CreditCard className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-foreground text-sm">
+                          Flexible Payments
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Pay monthly installment or custom amount
                         </p>
                       </div>
                     </div>
@@ -517,8 +654,9 @@ const SipTracker = () => {
                 </CardContent>
               </Card>
 
+              {/* Quick Stats */}
               <Card className="border-0 shadow-md card-luxury">
-                {/* <CardHeader className="border-b bg-card p-4 sm:p-6">
+                <CardHeader className="border-b bg-card p-4 sm:p-6">
                   <CardTitle className="text-base sm:text-lg text-foreground">
                     Quick Stats
                   </CardTitle>
@@ -555,22 +693,22 @@ const SipTracker = () => {
                       </span>
                       <span
                         className={`text-xs sm:text-sm font-medium ${
-                          totalRebates + totalPenalties >= 0
+                          totalRebates - totalPenalties >= 0
                             ? "text-green-600"
                             : "text-red-600"
                         }`}
                       >
-                        {totalRebates + totalPenalties >= 0 ? "+" : ""}
-                        {formatCurrency(totalRebates + totalPenalties)}
+                        {totalRebates - totalPenalties >= 0 ? "+" : ""}
+                        {formatCurrency(totalRebates - totalPenalties)}
                       </span>
                     </div>
                   </div>
-                </CardContent> */}
+                </CardContent>
               </Card>
             </div>
           </div>
 
-          {/* Payment History - Single Responsive Component */}
+          {/* Payment History */}
           <div className="mt-6 sm:mt-8">
             <Card className="border-0 shadow-md card-luxury">
               <CardHeader className="border-b bg-card p-4 sm:p-6">
@@ -598,28 +736,28 @@ const SipTracker = () => {
                             <div
                               key={payment.payment_id || index}
                               className={`
-                      p-4 transition-all
-                      ${
-                        isLatestPayment
-                          ? "bg-blue-50 border-l-4 border-l-blue-500"
-                          : isLastInstallment
-                          ? "bg-green-50 border-l-4 border-l-green-500"
-                          : "bg-card/50"
-                      }
-                    `}
+                                p-4 transition-all
+                                ${
+                                  isLatestPayment
+                                    ? "bg-blue-50 border-l-4 border-l-blue-500"
+                                    : isLastInstallment
+                                    ? "bg-green-50 border-l-4 border-l-green-500"
+                                    : "bg-card/50"
+                                }
+                              `}
                             >
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 {/* Left Section */}
                                 <div className="flex items-start gap-3 flex-1">
                                   <div
                                     className={`
-                          w-2 h-2 rounded-full mt-2 flex-shrink-0
-                          ${
-                            payment.payment_status === "completed"
-                              ? "bg-green-500"
-                              : "bg-muted"
-                          }
-                        `}
+                                      w-2 h-2 rounded-full mt-2 flex-shrink-0
+                                      ${
+                                        payment.payment_status === "completed"
+                                          ? "bg-green-500"
+                                          : "bg-muted"
+                                      }
+                                    `}
                                   />
                                   <div className="flex-1">
                                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -645,6 +783,34 @@ const SipTracker = () => {
                                       {formatDate(payment.payment_date)} •
                                       Receipt: {payment.receipt_id}
                                     </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {payment.rebate_amount &&
+                                        payment.rebate_amount > 0 && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-green-600 border-green-200 text-xs"
+                                          >
+                                            +
+                                            {formatCurrency(
+                                              payment.rebate_amount
+                                            )}{" "}
+                                            rebate
+                                          </Badge>
+                                        )}
+                                      {payment.penalty_amount &&
+                                        payment.penalty_amount > 0 && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-red-600 border-red-200 text-xs"
+                                          >
+                                            -
+                                            {formatCurrency(
+                                              payment.penalty_amount
+                                            )}{" "}
+                                            penalty
+                                          </Badge>
+                                        )}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -653,13 +819,13 @@ const SipTracker = () => {
                                   <div className="text-right">
                                     <p
                                       className={`
-                            font-semibold text-sm sm:text-base
-                            ${
-                              isLatestPayment
-                                ? "text-blue-600"
-                                : "text-foreground"
-                            }
-                          `}
+                                        font-semibold text-sm sm:text-base
+                                        ${
+                                          isLatestPayment
+                                            ? "text-blue-600"
+                                            : "text-foreground"
+                                        }
+                                      `}
                                     >
                                       {formatCurrency(payment.amount)}
                                     </p>
@@ -699,6 +865,24 @@ const SipTracker = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedUnitForPayment && (
+        <PaymentModal
+          unit={selectedUnitForPayment}
+          customerInfo={customerInfo}
+          token={token}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedUnitForPayment(null);
+            setCustomerInfo(null);
+            // Refresh payment data after payment modal closes
+            if (selectedUnit) {
+              fetchPaymentData(selectedUnit);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

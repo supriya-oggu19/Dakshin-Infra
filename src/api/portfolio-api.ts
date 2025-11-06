@@ -6,20 +6,9 @@ import {
 } from "../api/models/portfolio.model";
 
 export const portfolioApi = {
-  getPortfolio: (token: string) =>
-    getAxiosClient.get<PortfolioResponse>(ENDPOINTS.USER.PORTFOLIO, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }),
+  getPortfolio: () =>
+    getAxiosClient.get<PortfolioResponse>(ENDPOINTS.USER.PORTFOLIO),
 
-  getInvestmentSummary: (token: string) =>
-    getAxiosClient.get<InvestmentSummaryResponse>(
-      ENDPOINTS.USER.INVESTMENT_SUMMARY,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    ),
+  getInvestmentSummary: () =>
+    getAxiosClient.get<InvestmentSummaryResponse>(ENDPOINTS.USER.INVESTMENT_SUMMARY),
 };
