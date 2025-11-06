@@ -12,24 +12,26 @@ import PlanSelectionStep from "@/components/purchase/PlanSelectionStep";
 import ConfirmationStep from "@/components/purchase/ConfirmationStep";
 import OrderSummary from "@/components/purchase/OrderSummary";
 import PurchaseProgress from "@/components/purchase/PurchaseProgress";
+import ProfileSelectionStep from "@/components/purchase/ProfileSelectionStep";
 
 // Import APIs and models
 import { purchaseApi } from "@/api/purchaseApi";
 import { userProfileApi } from "@/api/userProfileApi";
-import { 
-  Scheme, 
-  PurchaseStep, 
+import {
+  Scheme,
+  PurchaseStep,
   PlanSelection,
-  SchemeListRequest 
+  SchemeListRequest,
 } from "@/api/models/purchase.model";
-import { 
-  UserInfo, 
-  JointAccountInfo, 
+import {
+  UserInfo,
+  JointAccountInfo,
   KYCDocuments,
   CreateUserProfileRequest,
-  Account 
-} from "@/api/models/userInfo.model"; // Standardized to userInfo.model
-import { validatePhone } from "@/utils/validation"; // Assuming this exists
+  Account,
+  APIUserProfileResponse,
+} from "@/api/models/userInfo.model";
+import { validatePhone } from "@/utils/validation";
 
 const PurchaseFlow = () => {
   const { id, step: urlStep } = useParams<{ id: string; step?: string }>();
@@ -40,35 +42,40 @@ const PurchaseFlow = () => {
 
   // Step mapping between URL and internal state
   const stepMapping = {
-    'plan': 'plan-selection',
-    'user-info': 'user-info',
-    'kyc': 'kyc', 
-    'payment': 'payment',
-    'confirmation': 'confirmation'
+    plan: "plan-selection",
+    // profiles: "profile-selection", // New step for existing users
+    "user-info": "user-info",
+    kyc: "kyc",
+    payment: "payment",
+    confirmation: "confirmation",
   } as const;
 
   const reverseStepMapping = {
-    'plan-selection': 'plan',
-    'user-info': 'user-info',
-    'kyc': 'kyc',
-    'payment': 'payment', 
-    'confirmation': 'confirmation'
+    "plan-selection": "plan",
+    // "profile-selection": "profiles", // New step for existing users
+    "user-info": "user-info",
+    kyc: "kyc",
+    payment: "payment",
+    confirmation: "confirmation",
   } as const;
 
   // Initialize currentStep from URL parameter
   const [currentStep, setCurrentStep] = useState<PurchaseStep>(() => {
-    const mappedStep = urlStep ? stepMapping[urlStep as keyof typeof stepMapping] : null;
-    return mappedStep || 'plan-selection';
+    const mappedStep = urlStep
+      ? stepMapping[urlStep as keyof typeof stepMapping]
+      : null;
+    return mappedStep || "plan-selection";
   });
-  
+
   // Sync URL when step changes
   useEffect(() => {
-    const stepParam = reverseStepMapping[currentStep as keyof typeof reverseStepMapping];
-    
+    const stepParam =
+      reverseStepMapping[currentStep as keyof typeof reverseStepMapping];
+
     if (stepParam && stepParam !== urlStep) {
-      navigate(`/purchase/${id}/${stepParam}`, { 
+      navigate(`/purchase/${id}/${stepParam}`, {
         replace: true,
-        state: location.state // Preserve existing state
+        state: location.state,
       });
     }
   }, [currentStep, id, navigate, urlStep, location.state]);
@@ -79,12 +86,12 @@ const PurchaseFlow = () => {
   const [customPayment, setCustomPayment] = useState<number>(0);
   const [accounts, setAccounts] = useState<Account[]>([
     {
-      id: 'primary',
-      type: 'primary',
+      id: "primary",
+      type: "primary",
       data: getInitialUserInfo(user),
       termsAccepted: false,
-      verified: { pan: false, aadhar: false, gst: false, passport: false }
-    }
+      verified: { pan: false, aadhar: false, gst: false, passport: false },
+    },
   ]);
   const [kycDocuments, setKycDocuments] = useState<KYCDocuments>({});
   const [kycAccepted, setKycAccepted] = useState(false);
@@ -94,11 +101,16 @@ const PurchaseFlow = () => {
   const [totalInvestment, setTotalInvestment] = useState<number>(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userProfileIds, setUserProfileIds] = useState<string[]>([]);
+  const [existingProfiles, setExistingProfiles] = useState<
+    APIUserProfileResponse[]
+  >([]);
+  const [hasExistingProfiles, setHasExistingProfiles] =
+    useState<boolean>(false);
   const projectName = location.state?.projectName || "Project";
   const [restoringState, setRestoringState] = useState(true);
 
   useEffect(() => {
-      if (id) {
+    if (id) {
       sessionStorage.setItem("currentProjectId", id);
     }
     const savedState = sessionStorage.getItem(`purchaseState_${id}`);
@@ -122,19 +134,51 @@ const PurchaseFlow = () => {
       selectedUnits,
       accounts,
       currentStep,
-      userProfileIds, // Add this
-      kycAccepted,    // Add this
-      jointKycAccepted, // Add this
-      customPayment   // Add this
+      userProfileIds,
+      kycAccepted,
+      jointKycAccepted,
+      customPayment,
+      hasExistingProfiles,
     };
     sessionStorage.setItem(`purchaseState_${id}`, JSON.stringify(stateToSave));
-  }, [selectedPlan, selectedUnits, accounts, currentStep, userProfileIds, kycAccepted, jointKycAccepted, customPayment, id]);
+  }, [
+    selectedPlan,
+    selectedUnits,
+    accounts,
+    currentStep,
+    userProfileIds,
+    kycAccepted,
+    jointKycAccepted,
+    customPayment,
+    hasExistingProfiles,
+    id,
+  ]);
 
   // Update when accounts change
   useEffect(() => {
-    const jointCount = accounts.filter(account => account.type === 'joint').length;
+    const jointCount = accounts.filter(
+      (account) => account.type === "joint"
+    ).length;
     setJointKycAccepted(Array(jointCount).fill(false));
   }, [accounts]);
+
+  // Check for existing profiles
+  const checkExistingProfiles = async (): Promise<boolean> => {
+    try {
+      const response = await userProfileApi.listUserProfiles();
+      if (response && response.length > 0) {
+        setExistingProfiles(response);
+        setHasExistingProfiles(true);
+        return true;
+      }
+      setHasExistingProfiles(false);
+      return false;
+    } catch (error) {
+      console.error("Error checking existing profiles:", error);
+      setHasExistingProfiles(false);
+      return false;
+    }
+  };
 
   // Helper functions for initial state
   function getInitialUserInfo(user: any): UserInfo {
@@ -215,6 +259,45 @@ const PurchaseFlow = () => {
     };
   }
 
+  // Convert existing profile to Account format
+  const convertProfileToAccount = (
+    profile: APIUserProfileResponse,
+    isPrimary: boolean = true
+  ): Account => {
+    return {
+      id: `profile-${profile.user_profile_id}`,
+      type: isPrimary ? "primary" : "joint",
+      data: {
+        surname: profile.surname,
+        name: profile.name,
+        dob: profile.dob,
+        gender: profile.gender,
+        email: profile.email,
+        phone_number: profile.phone_number,
+        present_address: profile.present_address,
+        permanent_address: profile.permanent_address,
+        occupation: profile.occupation,
+        annual_income: profile.annual_income,
+        user_type: profile.user_type,
+        pan_number: profile.pan_number || "",
+        aadhar_number: profile.aadhar_number || "",
+        gst_number: profile.gst_number || "",
+        passport_number: profile.passport_number || "",
+        sameAddress:
+          JSON.stringify(profile.present_address) ===
+          JSON.stringify(profile.permanent_address),
+        account_details: profile.account_details,
+      } as UserInfo,
+      termsAccepted: true, // Already accepted for existing profiles
+      verified: {
+        pan: !!profile.pan_number,
+        aadhar: !!profile.aadhar_number,
+        gst: !!profile.gst_number,
+        passport: !!profile.passport_number,
+      },
+    };
+  };
+
   // Authentication check
   useEffect(() => {
     if (!isAuthenticated) {
@@ -223,9 +306,9 @@ const PurchaseFlow = () => {
     }
   }, [isAuthenticated, navigate, id]);
 
-  // Fetch schemes
+  // Fetch schemes and check profiles on component mount
   useEffect(() => {
-    const fetchSchemes = async () => {
+    const initializeData = async () => {
       if (!id) {
         setFetchError("Invalid project ID");
         toast({
@@ -240,33 +323,39 @@ const PurchaseFlow = () => {
         setLoading(true);
         setFetchError(null);
 
+        // Fetch schemes
         const params: SchemeListRequest = {
           project_id: id,
           page: 1,
-          limit: 10
+          limit: 10,
         };
 
-        const response = await purchaseApi.getInvestmentSchemes(params);
-        console.log("API response:", response);
+        const schemeResponse = await purchaseApi.getInvestmentSchemes(params);
+        console.log("API response:", schemeResponse);
 
-        if (response.schemes && response.schemes.length > 0) {
-          setSchemes(response.schemes);
-          setTotalInvestment(response.total_invertment_amount);
+        if (schemeResponse.schemes && schemeResponse.schemes.length > 0) {
+          setSchemes(schemeResponse.schemes);
+          setTotalInvestment(schemeResponse.total_invertment_amount);
         } else {
           setSchemes([]);
           setFetchError("No investment schemes available for this project");
-          toast({
-            title: "No Schemes",
-            description: "No investment schemes available for this project",
-            variant: "destructive",
-          });
         }
+
+        // Check for existing profiles
+        await checkExistingProfiles();
       } catch (error: any) {
         console.error("Fetch error:", error);
-        setFetchError(error.response?.data?.message || error.message || "Error fetching schemes. Please try again.");
+        setFetchError(
+          error.response?.data?.message ||
+            error.message ||
+            "Error fetching data. Please try again."
+        );
         toast({
           title: "Error",
-          description: error.response?.data?.message || error.message || "Error fetching schemes. Please try again.",
+          description:
+            error.response?.data?.message ||
+            error.message ||
+            "Error fetching data. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -274,17 +363,22 @@ const PurchaseFlow = () => {
       }
     };
 
-    fetchSchemes();
+    initializeData();
   }, [id, toast]);
 
-  // Plan selection handlers (unchanged)
+  // Plan selection handlers
   const handlePlanSelection = (scheme: Scheme, units: number) => {
-    const type = scheme.scheme_type === "single_payment" ? "single" : "installment";
+    const type =
+      scheme.scheme_type === "single_payment" ? "single" : "installment";
     const totalPrice =
       type === "single"
         ? scheme.booking_advance * units
-        : scheme.total_installments! * scheme.monthly_installment_amount! * units;
-    const basePerUnit = scheme.booking_advance || (type === "installment" ? scheme.monthly_installment_amount! : 0);
+        : scheme.total_installments! *
+          scheme.monthly_installment_amount! *
+          units;
+    const basePerUnit =
+      scheme.booking_advance ||
+      (type === "installment" ? scheme.monthly_installment_amount! : 0);
     const minPayment = Math.max(basePerUnit * units, 50000);
 
     setSelectedPlan({
@@ -293,12 +387,20 @@ const PurchaseFlow = () => {
       area: scheme.area_sqft,
       price: totalPrice,
       totalInvestment: totalInvestment,
-      monthlyAmount: type === "installment" ? scheme.monthly_installment_amount! * units : undefined,
-      installments: type === "installment" ? scheme.total_installments! : undefined,
+      monthlyAmount:
+        type === "installment"
+          ? scheme.monthly_installment_amount! * units
+          : undefined,
+      installments:
+        type === "installment" ? scheme.total_installments! : undefined,
       rentalStart: scheme.rental_start_month
         ? `${scheme.rental_start_month}th Month`
         : "Next month after last installment",
-      monthlyRental: (scheme.monthly_rental_income || (type === "installment" ? scheme.monthly_installment_amount! * 0.3 : scheme.booking_advance * 0.01)) * units,
+      monthlyRental:
+        (scheme.monthly_rental_income ||
+          (type === "installment"
+            ? scheme.monthly_installment_amount! * 0.3
+            : scheme.booking_advance * 0.01)) * units,
       units: units,
       paymentAmount: minPayment,
     });
@@ -307,7 +409,9 @@ const PurchaseFlow = () => {
   };
 
   const handleUnitsChange = (increment: boolean) => {
-    const newUnits = increment ? selectedUnits + 1 : Math.max(1, selectedUnits - 1);
+    const newUnits = increment
+      ? selectedUnits + 1
+      : Math.max(1, selectedUnits - 1);
     setSelectedUnits(newUnits);
 
     if (selectedPlan) {
@@ -334,8 +438,11 @@ const PurchaseFlow = () => {
     if (!selectedPlan) return 50000;
     const scheme = schemes.find((s) => s.id === selectedPlan.planId);
     if (!scheme) return 50000;
-    const type = scheme.scheme_type === "single_payment" ? "single" : "installment";
-    const basePerUnit = scheme.booking_advance || (type === "installment" ? scheme.monthly_installment_amount! : 0);
+    const type =
+      scheme.scheme_type === "single_payment" ? "single" : "installment";
+    const basePerUnit =
+      scheme.booking_advance ||
+      (type === "installment" ? scheme.monthly_installment_amount! : 0);
     return Math.max(basePerUnit * selectedPlan.units, 50000);
   };
 
@@ -351,19 +458,24 @@ const PurchaseFlow = () => {
 
       if (!data.dob || !data.email) return false;
       if (!data.phone_number || !validatePhone(data.phone_number)) return false;
-      if (!data.present_address.street || !data.present_address.city) return false;
+      if (!data.present_address.street || !data.present_address.city)
+        return false;
       if (!data.occupation || !data.annual_income) return false;
-      if (!data.account_details.account_number || !data.account_details.ifsc_code) return false;
+      if (
+        !data.account_details.account_number ||
+        !data.account_details.ifsc_code
+      )
+        return false;
 
       // verified
       switch (data.user_type) {
-        case 'individual':
+        case "individual":
           if (!account.verified.pan || !account.verified.aadhar) return false;
           break;
-        case 'business':
+        case "business":
           if (!account.verified.gst) return false;
           break;
-        case 'NRI':
+        case "NRI":
           if (!account.verified.passport) return false;
           break;
       }
@@ -375,22 +487,48 @@ const PurchaseFlow = () => {
     if (!kycAccepted) return false;
     const primary = accounts[0]?.data as UserInfo;
     if (!primary) return false;
-    if (primary.user_type === 'individual' && (!kycDocuments.pan || !kycDocuments.aadhar || !kycDocuments.photo)) return false;
-    if (primary.user_type === 'business' && (!kycDocuments.gst || !kycDocuments.photo)) return false;
-    if (primary.user_type === 'NRI' && (!kycDocuments.passport || !kycDocuments.photo)) return false;
+    if (
+      primary.user_type === "individual" &&
+      (!kycDocuments.pan || !kycDocuments.aadhar || !kycDocuments.photo)
+    )
+      return false;
+    if (
+      primary.user_type === "business" &&
+      (!kycDocuments.gst || !kycDocuments.photo)
+    )
+      return false;
+    if (
+      primary.user_type === "NRI" &&
+      (!kycDocuments.passport || !kycDocuments.photo)
+    )
+      return false;
 
     if (accounts.length > 1 && !jointKycAccepted.every(Boolean)) return false;
 
     const jointAccounts = accounts
-      .filter(account => account.type === 'joint')
-      .map(account => account.data as JointAccountInfo);
+      .filter((account) => account.type === "joint")
+      .map((account) => account.data as JointAccountInfo);
     for (let i = 0; i < jointAccounts.length; i++) {
       const joint = jointAccounts[i];
       const idx = i + 1;
       const base = `joint${idx}`;
-      if (joint.user_type === 'individual' && (!kycDocuments[`${base}Pan`] || !kycDocuments[`${base}Aadhar`] || !kycDocuments[`${base}Photo`])) return false;
-      if (joint.user_type === 'business' && (!kycDocuments[`${base}Gst`] || !kycDocuments[`${base}Photo`])) return false;
-      if (joint.user_type === 'NRI' && (!kycDocuments[`${base}Passport`] || !kycDocuments[`${base}Photo`])) return false;
+      if (
+        joint.user_type === "individual" &&
+        (!kycDocuments[`${base}Pan`] ||
+          !kycDocuments[`${base}Aadhar`] ||
+          !kycDocuments[`${base}Photo`])
+      )
+        return false;
+      if (
+        joint.user_type === "business" &&
+        (!kycDocuments[`${base}Gst`] || !kycDocuments[`${base}Photo`])
+      )
+        return false;
+      if (
+        joint.user_type === "NRI" &&
+        (!kycDocuments[`${base}Passport`] || !kycDocuments[`${base}Photo`])
+      )
+        return false;
     }
 
     return true;
@@ -400,11 +538,12 @@ const PurchaseFlow = () => {
   const createUserProfiles = async (): Promise<string[]> => {
     const ids: string[] = [];
     const jointAccounts = accounts
-      .filter(account => account.type === 'joint')
-      .map(account => account.data as JointAccountInfo);
+      .filter((account) => account.type === "joint")
+      .map((account) => account.data as JointAccountInfo);
 
     // Primary
-    const primary = accounts.find(a => a.type === 'primary')?.data as UserInfo;
+    const primary = accounts.find((a) => a.type === "primary")
+      ?.data as UserInfo;
     if (!primary) throw new Error("Primary account data missing");
 
     const primaryData: CreateUserProfileRequest = {
@@ -413,14 +552,19 @@ const PurchaseFlow = () => {
       dob: primary.dob,
       gender: primary.gender,
       present_address: primary.present_address,
-      permanent_address: primary.sameAddress ? primary.present_address : primary.permanent_address,
+      permanent_address: primary.sameAddress
+        ? primary.present_address
+        : primary.permanent_address,
       occupation: primary.occupation,
       annual_income: primary.annual_income,
       user_type: primary.user_type,
-      pan_number: primary.user_type === "individual" ? primary.pan_number : null,
-      aadhar_number: primary.user_type === "individual" ? primary.aadhar_number : null,
+      pan_number:
+        primary.user_type === "individual" ? primary.pan_number : null,
+      aadhar_number:
+        primary.user_type === "individual" ? primary.aadhar_number : null,
       gst_number: primary.user_type === "business" ? primary.gst_number : null,
-      passport_number: primary.user_type === "NRI" ? primary.passport_number : null,
+      passport_number:
+        primary.user_type === "NRI" ? primary.passport_number : null,
       phone_number: primary.phone_number,
       email: primary.email,
       account_details: primary.account_details,
@@ -431,29 +575,34 @@ const PurchaseFlow = () => {
 
     let primaryDoc1: File | null = null;
     let primaryDoc2: File | null = null;
-    if (primary.user_type === 'individual') {
+    if (primary.user_type === "individual") {
       primaryDoc1 = kycDocuments.pan as File;
       primaryDoc2 = kycDocuments.aadhar as File;
-    } else if (primary.user_type === 'business') {
+    } else if (primary.user_type === "business") {
       primaryDoc1 = kycDocuments.gst as File;
-    } else if (primary.user_type === 'NRI') {
+    } else if (primary.user_type === "NRI") {
       primaryDoc1 = kycDocuments.passport as File;
     }
 
-    if (!primaryDoc1) throw new Error("Missing required document for primary user");
+    if (!primaryDoc1)
+      throw new Error("Missing required document for primary user");
 
     primaryFormData.append("document1", primaryDoc1);
     if (primaryDoc2) primaryFormData.append("document2", primaryDoc2);
 
     try {
-      const primaryResponse = await userProfileApi.createUserProfile(primaryFormData);
+      const primaryResponse = await userProfileApi.createUserProfile(
+        primaryFormData
+      );
       if (primaryResponse.data.user_profile_id) {
         ids.push(primaryResponse.data.user_profile_id);
       } else {
         throw new Error("No user profile ID returned for primary user");
       }
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || "Failed to create primary user profile");
+      throw new Error(
+        error.response?.data?.message || "Failed to create primary user profile"
+      );
     }
 
     // Joints
@@ -468,14 +617,18 @@ const PurchaseFlow = () => {
         dob: joint.dob,
         gender: joint.gender,
         present_address: joint.present_address,
-        permanent_address: joint.sameAddress ? joint.present_address : joint.permanent_address,
+        permanent_address: joint.sameAddress
+          ? joint.present_address
+          : joint.permanent_address,
         occupation: joint.occupation,
         annual_income: joint.annual_income,
         user_type: joint.user_type,
         pan_number: joint.user_type === "individual" ? joint.pan_number : null,
-        aadhar_number: joint.user_type === "individual" ? joint.aadhar_number : null,
+        aadhar_number:
+          joint.user_type === "individual" ? joint.aadhar_number : null,
         gst_number: joint.user_type === "business" ? joint.gst_number : null,
-        passport_number: joint.user_type === "NRI" ? joint.passport_number : null,
+        passport_number:
+          joint.user_type === "NRI" ? joint.passport_number : null,
         phone_number: joint.phone_number,
         email: joint.email,
         account_details: joint.account_details,
@@ -486,54 +639,65 @@ const PurchaseFlow = () => {
 
       let jointDoc1: File | null = null;
       let jointDoc2: File | null = null;
-      if (joint.user_type === 'individual') {
+      if (joint.user_type === "individual") {
         jointDoc1 = kycDocuments[`${baseKey}Pan`] as File;
         jointDoc2 = kycDocuments[`${baseKey}Aadhar`] as File;
-      } else if (joint.user_type === 'business') {
+      } else if (joint.user_type === "business") {
         jointDoc1 = kycDocuments[`${baseKey}Gst`] as File;
-      } else if (joint.user_type === 'NRI') {
+      } else if (joint.user_type === "NRI") {
         jointDoc1 = kycDocuments[`${baseKey}Passport`] as File;
       }
 
-      if (!jointDoc1) throw new Error(`Missing required document for joint user ${jointIndex}`);
+      if (!jointDoc1)
+        throw new Error(
+          `Missing required document for joint user ${jointIndex}`
+        );
 
       jointFormData.append("document1", jointDoc1);
       if (jointDoc2) jointFormData.append("document2", jointDoc2);
 
       try {
-        const jointResponse = await userProfileApi.createUserProfile(jointFormData);
+        const jointResponse = await userProfileApi.createUserProfile(
+          jointFormData
+        );
         if (jointResponse.data.user_profile_id) {
           ids.push(jointResponse.data.user_profile_id);
         } else {
-          throw new Error(`No user profile ID returned for joint user ${jointIndex}`);
+          throw new Error(
+            `No user profile ID returned for joint user ${jointIndex}`
+          );
         }
       } catch (error: any) {
-        throw new Error(error.response?.data?.message || `Failed to create joint user ${jointIndex} profile`);
+        throw new Error(
+          error.response?.data?.message ||
+            `Failed to create joint user ${jointIndex} profile`
+        );
       }
     }
 
     return ids;
   };
 
-  // Navigation handlers
+  // Navigation handlers - UPDATED
   const nextStep = async () => {
     setLoading(true);
 
     try {
       if (currentStep === "plan-selection" && selectedPlan) {
+        // ALWAYS go to user-info, regardless of existing profiles
         setCurrentStep("user-info");
       } else if (currentStep === "user-info" && validateUserInfo()) {
         setCurrentStep("kyc");
       } else if (currentStep === "kyc" && validateKYC()) {
         const userProfileIds = await createUserProfiles();
         setUserProfileIds(userProfileIds);
-
         toast({
           title: "Success",
           description: "User profiles created successfully",
         });
         setCurrentStep("payment");
       } else if (currentStep === "payment") {
+        // This will be handled by PurchaseUnitConfirmation's success callback
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setCurrentStep("confirmation");
         toast({
@@ -564,6 +728,31 @@ const PurchaseFlow = () => {
     }
   };
 
+  // Handle profile selection from existing profiles
+  const handleProfileSelection = (selectedProfileIds: string[]) => {
+    const selectedAccounts: Account[] = [];
+
+    // Add primary account (first selected profile)
+    const primaryProfile = existingProfiles.find(
+      (profile) => profile.user_profile_id === selectedProfileIds[0]
+    );
+    if (primaryProfile) {
+      selectedAccounts.push(convertProfileToAccount(primaryProfile, true));
+    }
+
+    // Add joint accounts (remaining selected profiles)
+    selectedProfileIds.slice(1).forEach((profileId) => {
+      const jointProfile = existingProfiles.find(
+        (profile) => profile.user_profile_id === profileId
+      );
+      if (jointProfile) {
+        selectedAccounts.push(convertProfileToAccount(jointProfile, false));
+      }
+    });
+
+    setAccounts(selectedAccounts);
+  };
+
   // Utility functions
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -578,7 +767,7 @@ const PurchaseFlow = () => {
   };
 
   const handlePurchaseSuccess = (data: any) => {
-    console.log('Purchase successful:', data);
+    console.log("Purchase successful:", data);
     setCurrentStep("confirmation");
     toast({
       title: "Payment Successful",
@@ -591,7 +780,11 @@ const PurchaseFlow = () => {
     if (validateUserInfo()) {
       toast({ title: "Success", description: "User info saved" });
     } else {
-      toast({ title: "Error", description: "Please fix validation errors", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Please fix validation errors",
+        variant: "destructive",
+      });
     }
   };
 
@@ -617,6 +810,17 @@ const PurchaseFlow = () => {
           />
         );
 
+      // case "profile-selection":
+      //   return (
+      //     <ProfileSelectionStep
+      //       existingProfiles={existingProfiles}
+      //       selectedProfileIds={userProfileIds}
+      //       onProfileSelection={handleProfileSelection}
+      //       onAddNewProfile={() => setCurrentStep("user-info")}
+      //       onContinue={nextStep}
+      //     />
+      //   );
+
       case "user-info":
         return (
           <div className="space-y-6">
@@ -630,9 +834,9 @@ const PurchaseFlow = () => {
 
       case "kyc":
         const jointAccounts = accounts
-          .filter(account => account.type === 'joint')
-          .map(account => account.data as JointAccountInfo);
-        
+          .filter((account) => account.type === "joint")
+          .map((account) => account.data as JointAccountInfo);
+
         return (
           <div className="space-y-6">
             <KYCForm
@@ -640,7 +844,9 @@ const PurchaseFlow = () => {
               setKycDocuments={setKycDocuments}
               kycAccepted={kycAccepted}
               setKycAccepted={setKycAccepted}
-              userType={(accounts[0]?.data as UserInfo)?.user_type || "individual"}
+              userType={
+                (accounts[0]?.data as UserInfo)?.user_type || "individual"
+              }
               isJointAccount={jointAccounts.length > 0}
               jointAccounts={jointAccounts}
               jointKycAccepted={jointKycAccepted}
@@ -663,7 +869,7 @@ const PurchaseFlow = () => {
               numberOfUnits={selectedUnits}
               onPurchaseSuccess={handlePurchaseSuccess}
               userProfileIds={userProfileIds}
-              schemeData={schemes.find(s => s.id === selectedPlan.planId)}
+              schemeData={schemes.find((s) => s.id === selectedPlan.planId)}
               paymentAmount={getCurrentPaymentAmount()}
             />
           </div>
@@ -711,15 +917,15 @@ const PurchaseFlow = () => {
             >
               Back to Project Details
             </button>
-            <p className="text-muted-foreground">Complete your investment in a few simple steps</p>
+            <p className="text-muted-foreground">
+              Complete your investment in a few simple steps
+            </p>
           </div>
 
           <PurchaseProgress currentStep={currentStep} />
 
           <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              {renderCurrentStep()}
-            </div>
+            <div className="lg:col-span-2">{renderCurrentStep()}</div>
 
             <OrderSummary
               selectedPlan={selectedPlan}

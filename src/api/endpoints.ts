@@ -52,11 +52,12 @@ export const ENDPOINTS = {
     VERIFY_ORDER: (orderId: string) => `/payments/verify-order/${orderId}`,
   },
 
-  USER_PROFILE: {
+   USER_PROFILE: {
     CREATE: "/user_profile/create",
     UPDATE: (id: string) => `/user_profile/update/${id}`,
     DELETE: (id: string) => `/user_profile/delete/${id}`,
     GET: (id: string) => `/user_profile/${id}`,
+    LIST: "/user_profile/list", // Add this
   },
 
   PURCHASED_UNITS: {
