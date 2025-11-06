@@ -242,7 +242,7 @@ const Footer = () => {
                   Terms
                 </button>
                 <a
-                  href="/disclaimer"
+                  href="/#"
                   className="hover:text-yellow-600 transition-colors duration-200"
                 >
                   Disclaimer
