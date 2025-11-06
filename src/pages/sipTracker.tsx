@@ -102,7 +102,7 @@ const SipTracker = () => {
     try {
       // Fetch customer info for the payment modal
       const customerInfoResponse = await fetch(
-        `http://127.0.0.1:8000/api/payments/customer-info/${unit.unit_number}`,
+        `https://frontend-api.ramyaconstructions.com/api/payments/customer-info/${unit.unit_number}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -237,9 +237,7 @@ const SipTracker = () => {
   const handleDownloadReceipt = (payment: Payment) => {
     console.log(`Downloading receipt for ${payment.receipt_id}`);
     alert(
-      `Downloading receipt ${payment.receipt_id} for ${getTransactionTypeText(
-        payment.transaction_type
-      )}`
+      `Our Team Working on it `
     );
   };
 
@@ -563,48 +561,7 @@ const SipTracker = () => {
               </Card>
 
               {/* Action Buttons */}
-              {currentUnit && !isPaymentCompleted && (
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <Button
-                    size="sm"
-                    variant="luxury"
-                    onClick={() => handlePayNow(currentUnit)}
-                    disabled={loadingCustomerInfo}
-                    className="w-full sm:w-auto"
-                  >
-                    {loadingCustomerInfo ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <CreditCard className="w-4 h-4 mr-2" />
-                    )}
-                    {isInstallmentScheme ? "Pay Now" : "Make Payment"}
-                  </Button>
-
-                  {/* Additional action buttons */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    asChild
-                  >
-                    <Link to={`/sip?unit=${currentUnit.unit_number}`}>
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    asChild
-                  >
-                    <Link to={`/agreements?unit=${currentUnit.unit_number}`}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Agreement
-                    </Link>
-                  </Button>
-                </div>
-              )}
+      
             </div>
 
             {/* Sidebar Info */}
@@ -655,7 +612,7 @@ const SipTracker = () => {
               </Card>
 
               {/* Quick Stats */}
-              <Card className="border-0 shadow-md card-luxury">
+              {/* <Card className="border-0 shadow-md card-luxury">
                 <CardHeader className="border-b bg-card p-4 sm:p-6">
                   <CardTitle className="text-base sm:text-lg text-foreground">
                     Quick Stats
@@ -704,7 +661,7 @@ const SipTracker = () => {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
           </div>
 
@@ -784,7 +741,7 @@ const SipTracker = () => {
                                       Receipt: {payment.receipt_id}
                                     </p>
                                     <div className="flex flex-wrap gap-2">
-                                      {payment.rebate_amount &&
+                                      {/* {payment.rebate_amount &&
                                         payment.rebate_amount > 0 && (
                                           <Badge
                                             variant="outline"
@@ -796,8 +753,8 @@ const SipTracker = () => {
                                             )}{" "}
                                             rebate
                                           </Badge>
-                                        )}
-                                      {payment.penalty_amount &&
+                                        )} */}
+                                      {/* {payment.penalty_amount &&
                                         payment.penalty_amount > 0 && (
                                           <Badge
                                             variant="outline"
@@ -809,7 +766,7 @@ const SipTracker = () => {
                                             )}{" "}
                                             penalty
                                           </Badge>
-                                        )}
+                                        )} */}
                                     </div>
                                   </div>
                                 </div>
@@ -871,7 +828,6 @@ const SipTracker = () => {
         <PaymentModal
           unit={selectedUnitForPayment}
           customerInfo={customerInfo}
-          token={token}
           onClose={() => {
             setShowPaymentModal(false);
             setSelectedUnitForPayment(null);
