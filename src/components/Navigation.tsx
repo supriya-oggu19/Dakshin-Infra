@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  Menu, 
-  X, 
-  Home, 
-  Building2, 
-  Users, 
-  Phone, 
+import logo from "@/assets/ramya constructions logo.png";
+import {
+  Menu,
+  X,
+  Home,
+  Building2,
+  Users,
+  Phone,
   Info,
   LogIn,
   LogOut,
@@ -55,22 +56,22 @@ const Navigation = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 nav-professional">
       <div className="container-professional">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <img 
-              src="src/assets/ramya constructions logo.png" 
-              alt="Kapil Group logo featuring a stylized building icon on a white background, representing professionalism and trust in a modern construction business setting"
-              className="w-10 h-10 rounded-xl shadow-lg object-contain bg-white"
-              style={{ background: "#fff" }}
+        <div className="flex items-center h-20 gap-4">
+          {/* Logo - Left Side */}
+          <Link to="/" className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+            <img
+              src={logo}
+              alt="Ramya Constructions logo"
+              className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl shadow-lg object-contain bg-white"
             />
-            <span className="text-2xl font-bold text-display text-foreground">
+
+            <span className="text-base md:text-xl lg:text-2xl font-bold text-foreground whitespace-nowrap">
               Ramya <span className="text-gold-elegant">Constructions</span>
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-2">
+          {/* Desktop Navigation - Center */}
+          <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
             {publicNavItems.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
@@ -78,11 +79,10 @@ const Navigation = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive
+                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                       ? "nav-item-active"
                       : "nav-item-professional"
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
                   {item.name}
@@ -92,34 +92,31 @@ const Navigation = () => {
 
             {/* Portfolio Dropdown - Only show when authenticated */}
             {isAuthenticated && (
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={() => setIsPortfolioOpen(true)}
                 onMouseLeave={() => setIsPortfolioOpen(false)}
               >
                 <button
-                  className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isPortfolioActive
+                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isPortfolioActive
                       ? "nav-item-active"
                       : "nav-item-professional"
-                  }`}
+                    }`}
                 >
                   <Briefcase className="w-4 h-4 mr-2" />
                   Portfolio
-                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${
-                    isPortfolioOpen ? 'rotate-180' : ''
-                  }`} />
+                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${isPortfolioOpen ? 'rotate-180' : ''
+                    }`} />
                 </button>
 
                 {/* Dropdown Menu */}
-                <div 
-                  className={`absolute top-full left-0 w-48 bg-white rounded-lg shadow-lg border border-border transition-all duration-200 ${
-                    isPortfolioOpen 
-                      ? 'opacity-100 visible translate-y-0' 
+                <div
+                  className={`absolute top-full left-0 w-48 bg-white rounded-lg shadow-lg border border-border transition-all duration-200 ${isPortfolioOpen
+                      ? 'opacity-100 visible translate-y-0'
                       : 'opacity-0 invisible -translate-y-2'
-                  }`}
-                  style={{ 
-                    marginTop: '0.25rem', // mt-1 equivalent
+                    }`}
+                  style={{
+                    marginTop: '0.25rem',
                     transition: 'all 0.2s ease-in-out'
                   }}
                 >
@@ -132,11 +129,10 @@ const Navigation = () => {
                           key={item.name}
                           to={item.href}
                           onClick={() => setIsPortfolioOpen(false)}
-                          className={`flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                            isActive
+                          className={`flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 ${isActive
                               ? "bg-primary/10 text-primary"
                               : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          }`}
+                            }`}
                         >
                           <Icon className="w-4 h-4 mr-3" />
                           {item.name}
@@ -147,42 +143,42 @@ const Navigation = () => {
                 </div>
               </div>
             )}
-            
-            {/* Auth Section */}
-            <div className="ml-6 flex items-center space-x-3">
-              {isAuthenticated ? (
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center px-4 py-2 bg-muted rounded-lg">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                      <User className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium text-foreground">
-                      Welcome, <span className="text-primary">{user?.username}</span>
-                    </span>
+          </div>
+
+          {/* Auth Section - Right Side */}
+          <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
+            {isAuthenticated ? (
+              <>
+                <div className="flex items-center px-3 py-2 bg-muted rounded-lg">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-2">
+                    <User className="w-4 h-4 text-primary" />
                   </div>
-                  <Button
-                    onClick={handleLogout}
-                    variant="outline"
-                    size="sm"
-                    className="border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </Button>
+                  <span className="text-sm font-medium text-foreground">
+                    Welcome, <span className="text-primary">{user?.username}</span>
+                  </span>
                 </div>
-              ) : (
-                <Link to="/login">
-                  <Button className="btn-gold">
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Login
-                  </Button>
-                </Link>
-              )}
-            </div>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Link to="/login">
+                <Button className="btn-gold">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="lg:hidden">
+          <div className="lg:hidden ml-auto">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -208,11 +204,10 @@ const Navigation = () => {
                     key={item.name}
                     to={item.href}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isActive
+                    className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     <Icon className="w-4 h-4 mr-3" />
                     {item.name}
@@ -225,21 +220,19 @@ const Navigation = () => {
                 <div>
                   <button
                     onClick={() => setIsPortfolioOpen(!isPortfolioOpen)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isPortfolioActive
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isPortfolioActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center">
                       <Briefcase className="w-4 h-4 mr-3" />
                       Portfolio
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
-                      isPortfolioOpen ? 'rotate-180' : ''
-                    }`} />
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isPortfolioOpen ? 'rotate-180' : ''
+                      }`} />
                   </button>
-                  
+
                   {isPortfolioOpen && (
                     <div className="ml-6 mt-2 space-y-1">
                       {portfolioItems.map((item) => {
@@ -250,11 +243,10 @@ const Navigation = () => {
                             key={item.name}
                             to={item.href}
                             onClick={handlePortfolioItemClick}
-                            className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                              isActive
+                            className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                                 ? "bg-primary/10 text-primary"
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            }`}
+                              }`}
                           >
                             <Icon className="w-4 h-4 mr-3" />
                             {item.name}
@@ -265,7 +257,7 @@ const Navigation = () => {
                   )}
                 </div>
               )}
-              
+
               {/* Mobile Auth */}
               <div className="border-t border-border pt-4 mt-4">
                 {isAuthenticated ? (
