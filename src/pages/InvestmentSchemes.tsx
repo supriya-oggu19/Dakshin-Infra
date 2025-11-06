@@ -426,7 +426,6 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
                       onClick={() => handleInvestNow(scheme.id)}
                       className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-4 sm:py-5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group"
                     >
-                      <DollarSign className="w-4 h-4 mr-2" />
                       Invest Now
                       <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>

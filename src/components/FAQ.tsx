@@ -13,44 +13,48 @@ const FAQ = () => {
   };
 
   const faqs = [
-    // -------------------------------------------------
-    //  NEW QUESTIONS (added at the top)
-    // -------------------------------------------------
-    {
-      question: "What is the minimum investment amount?",
-      answer:
-        "Start your investment journey with just ₹36 lakhs for a commercial unit that grows over 7 years, offering up to 18% annual returns.",
-    },
-    {
-      question: "How does the installment plan work?",
-      answer:
-        "Choose flexible payment options - pay ₹1 lakh monthly for 36 months, then enjoy ₹31,500 monthly rental income from the 37th month onwards.",
-    },
+  {
+    question: "What is the minimum investment amount?",
+    answer:
+      "Start your investment journey with just ₹36 lakhs for a commercial unit that offering up to 18%* annual returns.",
+  },
+  {
+    question: "How many Payment options are available?",
+    answer:
+      "You can choose between two payment options – a single  payment or a monthly installment plan. Pick the one that suits you best.",
+  },
+  {
+    question: "How does the installment plan work?",
+    answer:
+      "You can opt for a flexible installment plan where you make monthly payments for a set duration. Once all installments are completed, you start receiving a fixed rental income every month thereafter.",
+  },
+  
 
-    // -------------------------------------------------
-    //  ORIGINAL FAQS (kept in the same order)
-    // -------------------------------------------------
-    {
-      question: "Are returns guaranteed and secure?",
-      answer:
-        "Yes, we guarantee uninterrupted rental income regardless of occupancy, backed by our comprehensive tenant management and legal compliance.",
-    },
-    {
-      question: "Can NRIs invest in this project?",
-      answer:
-        "Absolutely. NRIs can invest subject to FEMA compliance, with our team providing complete documentation support through our secure platform.",
-    },
-    {
-      question: "Who handles property management?",
-      answer:
-        "Our professional facility management team handles everything - tenant relations, maintenance, legal compliance - ensuring truly passive income for you.",
-    },
-    {
-      question: "What legal documentation is provided?",
-      answer:
-        "You receive comprehensive legal documents defining your ownership rights, terms, and obligations, all reviewed by legal professionals for complete transparency.",
-    },
-  ];
+  // -------------------------------------------------
+  //  ORIGINAL FAQS (kept in the same order)
+  // -------------------------------------------------
+  {
+    question: "Are returns guaranteed and secure?",
+    answer:
+      "Yes, we guarantee uninterrupted rental income regardless of occupancy, backed by our comprehensive tenant management and legal compliance.",
+  },
+  {
+    question: "Can NRIs invest in this project?",
+    answer:
+      "Absolutely. NRIs can invest subject to FEMA compliance, with our team providing complete documentation support through our secure platform.",
+  },
+  {
+    question: "Who handles property management?",
+    answer:
+      "Our professional facility management team handles everything - tenant relations, maintenance, legal compliance - ensuring truly passive income for you.",
+  },
+  {
+    question: "What legal documentation is provided?",
+    answer:
+      "You receive comprehensive legal documents defining your ownership rights, terms, and obligations, all reviewed by legal professionals for complete transparency.",
+  },
+];
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-20">

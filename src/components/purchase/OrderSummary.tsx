@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ interface OrderSummaryProps {
   formatCurrency: (amount: number) => string;
 }
 
-const OrderSummary: React.FC<OrderSummaryProps> = ({
+const OrderSummary = forwardRef<HTMLDivElement, OrderSummaryProps>(({
   selectedPlan,
   currentStep,
   loading,
@@ -29,7 +29,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   validateKYC,
   isValidPaymentAmount,
   formatCurrency,
-}) => {
+}, ref) => {
   const getNextButtonDisabled = () => {
     if (loading) return true;
     if (!selectedPlan) return true;
@@ -47,7 +47,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div ref={ref} id="order-summary" className="space-y-6 lg:sticky lg:top-24">
       <Card>
         <CardHeader>
           <CardTitle>Order Summary</CardTitle>
@@ -76,7 +76,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
       )}
     </div>
   );
-};
+});
+
+OrderSummary.displayName = 'OrderSummary';
 
 const OrderDetails: React.FC<any> = ({ selectedPlan, getMinPayment, formatCurrency }) => (
   <div className="space-y-2">
@@ -138,12 +140,12 @@ const OrderDetails: React.FC<any> = ({ selectedPlan, getMinPayment, formatCurren
       <span className="text-muted-foreground">Future Monthly Rental</span>
       <span className="font-medium text-green-600">{formatCurrency(selectedPlan.monthlyRental)}</span>
     </div>
-        <div className="flex justify-between text-sm">
-      <span className="text-muted-foreground" >Total Investment</span>
+    <div className="flex justify-between text-sm">
+      <span className="text-muted-foreground">Total Investment</span>
       <span>{formatCurrency(selectedPlan.totalInvestment * selectedPlan.units)}</span>
     </div>
     <Separator />
-        <div className="flex justify-between text-lg font-bold text-primary">
+    <div className="flex justify-between text-lg font-bold text-primary">
       <span>Pay now</span>
       <span>{formatCurrency(selectedPlan.paymentAmount)}</span>
     </div>
