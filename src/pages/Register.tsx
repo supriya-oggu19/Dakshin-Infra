@@ -47,7 +47,6 @@ const Register = () => {
   // Validate phone number (only digits, length varies by country)
   const validatePhoneNumber = (phone: string) => {
     const digitsOnly = phone.replace(/\D/g, '');
-    // Basic validation - at least 6 digits for phone numbers
     return digitsOnly.length >= 6 && digitsOnly.length <= 15;
   };
 
@@ -71,7 +70,6 @@ const Register = () => {
   };
 
   const handleCountrySelect = (country: typeof COUNTRY_CODES[0]) => {
-    // If OTP field is showing and country changes, reset OTP state
     if (showOtpField && country.code !== selectedCountry.code) {
       setShowOtpField(false);
       setOtp("");
@@ -81,9 +79,7 @@ const Register = () => {
     setShowCountryDropdown(false);
   };
 
-  // Reset OTP state when any field changes during OTP phase
   const handleNameChange = (value: string) => {
-    // If OTP field is showing and name changes, reset OTP state
     if (showOtpField && value !== name) {
       setShowOtpField(false);
       setOtp("");
@@ -93,7 +89,6 @@ const Register = () => {
   };
 
   const handleEmailChange = (value: string) => {
-    // If OTP field is showing and email changes, reset OTP state
     if (showOtpField && value !== email) {
       setShowOtpField(false);
       setOtp("");
@@ -104,14 +99,11 @@ const Register = () => {
 
   const handlePhoneNumberChangeWithReset = (value: string) => {
     const formatted = formatPhoneNumber(value);
-    
-    // If OTP field is showing and phone number changes, reset OTP state
     if (showOtpField && formatted !== phoneNumber) {
       setShowOtpField(false);
       setOtp("");
       setSuccess("");
     }
-    
     setPhoneNumber(formatted);
   };
 
@@ -123,7 +115,7 @@ const Register = () => {
 
   const handleSendOtp = async () => {
     const digitsOnly = phoneNumber.replace(/\D/g, '');
-    
+
     if (!name || !email || !digitsOnly) {
       toast({
         title: "Error",
@@ -208,8 +200,7 @@ const Register = () => {
       }
     } catch (err: any) {
       const backendMessage = err.response?.data?.message || "Registration failed.";
-      
-      // Handle specific backend error messages
+
       if (backendMessage === "User already exists. Please login") {
         setError("User already exists. Please login instead.");
         toast({
@@ -297,14 +288,14 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* Email */}
+              {/* Email - NO VALIDATION */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
-                    type="email"
+                    type="text"  // Changed from "email" to "text" to disable browser validation
                     value={email}
                     onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="Enter your email"

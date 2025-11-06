@@ -8,6 +8,12 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
+import PrivacyPolicyPage from './pages/PrivacyPolicy';
+import TermsAndConditionsPage from './pages/TermsAndConditions';
+import RefundPolicyPage from './pages/RefundPolicy';
+
+
+
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
@@ -160,6 +166,12 @@ const App = () => (
               <Route path="/contact" element={<AppLayout><Contact /></AppLayout>} />
               <Route path="/agents" element={<AppLayout><Agents /></AppLayout>} />
               <Route path="/login" element={<Login />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsAndConditionsPage />} />
+                <Route path="/refund-policy" element={<RefundPolicyPage />} />
+
+
+
               <Route path="/register" element={<Register />} />
               <Route
                 path="/investment-schemes/:id"

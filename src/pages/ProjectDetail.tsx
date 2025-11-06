@@ -41,6 +41,11 @@ import {
   Wifi,
   Waves,
   Loader,
+  Building,
+  Calendar,
+  Layers,
+  Home,
+  Image as ImageIcon,
   FileText,
 } from "lucide-react";
 
@@ -52,6 +57,8 @@ import {
   ProjectData,
   ProjectStatus,
   PropertyType,
+  Amenity,
+  GalleryImage,
 } from "@/api/models/projectModels";
 
 interface FormattedProject
@@ -62,8 +69,10 @@ interface FormattedProject
   area: string;
   gallery: string[];
   highlights: string[];
-  amenities: any[];
+  features: string[];
+  amenities: Amenity[];
   investmentHighlights: { title: string; value: string; subtitle?: string }[];
+  quickInfoItems: { label: string; value: string; icon: any }[];
 }
 
 const ProjectDetail = () => {
@@ -75,6 +84,7 @@ const ProjectDetail = () => {
   const [project, setProject] = useState<FormattedProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoadError, setImageLoadError] = useState<{[key: string]: boolean}>({});
 
   /* -------------------------- FETCH -------------------------- */
   useEffect(() => {
@@ -99,26 +109,69 @@ const ProjectDetail = () => {
       const projectData = data?.data;
       if (!projectData) throw new Error("No project details found");
 
+      console.log("Project Data:", projectData); // Debug log
+      console.log("Gallery Images:", projectData.gallery_images); // Debug log
+
+      // Format quick info items
+      const quickInfoItems = [];
+      if (projectData.quick_info?.possession_date) {
+        quickInfoItems.push({
+          label: "Possession Date",
+          value: projectData.quick_info.possession_date,
+          icon: Calendar,
+        });
+      }
+      if (projectData.quick_info?.total_towers) {
+        quickInfoItems.push({
+          label: "Total Towers",
+          value: projectData.quick_info.total_towers.toString(),
+          icon: Building,
+        });
+      }
+      if (projectData.quick_info?.total_floors) {
+        quickInfoItems.push({
+          label: "Total Floors",
+          value: projectData.quick_info.total_floors.toString(),
+          icon: Layers,
+        });
+      }
+      if (projectData.quick_info?.unit_variants?.length) {
+        quickInfoItems.push({
+          label: "Unit Variants",
+          value: projectData.quick_info.unit_variants.join(", "),
+          icon: Home,
+        });
+      }
+
+      // Process gallery images - handle different possible formats
+      let galleryUrls: string[] = [];
+      if (projectData.gallery_images && Array.isArray(projectData.gallery_images)) {
+        galleryUrls = projectData.gallery_images.map((img: any) => {
+          if (typeof img === 'string') {
+            return img; // If it's already a string URL
+          } else if (img && typeof img === 'object') {
+            return img.url || img.image_url || img.src || ''; // Extract URL from object
+          }
+          return '';
+        }).filter(url => url && url.trim() !== ''); // Remove empty URLs
+      }
+
+      console.log("Processed Gallery URLs:", galleryUrls); // Debug log
+
       const formatted: FormattedProject = {
         ...projectData,
         status: formatStatus(projectData.status),
-        type:
-          projectData.property_type?.charAt(0).toUpperCase() +
-          projectData.property_type?.slice(1) || "Unknown",
+        type: formatPropertyType(projectData.property_type),
         price: projectData.base_price
           ? `₹${(projectData.base_price / 100000).toFixed(0)} Lakhs`
           : "Price not available",
         area: projectData.available_units
           ? `${projectData.available_units} sqft`
           : "N/A",
-        gallery:
-          projectData.gallery_images?.map((i: any) => i) || [],
+        gallery: galleryUrls,
         highlights: projectData.key_highlights || [],
-        amenities:
-          projectData.amenities?.map((a: any) => ({
-            ...a,
-            icon: getIconComponent(a.icon),
-          })) || [],
+        features: projectData.features || [],
+        amenities: projectData.amenities || [],
         investmentHighlights:
           projectData.investment_highlights?.map((h: string) => {
             const [title, ...rest] = h.split(": ");
@@ -128,6 +181,7 @@ const ProjectDetail = () => {
               subtitle: "",
             };
           }) || [],
+        quickInfoItems,
       };
 
       setProject(formatted);
@@ -140,17 +194,35 @@ const ProjectDetail = () => {
   };
 
   const formatStatus = (
-    s: string
+    s: ProjectStatus
   ): "Available" | "Sold Out" | "Coming Soon" => {
-    if (s === "available") return "Available";
-    if (s === "sold_out") return "Sold Out";
-    if (s === "coming_soon") return "Coming Soon";
+    if (s === ProjectStatus.AVAILABLE) return "Available";
+    if (s === ProjectStatus.SOLD_OUT) return "Sold Out";
+    if (s === ProjectStatus.COMING_SOON) return "Coming Soon";
     return "Available";
+  };
+
+  const formatPropertyType = (type: PropertyType): string => {
+    switch (type) {
+      case PropertyType.COMMERCIAL:
+        return "Commercial";
+      case PropertyType.RESIDENTIAL:
+        return "Residential";
+      case PropertyType.PLOT:
+        return "Plot";
+      case PropertyType.LAND:
+        return "Land";
+      case PropertyType.MIXED_USE:
+        return "Mixed Use";
+      default:
+        return "Unknown";
+    }
   };
 
   const getIconComponent = (name?: string) => {
     switch (name?.toLowerCase()) {
       case "shield":
+      case "shieldcheck":
         return ShieldCheck;
       case "utensils":
         return Utensils;
@@ -162,6 +234,33 @@ const ProjectDetail = () => {
         return Wifi;
       case "waves":
         return Waves;
+      case "star":
+        return Star;
+      case "trendingup":
+        return TrendingUp;
+      case "mappin":
+        return MapPin;
+      case "square":
+        return Square;
+      case "phone":
+        return Phone;
+      case "mail":
+        return Mail;
+      case "play":
+        return Play;
+      case "download":
+        return Download;
+      case "building":
+        return Building;
+      case "calendar":
+        return Calendar;
+      case "layers":
+        return Layers;
+      case "home":
+        return Home;
+      case "image":
+      case "imageicon":
+        return ImageIcon;
       default:
         return Star;
     }
@@ -218,8 +317,12 @@ const ProjectDetail = () => {
     // Clear any existing purchase state for this project
     sessionStorage.removeItem(`purchaseState_${id}`);
     sessionStorage.setItem('currentProjectId', id);
-    if (isAuthenticated) navigate(`/purchase/${id}`, { state: { projectName: project.title } });
+    if (isAuthenticated) navigate(`/purchase/${id}`, { state: { projectName: project?.title } });
     else navigate("/login", { state: { from: `/purchase/${id}` } });
+  };
+
+  const handleImageError = (imageUrl: string) => {
+    setImageLoadError(prev => ({ ...prev, [imageUrl]: true }));
   };
 
   /* -------------------------- RENDER -------------------------- */
@@ -263,16 +366,25 @@ const ProjectDetail = () => {
 
       {/* ==== HERO ==== */}
       <section className="relative h-[55vh] sm:h-[65vh] lg:h-[70vh] overflow-hidden">
-        {currentImg && (
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-all duration-500"
-            style={{ backgroundImage: `url(${currentImg})` }}
-          />
+        {currentImg && !imageLoadError[currentImg] ? (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+              style={{ backgroundImage: `url(${currentImg})` }}
+            />
+            <div className="absolute inset-0 bg-black/40" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center">
+            <div className="text-center text-white">
+              <ImageIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <p className="text-lg">No image available</p>
+            </div>
+          </div>
         )}
-        <div className="absolute inset-0 bg-black/40" />
 
         {/* Gallery Nav (hidden on xs) */}
-        {project.gallery.length > 1 && (
+        {project.gallery.length > 1 && currentImg && !imageLoadError[currentImg] && (
           <>
             <div className="absolute inset-y-0 left-2 sm:left-4 flex items-center z-20">
               <Button
@@ -362,7 +474,7 @@ const ProjectDetail = () => {
         </div>
 
         {/* Dots */}
-        {project.gallery.length > 1 && (
+        {project.gallery.length > 1 && currentImg && !imageLoadError[currentImg] && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
             {project.gallery.map((_, i) => (
               <button
@@ -386,11 +498,31 @@ const ProjectDetail = () => {
             {/* LEFT – TABS */}
             <div className="lg:col-span-2 space-y-8">
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-card/80 backdrop-blur-sm">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="amenities">Features</TabsTrigger>
-                  <TabsTrigger value="investment">Investment</TabsTrigger>
-                  <TabsTrigger value="gallery">Gallery</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-yellow-500/10 backdrop-blur-sm border border-yellow-500/20">
+                  <TabsTrigger 
+                    value="overview" 
+                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                  >
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="amenities" 
+                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                  >
+                    Features
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="investment" 
+                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                  >
+                    Investment
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="gallery" 
+                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                  >
+                    Gallery
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* ---- OVERVIEW ---- */}
@@ -412,7 +544,7 @@ const ProjectDetail = () => {
                     )}
                   </div>
 
-                  {/* KEY HIGHLIGHTS – NEW UI */}
+                  {/* KEY HIGHLIGHTS */}
                   {project.highlights.length > 0 && (
                     <div className="card-luxury p-6 sm:p-8 rounded-xl">
                       <h3 className="text-xl sm:text-2xl font-bold mb-5 flex items-center text-gradient-yellow">
@@ -435,7 +567,7 @@ const ProjectDetail = () => {
                     </div>
                   )}
 
-                  {/* INVESTMENT HIGHLIGHTS – NEW UI */}
+                  {/* INVESTMENT HIGHLIGHTS */}
                   {project.investmentHighlights.length > 0 && (
                     <div className="card-luxury p-6 sm:p-8 rounded-xl">
                       <h3 className="text-xl sm:text-2xl font-bold mb-6 flex items-center text-gradient-yellow">
@@ -469,40 +601,72 @@ const ProjectDetail = () => {
                   )}
                 </TabsContent>
 
-                {/* ---- FEATURES ---- */}
+                {/* ---- FEATURES & AMENITIES ---- */}
                 <TabsContent value="amenities" className="mt-6">
-                  <div className="card-luxury p-6 sm:p-8 rounded-xl">
-                    <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-yellow">
-                      Features & Amenities
-                    </h2>
-                    {project.amenities.length ? (
-                      <div className="grid sm:grid-cols-2 gap-5">
-                        {project.amenities.map((a: any, i) => {
-                          const Icon = a.icon;
-                          return (
-                            <div
-                              key={i}
-                              className="flex items-start gap-4 p-4 bg-background/50 rounded-lg border border-border/50"
+                  <div className="space-y-8">
+                    {/* Features Section */}
+                    {project.features.length > 0 && (
+                      <div className="card-luxury p-6 sm:p-8 rounded-xl">
+                        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-yellow">
+                          Key Features
+                        </h2>
+                        <ul className="space-y-3">
+                          {project.features.map((feature, index) => (
+                            <li
+                              key={index}
+                              className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border/50 transition-all duration-300 hover:border-yellow-500/30"
                             >
-                              <div className="w-11 h-11 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <Icon className="w-6 h-6 text-yellow-50" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-foreground">
-                                  {a.name}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {a.description}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
+                              <Star className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-foreground leading-snug">
+                                {feature}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    ) : (
-                      <p className="text-muted-foreground">
-                        No amenities listed.
-                      </p>
+                    )}
+
+                    {/* Amenities Section */}
+                    {project.amenities.length > 0 && (
+                      <div className="card-luxury p-6 sm:p-8 rounded-xl">
+                        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-yellow">
+                          Amenities
+                        </h2>
+                        <div className="grid sm:grid-cols-2 gap-5">
+                          {project.amenities.map((amenity, index) => {
+                            const Icon = getIconComponent(amenity.icon);
+                            return (
+                              <div
+                                key={index}
+                                className="flex items-start gap-4 p-4 bg-background/50 rounded-lg border border-border/50 hover:border-yellow-500/30 transition-all duration-300"
+                              >
+                                <div className="w-11 h-11 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <Icon className="w-6 h-6 text-yellow-50" />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-foreground mb-1">
+                                    {amenity.name}
+                                  </h4>
+                                  {amenity.description && (
+                                    <p className="text-sm text-muted-foreground">
+                                      {amenity.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback if no features or amenities */}
+                    {project.features.length === 0 && project.amenities.length === 0 && (
+                      <div className="card-luxury p-6 sm:p-8 rounded-xl">
+                        <p className="text-muted-foreground text-center py-8">
+                          No features or amenities listed.
+                        </p>
+                      </div>
                     )}
                   </div>
                 </TabsContent>
@@ -530,20 +694,29 @@ const ProjectDetail = () => {
                           <div
                             key={i}
                             onClick={() => setCurrentImageIndex(i)}
-                            className="aspect-[4/3] overflow-hidden rounded-lg cursor-pointer group"
+                            className="aspect-[4/3] overflow-hidden rounded-lg cursor-pointer group bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
                           >
-                            <img
-                              src={img}
-                              alt={`Gallery ${i + 1}`}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                            />
+                            {!imageLoadError[img] ? (
+                              <img
+                                src={img}
+                                alt={`Gallery ${i + 1}`}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                onError={() => handleImageError(img)}
+                              />
+                            ) : (
+                              <div className="text-center text-gray-500">
+                                <ImageIcon className="w-8 h-8 mx-auto mb-2" />
+                                <p className="text-sm">Failed to load</p>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground">
-                        No images available.
-                      </p>
+                      <div className="text-center py-8">
+                        <ImageIcon className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                        <p className="text-muted-foreground">No images available.</p>
+                      </div>
                     )}
                   </div>
                 </TabsContent>
@@ -611,7 +784,22 @@ const ProjectDetail = () => {
                 <h3 className="text-lg font-semibold mb-4 text-foreground">
                   Quick Information
                 </h3>
-                <dl className="space-y-2 text-sm">
+                <dl className="space-y-4">
+                  {/* Dynamic Quick Info Items */}
+                  {project.quickInfoItems.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-yellow-500" />
+                          <dt className="text-muted-foreground">{item.label}</dt>
+                        </div>
+                        <dd className="font-medium text-right">{item.value}</dd>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Static Quick Info Items */}
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Property Type</dt>
                     <dd className="font-medium">{project.type}</dd>
@@ -627,6 +815,14 @@ const ProjectDetail = () => {
                     <dd className="font-medium">
                       {project.building_permission || "N/A"}
                     </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Total Units</dt>
+                    <dd className="font-medium">{project.total_units}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Available Units</dt>
+                    <dd className="font-medium">{project.available_units}</dd>
                   </div>
                 </dl>
               </div>

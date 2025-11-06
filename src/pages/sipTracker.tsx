@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSearchParams } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 import {
   TrendingUp,
   Award,
@@ -15,39 +17,92 @@ import {
   Loader2,
   Building2,
   Eye,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  CheckCircle2,
+  Receipt,
+  RefreshCw,
+  Sparkles,
+  Star,
+  XCircle,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { investmentApi } from "../api/investmentApi";
+import { paymentApi } from "../api/paymentApi";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
 import {
-  InvestmentUnit,
-  PaymentListResponse,
-  Payment,
-} from "../api/models/investment.model";
+  PortfolioItem,
+} from "../api/models/portfolio.model";
 import { portfolioApi } from "../api/portfolio-api";
 import PaymentModal from "@/components/PaymentModal";
-import { Link } from "react-router-dom";
+
+// Payment Data Interfaces
+interface Payment {
+  transaction_type: string;
+  order_id: string;
+  amount: number;
+  payment_date: string;
+  due_date: string | null;
+  payment_method: string;
+  payment_status: string;
+  installment_number: number;
+  penalty_amount: number;
+  rebate_amount: number;
+  receipt_id: string;
+}
+
+interface PaymentData {
+  unit_number: string;
+  total_payments: number;
+  payments: Payment[];
+  next_installment?: {
+    installment_number: number;
+    due_date: string;
+    amount: number;
+    status: string;
+  };
+}
+// Enum types
+type PaymentStatus = 'advance_paid' | 'partially_paid' | 'fully_paid' | 'none';
+type UnitStatus = 'payment_ongoing' | 'active' | 'rental_active' | 'none';
 
 const SipTracker = () => {
-  const { token } = useAuth();
+  const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const urlUnit = searchParams.get('unit');
+  
   const [selectedUnit, setSelectedUnit] = useState("");
-  const [portfolioData, setPortfolioData] = useState<InvestmentUnit[]>([]);
-  const [paymentData, setPaymentData] = useState<PaymentListResponse | null>(
-    null
-  );
+  const [portfolioData, setPortfolioData] = useState<PortfolioItem[]>([]);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAllUnits, setShowAllUnits] = useState(false);
 
   // Payment modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedUnitForPayment, setSelectedUnitForPayment] =
-    useState<InvestmentUnit | null>(null);
+  const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<PortfolioItem | null>(null);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loadingCustomerInfo, setLoadingCustomerInfo] = useState(false);
 
+  // Constants for unit display
+  const MAX_UNITS_VISIBLE = 3;
+
   useEffect(() => {
     fetchPortfolioData();
-  }, [token]);
+  }, []);
+
+  useEffect(() => {
+    if (portfolioData.length > 0) {
+      // Priority: URL unit > first unit in portfolio
+      const unitToSelect = urlUnit || portfolioData[0]?.unit_number;
+      if (unitToSelect && portfolioData.some(unit => unit.unit_number === unitToSelect)) {
+        setSelectedUnit(unitToSelect);
+      } else if (portfolioData[0]) {
+        setSelectedUnit(portfolioData[0].unit_number);
+      }
+    }
+  }, [portfolioData, urlUnit]);
 
   useEffect(() => {
     if (selectedUnit) {
@@ -56,20 +111,13 @@ const SipTracker = () => {
   }, [selectedUnit]);
 
   const fetchPortfolioData = async () => {
-    if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
 
-      const response = await portfolioApi.getPortfolio(token);
-      const portfolio =
-        response.data.portfolio || response.data.data || response.data || [];
+      const response = await portfolioApi.getPortfolio();
+      const portfolio = response.data.portfolio || [];
       setPortfolioData(portfolio);
-
-      if (response.data.portfolio && response.data.portfolio.length > 0) {
-        setSelectedUnit(response.data.portfolio[0].unit_number);
-      }
     } catch (err: any) {
       console.error("Error fetching portfolio data:", err);
       setError(err.message || "Failed to fetch portfolio data");
@@ -79,11 +127,10 @@ const SipTracker = () => {
   };
 
   const fetchPaymentData = async (unitNumber: string) => {
-    if (!token) return;
 
     try {
       setLoading(true);
-      const response = await investmentApi.getPayments(unitNumber, token);
+      const response = await paymentApi.getPaymentList({ unit_number: unitNumber });
       setPaymentData(response.data);
     } catch (err: any) {
       console.error("Error fetching payment data:", err);
@@ -93,38 +140,43 @@ const SipTracker = () => {
     }
   };
 
-  const handlePayNow = async (unit: InvestmentUnit) => {
-    if (!token) return;
+  const handleExport = () => {
+    if (!paymentData?.payments?.length) return;
 
+    const worksheetData = paymentData.payments.map((p, index) => ({
+      "S.No": index + 1,
+      "Transaction Type": getTransactionTypeText(p.transaction_type),
+      "Installment #": p.installment_number || "-",
+      "Amount": p.amount,
+      "Penalty": p.penalty_amount,
+      "Rebate": p.rebate_amount,
+      "Payment Date": formatDate(p.payment_date),
+      "Due Date": formatDate(p.due_date || ""),
+      "Method": p.payment_method,
+      "Status": p.payment_status,
+      "Receipt ID": p.receipt_id,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Payments");
+
+    XLSX.writeFile(workbook, `${paymentData.unit_number || "payments"}.xlsx`);
+  };
+
+  const handlePayNow = async (unit: PortfolioItem) => {
     setSelectedUnitForPayment(unit);
     setLoadingCustomerInfo(true);
 
     try {
-      // Fetch customer info for the payment modal
-      const customerInfoResponse = await fetch(
-        `https://frontend-api.ramyaconstructions.com/api/payments/customer-info/${unit.unit_number}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await paymentApi.getCustomerInfo(unit.unit_number);
+      const customerData = response.data;
 
-      if (customerInfoResponse.ok) {
-        const customerData = await customerInfoResponse.json();
-        setCustomerInfo(customerData);
-      } else {
-        // Fallback customer info if API fails
-        setCustomerInfo({
-          customer_name: "",
-          customer_email: "",
-          customer_phone: "",
-        });
-      }
+      setCustomerInfo(customerData);
     } catch (err) {
       console.error("Error fetching customer info:", err);
-      // Fallback customer info
+
+      // fallback defaults
       setCustomerInfo({
         customer_name: "",
         customer_email: "",
@@ -133,6 +185,51 @@ const SipTracker = () => {
     } finally {
       setLoadingCustomerInfo(false);
       setShowPaymentModal(true);
+    }
+  };
+
+  const handleDownloadReceipt = async (payment: Payment) => {
+    try {
+      const response = await paymentApi.verifyOrder(payment.order_id);
+      const data = response.data;
+
+      // extract details
+      const { order_info, customer_info, transaction_info } = data;
+
+      // create PDF
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text("Payment Receipt", 80, 20);
+
+      doc.setFontSize(12);
+      doc.text(`Receipt ID: RC-${transaction_info.cf_payment_id}`, 20, 40);
+      doc.text(`Order ID: ${order_info.cf_order_id}`, 20, 50);
+      doc.text(`Unit Number: ${order_info.unit_number}`, 20, 60);
+      doc.text(`Customer Name: ${customer_info.customer_name}`, 20, 70);
+      doc.text(`Email: ${customer_info.customer_email}`, 20, 80);
+      doc.text(`Phone: ${customer_info.customer_phone}`, 20, 90);
+      doc.text(`Payment Method: ${transaction_info.payment_method}`, 20, 100);
+      doc.text(`Payment Status: ${transaction_info.payment_status}`, 20, 110);
+      doc.text(`Payment Time: ${formatDate(transaction_info.payment_time)}`, 20, 120);
+      doc.text(`Amount Paid: ₹${order_info.order_amount}`, 20, 130);
+
+      doc.text("-------------------------------", 20, 140);
+      doc.text("Thank you for your payment!", 20, 150);
+
+      doc.save(`receipt_${order_info.cf_order_id}.pdf`);
+
+      toast({
+        title: "Receipt Downloaded",
+        description: `Receipt for ${order_info.cf_order_id} downloaded successfully.`,
+        duration: 3000,
+      });
+    } catch (err) {
+      console.error("Error generating receipt:", err);
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate receipt. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -158,30 +255,51 @@ const SipTracker = () => {
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "pending":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "overdue":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
+  // Status functions using enums
+  const isPaymentFullyPaid = (paymentStatus: PaymentStatus): boolean => {
+    return paymentStatus === 'fully_paid';
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "Completed";
-      case "pending":
-        return "Pending";
-      case "overdue":
-        return "Overdue";
-      default:
-        return "Unknown";
+  const isPaymentOngoing = (paymentStatus: PaymentStatus): boolean => {
+    return paymentStatus === 'advance_paid' || paymentStatus === 'partially_paid';
+  };
+
+  const isRentalActive = (unitStatus: UnitStatus): boolean => {
+    return unitStatus === 'rental_active';
+  };
+
+  const isUnitActive = (unitStatus: UnitStatus): boolean => {
+    return unitStatus === 'active';
+  };
+
+  const getStatusColor = (paymentStatus: PaymentStatus, unitStatus: UnitStatus) => {
+    if (isPaymentOngoing(paymentStatus)) {
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    } else if (isPaymentFullyPaid(paymentStatus)) {
+      if (isRentalActive(unitStatus)) {
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      } else if (isUnitActive(unitStatus)) {
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      }
+      return "bg-green-100 text-green-800 border-green-200";
     }
+    return "bg-gray-100 text-gray-800 border-gray-200";
+  };
+
+  const getStatusText = (paymentStatus: PaymentStatus, unitStatus: UnitStatus) => {
+    if (paymentStatus === "advance_paid") {
+      return "Advance Paid";
+    } else if (paymentStatus === "partially_paid") {
+      return "Payment Ongoing";
+    } else if (isPaymentFullyPaid(paymentStatus)) {
+      if (isRentalActive(unitStatus)) {
+        return "Rental Active";
+      } else if (isUnitActive(unitStatus)) {
+        return "Active";
+      }
+      return "Fully Paid";
+    }
+    return "Not Started";
   };
 
   const getTransactionTypeText = (type: string) => {
@@ -234,12 +352,10 @@ const SipTracker = () => {
     return { totalRebates, totalPenalties, totalPaid };
   };
 
-  const handleDownloadReceipt = (payment: Payment) => {
-    console.log(`Downloading receipt for ${payment.receipt_id}`);
-    alert(
-      `Our Team Working on it `
-    );
-  };
+  // Get visible units based on showAllUnits state
+  const visibleUnits = showAllUnits 
+    ? portfolioData 
+    : portfolioData.slice(0, MAX_UNITS_VISIBLE);
 
   if (loading && !paymentData) {
     return (
@@ -303,7 +419,9 @@ const SipTracker = () => {
   const balanceAmount = currentUnit
     ? currentUnit.total_investment - totalPaid
     : 0;
-  const isPaymentCompleted = currentUnit?.payment_status === "fully_paid";
+  
+  const isPaymentCompleted = currentUnit && 
+    isPaymentFullyPaid(currentUnit.payment_status as PaymentStatus);
 
   // Check if current unit is installment scheme
   const isInstallmentScheme =
@@ -331,7 +449,7 @@ const SipTracker = () => {
               Select Investment Unit
             </label>
             <div className="flex flex-wrap gap-2 sm:gap-3">
-              {portfolioData.map((unit) => (
+              {visibleUnits.map((unit) => (
                 <button
                   key={unit.unit_id}
                   onClick={() => setSelectedUnit(unit.unit_number)}
@@ -341,12 +459,31 @@ const SipTracker = () => {
                       : "bg-card border-border text-card-foreground hover:bg-accent hover:border-accent-foreground/20"
                   }`}
                 >
-                  <span className="hidden sm:inline">
-                    {unit.project.project_name} - {unit.unit_number}
-                  </span>
-                  <span className="sm:hidden">{unit.unit_number}</span>
+                  {unit.unit_number}
                 </button>
               ))}
+              
+              {/* Show More/Less Button */}
+              {portfolioData.length > MAX_UNITS_VISIBLE && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllUnits(!showAllUnits)}
+                  className="flex items-center gap-1"
+                >
+                  {showAllUnits ? (
+                    <>
+                      <ChevronUp className="w-4 h-4" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      View More
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -431,9 +568,15 @@ const SipTracker = () => {
                     </CardTitle>
                     {currentUnit && (
                       <Badge
-                        className={getStatusColor(currentUnit.payment_status)}
+                        className={getStatusColor(
+                          currentUnit.payment_status as PaymentStatus,
+                          currentUnit.unit_status as UnitStatus
+                        )}
                       >
-                        {getStatusText(currentUnit.payment_status)}
+                        {getStatusText(
+                          currentUnit.payment_status as PaymentStatus,
+                          currentUnit.unit_status as UnitStatus
+                        )}
                       </Badge>
                     )}
                   </div>
@@ -559,9 +702,6 @@ const SipTracker = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Action Buttons */}
-      
             </div>
 
             {/* Sidebar Info */}
@@ -610,73 +750,44 @@ const SipTracker = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Quick Stats */}
-              {/* <Card className="border-0 shadow-md card-luxury">
-                <CardHeader className="border-b bg-card p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg text-foreground">
-                    Quick Stats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="space-y-3">
-                    {currentUnit && (
-                      <>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs sm:text-sm text-muted-foreground">
-                            Scheme
-                          </span>
-                          <span className="text-xs sm:text-sm font-medium text-foreground text-right">
-                            {currentUnit.scheme.scheme_name}
-                          </span>
-                        </div>
-                        {currentUnit.scheme.monthly_installment_amount > 0 && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs sm:text-sm text-muted-foreground">
-                              Monthly Amount
-                            </span>
-                            <span className="text-xs sm:text-sm font-medium text-foreground">
-                              {formatCurrency(
-                                currentUnit.scheme.monthly_installment_amount
-                              )}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-muted-foreground">
-                        Net Adjustment
-                      </span>
-                      <span
-                        className={`text-xs sm:text-sm font-medium ${
-                          totalRebates - totalPenalties >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {totalRebates - totalPenalties >= 0 ? "+" : ""}
-                        {formatCurrency(totalRebates - totalPenalties)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card> */}
             </div>
           </div>
 
           {/* Payment History */}
           <div className="mt-6 sm:mt-8">
-            <Card className="border-0 shadow-md card-luxury">
+            <Card className="border-0 shadow-lg card-luxury bg-gradient-to-br from-white to-blue-50/30">
               <CardHeader className="border-b bg-card p-4 sm:p-6">
-                <CardTitle className="text-lg sm:text-xl text-foreground">
-                  Payment History
-                </CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-lg sm:text-xl text-foreground flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      Payment History
+                    </CardTitle>
+                    <CardDescription className="text-sm mt-1">
+                      {paymentData?.total_payments || 0} total transactions
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExport}
+                      className="text-xs border-gray-400 hover:border-gray-600"
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      Export
+                    </Button>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                      Unit: {paymentData?.unit_number || "N/A"}
+                    </Badge>
+                  </div>
+                </div>
               </CardHeader>
+              
               <CardContent className="p-0">
                 <div className="max-h-96 overflow-y-auto">
                   {paymentData?.payments && paymentData.payments.length > 0 ? (
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border/60">
                       {paymentData.payments
                         .slice()
                         .reverse()
@@ -689,122 +800,180 @@ const SipTracker = () => {
                             payment.installment_number === maxInstallment &&
                             maxInstallment > 0;
 
+                          // Calculate payment status styling
+                          const getStatusConfig = (status) => {
+                            const config = {
+                              completed: { 
+                                icon: CheckCircle2, 
+                                color: "text-green-600", 
+                                bg: "bg-green-50", 
+                                border: "border-green-200",
+                                badge: "bg-green-100 text-green-800 border-green-200"
+                              },
+                              failed: { 
+                                icon: XCircle, 
+                                color: "text-red-600", 
+                                bg: "bg-red-50", 
+                                border: "border-red-200",
+                                badge: "bg-red-100 text-red-800 border-red-200"
+                              },
+                              pending: { 
+                                icon: Clock, 
+                                color: "text-amber-600", 
+                                bg: "bg-amber-50", 
+                                border: "border-amber-200",
+                                badge: "bg-amber-100 text-amber-800 border-amber-200"
+                              }
+                            };
+                            return config[status] || config.pending;
+                          };
+
+                          const statusConfig = getStatusConfig(payment.payment_status);
+                          const StatusIcon = statusConfig.icon;
+
                           return (
                             <div
-                              key={payment.payment_id || index}
+                              key={payment.order_id || index}
                               className={`
-                                p-4 transition-all
+                                p-4 transition-all duration-200 hover:bg-blue-50/30
                                 ${
                                   isLatestPayment
-                                    ? "bg-blue-50 border-l-4 border-l-blue-500"
+                                    ? "bg-blue-50 border-l-4 border-l-blue-500 shadow-sm"
                                     : isLastInstallment
                                     ? "bg-green-50 border-l-4 border-l-green-500"
-                                    : "bg-card/50"
+                                    : "bg-white"
                                 }
                               `}
                             >
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 {/* Left Section */}
-                                <div className="flex items-start gap-3 flex-1">
-                                  <div
-                                    className={`
-                                      w-2 h-2 rounded-full mt-2 flex-shrink-0
-                                      ${
-                                        payment.payment_status === "completed"
-                                          ? "bg-green-500"
-                                          : "bg-muted"
-                                      }
-                                    `}
-                                  />
-                                  <div className="flex-1">
-                                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                                      <p className="font-medium text-foreground text-sm sm:text-base">
-                                        {getTransactionTypeText(
-                                          payment.transaction_type
+                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                                  <div className="flex-shrink-0 mt-1">
+                                    <div className={`
+                                      p-1.5 rounded-full ${statusConfig.bg} ${statusConfig.border} border
+                                    `}>
+                                      <StatusIcon className={`w-4 h-4 ${statusConfig.color}`} />
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-semibold text-foreground text-sm sm:text-base truncate">
+                                          {getTransactionTypeText(payment.transaction_type)}
+                                          {payment.installment_number &&
+                                            payment.installment_number > 0 && (
+                                              <span className="text-blue-600 font-medium">
+                                                {" "}#{payment.installment_number}
+                                              </span>
+                                            )}
+                                        </p>
+                                        
+                                        <Badge className={`
+                                          text-xs font-medium ${statusConfig.badge}
+                                        `}>
+                                          {payment.payment_status === "completed" ? "Paid" : 
+                                          payment.payment_status === "failed" ? "Failed" : "Pending"}
+                                        </Badge>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-1">
+                                        {isLatestPayment && (
+                                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                                            <Sparkles className="w-3 h-3 mr-1" />
+                                            Latest
+                                          </Badge>
                                         )}
-                                        {payment.installment_number &&
-                                          payment.installment_number > 0 && (
-                                            <span className="text-blue-600">
-                                              {" "}
-                                              #{payment.installment_number}
-                                            </span>
-                                          )}
-                                      </p>
-                                      {isLatestPayment && (
-                                        <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
-                                          Latest
+                                        {isLastInstallment && (
+                                          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                                            <Star className="w-3 h-3 mr-1" />
+                                            Final
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground mb-2">
+                                      <div className="flex items-center gap-1">
+                                        <Calendar className="w-3 h-3" />
+                                        {formatDate(payment.payment_date)}
+                                      </div>
+                                      <div className="hidden sm:block">•</div>
+                                      <div className="flex items-center gap-1">
+                                        <Receipt className="w-3 h-3" />
+                                        Receipt: {payment.receipt_id}
+                                      </div>
+                                      <div className="hidden sm:block">•</div>
+                                      <div className="flex items-center gap-1 capitalize">
+                                        <CreditCard className="w-3 h-3" />
+                                        {payment.payment_method?.replace('_', ' ')}
+                                      </div>
+                                    </div>
+
+                                    {/* Additional Payment Details */}
+                                    <div className="flex flex-wrap gap-2">
+                                      {payment.rebate_amount && payment.rebate_amount > 0 && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-green-600 border-green-200 bg-green-50 text-xs"
+                                        >
+                                          <TrendingUp className="w-3 h-3 mr-1" />
+                                          +{formatCurrency(payment.rebate_amount)} rebate
                                         </Badge>
                                       )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mb-2">
-                                      {formatDate(payment.payment_date)} •
-                                      Receipt: {payment.receipt_id}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                      {/* {payment.rebate_amount &&
-                                        payment.rebate_amount > 0 && (
-                                          <Badge
-                                            variant="outline"
-                                            className="text-green-600 border-green-200 text-xs"
-                                          >
-                                            +
-                                            {formatCurrency(
-                                              payment.rebate_amount
-                                            )}{" "}
-                                            rebate
-                                          </Badge>
-                                        )} */}
-                                      {/* {payment.penalty_amount &&
-                                        payment.penalty_amount > 0 && (
-                                          <Badge
-                                            variant="outline"
-                                            className="text-red-600 border-red-200 text-xs"
-                                          >
-                                            -
-                                            {formatCurrency(
-                                              payment.penalty_amount
-                                            )}{" "}
-                                            penalty
-                                          </Badge>
-                                        )} */}
+                                      {payment.penalty_amount && payment.penalty_amount > 0 && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-red-600 border-red-200 bg-red-50 text-xs"
+                                        >
+                                          <AlertTriangle className="w-3 h-3 mr-1" />
+                                          -{formatCurrency(payment.penalty_amount)} penalty
+                                        </Badge>
+                                      )}
+                                      {payment.due_date && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-amber-600 border-amber-200 bg-amber-50 text-xs"
+                                        >
+                                          <Calendar className="w-3 h-3 mr-1" />
+                                          Due: {formatDate(payment.due_date)}
+                                        </Badge>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
 
                                 {/* Right Section */}
-                                <div className="flex items-center justify-between sm:justify-end gap-3">
+                                <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
                                   <div className="text-right">
                                     <p
                                       className={`
-                                        font-semibold text-sm sm:text-base
-                                        ${
-                                          isLatestPayment
-                                            ? "text-blue-600"
-                                            : "text-foreground"
-                                        }
+                                        font-bold text-lg
+                                        ${isLatestPayment ? "text-blue-600" : 
+                                          payment.payment_status === "failed" ? "text-red-600" : 
+                                          "text-foreground"}
                                       `}
                                     >
                                       {formatCurrency(payment.amount)}
                                     </p>
-                                    <p className="text-xs text-muted-foreground capitalize">
-                                      {payment.payment_method}
-                                    </p>
+                                    {payment.payment_status === "failed" && (
+                                      <p className="text-xs text-red-500 mt-1">
+                                        Try again
+                                      </p>
+                                    )}
                                   </div>
-                                  {payment.payment_status === "completed" && (
+                                  
+                                  <div className="flex items-center gap-2">
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() =>
-                                        handleDownloadReceipt(payment)
-                                      }
-                                      className="flex-shrink-0"
+                                      onClick={() => handleDownloadReceipt(payment)}
+                                      className="flex-shrink-0 shadow-sm border-gray-400"
                                     >
-                                      <Download className="w-3 h-3 sm:mr-1" />
-                                      <span className="hidden sm:inline">
-                                        Receipt
-                                      </span>
+                                      <Download className="w-4 h-4" />
+                                      <span className="hidden sm:inline ml-1">Receipt</span>
                                     </Button>
-                                  )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -812,12 +981,39 @@ const SipTracker = () => {
                         })}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No payment history available
+                    <div className="text-center py-12 text-muted-foreground">
+                      <div className="flex flex-col items-center gap-3">
+                        <CreditCard className="w-12 h-12 text-muted-foreground/40" />
+                        <div>
+                          <p className="font-medium">No payment history available</p>
+                          <p className="text-sm mt-1">Your transactions will appear here</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
               </CardContent>
+              
+              {/* Summary Footer */}
+              {paymentData?.payments && paymentData.payments.length > 0 && (
+                <CardFooter className="border-t bg-muted/20 px-4 sm:px-6 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 w-full text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span>Completed</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        <span>Failed</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      Last updated: {new Date().toLocaleDateString()}
+                    </div>
+                  </div>
+                </CardFooter>
+              )}
             </Card>
           </div>
         </div>
@@ -832,10 +1028,6 @@ const SipTracker = () => {
             setShowPaymentModal(false);
             setSelectedUnitForPayment(null);
             setCustomerInfo(null);
-            // Refresh payment data after payment modal closes
-            if (selectedUnit) {
-              fetchPaymentData(selectedUnit);
-            }
           }}
         />
       )}

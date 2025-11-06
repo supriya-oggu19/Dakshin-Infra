@@ -1,16 +1,31 @@
-import axiosClient from "./axiosClient";
+// src/api/agentApi.ts
+import { mainAxiosClient } from "./axiosClient";
 import { ENDPOINTS } from "./endpoints";
+import {
+  CreateAgentRequest,
+  CreateAgentResponse,
+  Agent,
+} from "./models/agent.model";
 
+/** API for Agent Operations */
 export const agentApi = {
+  /** Create a new agent with form data (multipart) */
   create: (formData: FormData) =>
-    axiosClient.post(ENDPOINTS.AGENTS.CREATE, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+    mainAxiosClient.post<CreateAgentResponse>(ENDPOINTS.AGENTS.CREATE, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     }),
 
+  /** Update agent status (e.g., approved, rejected) */
   updateStatus: (id: string, data: { status: string }) =>
-    axiosClient.put(ENDPOINTS.AGENTS.UPDATE_STATUS(id), data),
+    mainAxiosClient.put(ENDPOINTS.AGENTS.UPDATE_STATUS(id), data),
 
-  getById: (id: string) => axiosClient.get(ENDPOINTS.AGENTS.GET_BY_ID(id)),
+  /** Get agent by ID */
+  getById: (id: string) =>
+    mainAxiosClient.get<Agent>(ENDPOINTS.AGENTS.GET_BY_ID(id)),
 
-  listAll: () => axiosClient.get(ENDPOINTS.AGENTS.LIST_ALL),
+  /** List all agents */
+  listAll: () =>
+    mainAxiosClient.get<Agent[]>(ENDPOINTS.AGENTS.LIST_ALL),
 };
