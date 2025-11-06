@@ -23,8 +23,8 @@ const createAxiosClient = (baseURL) => {
   return client;
 };
 
-// export const mainAxiosClient = createAxiosClient("https://backend-api.ramyaconstructions.com/api");
-// export const getAxiosClient = createAxiosClient("https://frontend-api.ramyaconstructions.com/api");
+export const mainAxiosClient = createAxiosClient("https://backend-api.ramyaconstructions.com/api");
+export const getAxiosClient = createAxiosClient("https://frontend-api.ramyaconstructions.com/api");
 
-export const mainAxiosClient=createAxiosClient("http://localhost:8000/api");
-export const getAxiosClient=createAxiosClient("http://localhost:8001/api")
+// export const mainAxiosClient=createAxiosClient("http://localhost:8000/api");
+// export const getAxiosClient=createAxiosClient("http://localhost:8001/api")

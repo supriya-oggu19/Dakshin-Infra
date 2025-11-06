@@ -150,7 +150,7 @@ const PaymentModal = ({
       // Open the checkout page in a new tab (similar to original window.open behavior)
       const checkoutOptions = {
         paymentSessionId: orderData.payment_session_id,
-        redirectTarget: "_blank", // Opens in new tab; use '_self' for same tab or '_modal' for modal overlay
+        redirectTarget: "_self", // Opens in new tab; use '_self' for same tab or '_modal' for modal overlay
       };
       // For redirect, no promise; user will be redirected back to your return_url set in order creation
       cashfree.checkout(checkoutOptions);
