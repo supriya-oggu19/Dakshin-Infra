@@ -44,7 +44,7 @@ const PaymentModal = ({
   onClose,
 }: PaymentModalProps) => {
   const [paymentAmount, setPaymentAmount] = useState<string>("10000");
-  const [selectedOption, setSelectedOption] = useState<string>("custom");
+  const [selectedOption, setSelectedOption] = useState<string>("installment"); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customAmountError, setCustomAmountError] = useState<string | null>(null);
@@ -171,7 +171,7 @@ const PaymentModal = ({
       // Open the checkout page
       const checkoutOptions = {
         paymentSessionId: orderData.payment_session_id,
-        redirectTarget: "_self", // Opens in new tab; use '_self' for same tab or '_modal' for modal overlay
+        redirectTarget: "_self",
       };
 
       cashfree.checkout(checkoutOptions);
@@ -410,7 +410,7 @@ const PaymentModal = ({
                     </p>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                {/* <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="custom" />
                   <Label htmlFor="custom" className="flex-1 cursor-pointer">
                     <div className="flex justify-between items-center">
@@ -423,7 +423,7 @@ const PaymentModal = ({
                       Pay any amount (min: {formatCurrency(installmentAmount)})
                     </p>
                   </Label>
-                </div>
+                </div> */}
               </RadioGroup>
             </>
           )}
@@ -460,6 +460,7 @@ const PaymentModal = ({
             </div>
 
             {/* Amount Suggestions */}
+          {!isInstallmentScheme && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Suggested Amounts:</Label>
               <div className="flex gap-2 flex-wrap">
@@ -484,6 +485,7 @@ const PaymentModal = ({
                 ))}
               </div>
             </div>
+          )}
 
             <p className="text-xs text-muted-foreground font-medium">
               Maximum payment amount: ₹{MAX_PAYMENT_AMOUNT.toLocaleString('en-IN')} (10 lakhs)

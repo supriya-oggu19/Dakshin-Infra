@@ -27,7 +27,7 @@ const Footer = () => {
   useEffect(() => {
     const fetchContactInfo = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:8001/api/contactInfo/all");
+        const response = await fetch("https://www.ramyaconstructions.com/api/contactInfo/all");
         const data = await response.json();
 
         const active = data.filter((c) => c.is_active);
