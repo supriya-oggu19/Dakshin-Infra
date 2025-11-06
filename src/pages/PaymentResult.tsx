@@ -41,13 +41,13 @@ export default function PaymentResult(): JSX.Element {
 
   const handleNavigation = () => {
     if (isSuccess) {
-    // Clear purchase state on success
-    const projectId = sessionStorage.getItem('currentProjectId');
-    if (projectId) {
-      sessionStorage.removeItem(`purchaseState_${projectId}`);
-      sessionStorage.removeItem('currentProjectId');
-    }
-    navigate("/my-units");
+      // Clear purchase state on success
+      const projectId = sessionStorage.getItem('currentProjectId');
+      if (projectId) {
+        sessionStorage.removeItem(`purchaseState_${projectId}`);
+        sessionStorage.removeItem('currentProjectId');
+      }
+    navigate(`/sip?unit=${result.order_info.unit_number}`);
     } else {
       // Extract project ID from order data or use a different method
       const projectId = sessionStorage.getItem('currentProjectId') ||
@@ -56,7 +56,7 @@ export default function PaymentResult(): JSX.Element {
       if (projectId) {
         navigate(`/purchase/${projectId}/payment`);
       } else {
-        navigate("/projects");
+        navigate(`/sip?unit=${result.order_info.unit_number}`);
       }
     }
   };
