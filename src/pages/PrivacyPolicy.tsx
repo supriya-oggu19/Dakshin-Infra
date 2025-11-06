@@ -1,40 +1,24 @@
-// components/PrivacyPolicy.tsx
-import { X } from "lucide-react";
+// pages/PrivacyPolicy.tsx
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
-interface PrivacyPolicyProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+const PrivacyPolicyPage = () => {
+  const location = useLocation();
 
-const PrivacyPolicy = ({ isOpen, onClose }: PrivacyPolicyProps) => {
-  if (!isOpen) return null;
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
-              <p className="text-sm text-gray-600 mt-1">Last updated: December 2024</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
-            >
-              <X className="w-6 h-6 text-gray-600" />
-            </button>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
+        </div>
 
-          {/* Content */}
+       {/* Content */}
           <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-80px)]">
             <div className="prose prose-lg max-w-none">
               {/* Introduction */}
@@ -408,10 +392,9 @@ const PrivacyPolicy = ({ isOpen, onClose }: PrivacyPolicyProps) => {
               </div>
             </div>
           </div>
-        </div>
       </div>
     </div>
   );
 };
 
-export default PrivacyPolicy;
+export default PrivacyPolicyPage;   

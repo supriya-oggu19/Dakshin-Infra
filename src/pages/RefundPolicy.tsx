@@ -1,7 +1,6 @@
-// components/RefundPolicy.tsx
-import React from 'react';
+// pages/RefundPolicy.tsx
+import React, { useEffect } from 'react';
 import { 
-  X, 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -15,13 +14,11 @@ import {
   MapPin
 } from 'lucide-react';
 
-interface RefundPolicyProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
+const RefundPolicyPage: React.FC = () => {
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   const refundScenarios = [
     {
@@ -90,31 +87,24 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl max-h-[90vh] overflow-y-auto w-full">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center">
-                <FileText className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Refund Policy</h2>
-                <p className="text-gray-600">Clear guidelines for commercial real estate investments</p>
-              </div>
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center">
+              <FileText className="w-6 h-6 text-white" />
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Refund Policy</h1>
+              <p className="text-lg text-gray-600">Clear guidelines for commercial real estate investments</p>
+              <p className="text-sm text-gray-500 mt-1">Last updated: December 2024</p>
+            </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
           {/* Important Alert */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-start space-x-3">
@@ -154,7 +144,7 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Refund Scenarios */}
-          <div>
+          <div className="bg-white rounded-2xl shadow-lg p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Refund Scenarios & Conditions</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {refundScenarios.map((scenario, index) => (
@@ -183,7 +173,7 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Refund Process Timeline */}
-            <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
               <h4 className="font-bold text-gray-900 mb-3">Refund Process Timeline</h4>
               <p className="text-gray-600 text-sm mb-4">Typical timeline for refund processing after approval</p>
               
@@ -212,7 +202,7 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Non-Refundable Charges */}
-            <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
               <h4 className="font-bold text-gray-900 mb-3">Potential Deductions & Charges</h4>
               <p className="text-gray-600 text-sm mb-4">Charges that may be deducted from refund amounts</p>
               
@@ -233,14 +223,16 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Important Legal Notes */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
             <h4 className="font-bold text-amber-900 mb-3">Important Legal Notes</h4>
             <div className="space-y-2">
               {[
                 "All refunds are processed as per the signed Sale Agreement terms",
                 "Force majeure events may affect refund timelines and terms",
                 "Refund approval is subject to document verification and internal approval",
-                "Interest on refunds only applicable in company-initiated cancellations"
+                "Interest on refunds only applicable in company-initiated cancellations",
+                "Refund policies are subject to change with reasonable notice to customers",
+                "All disputes regarding refunds shall be subject to jurisdiction of courts in Hyderabad"
               ].map((note, index) => (
                 <div key={index} className="flex items-start space-x-2">
                   <FileText className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -251,7 +243,7 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Contact Information */}
-          <div className="bg-yellow-500 rounded-xl p-6 text-white">
+          <div className="bg-yellow-500 rounded-2xl p-6 text-white">
             <h4 className="font-bold text-xl mb-3">Need Help with Refund Process?</h4>
             <p className="mb-4 opacity-90">Contact our customer service team for assistance with refund requests and queries</p>
             
@@ -276,10 +268,11 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Footer Note */}
-          <div className="text-center text-gray-600 text-sm">
+          <div className="text-center text-gray-600 text-sm bg-white rounded-2xl shadow-lg p-6">
             <p>
               This refund policy is part of and subject to the complete Terms and Conditions of Ramya Constructions. 
-              The company reserves the right to modify this policy with reasonable notice.
+              The company reserves the right to modify this policy with reasonable notice. Please refer to your 
+              signed Sale Agreement for the specific terms applicable to your transaction.
             </p>
           </div>
         </div>
@@ -288,4 +281,4 @@ const RefundPolicy: React.FC<RefundPolicyProps> = ({ isOpen, onClose }) => {
   );
 };
 
-export default RefundPolicy;
+export default RefundPolicyPage;

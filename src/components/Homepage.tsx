@@ -67,7 +67,7 @@ const Homepage = () => {
   const stats = [
     { number: "500+", label: "Happy Investors", icon: Users, color: "text-primary" },
     { number: "₹250Cr+", label: "Assets Under Management", icon: Building2, color: "text-secondary" },
-    { number: "18%", label: "Up to Returns", icon: TrendingUp, color: "text-primary" },
+    { number: "18%*", label: "Up to Returns", icon: TrendingUp, color: "text-primary" },
     { number: "5+", label: "Premium Projects", icon: Award, color: "text-secondary" }
   ];
 
@@ -157,7 +157,7 @@ const Homepage = () => {
 
             <p className="text-lg md:text-xl mb-12 text-white/90 leading-relaxed max-w-3xl mx-auto animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
               Own premium commercial properties in Hyderabad's fastest-growing business district.
-              Start with ₹36 lakhs and earn guaranteed rental income up to 18% annually.
+              Start with ₹36 lakhs and earn guaranteed rental income up to 18%<sup>*</sup> annually.
             </p>
 
             <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto animate-fade-in-scale" style={{ animationDelay: '0.4s' }}>
@@ -166,7 +166,9 @@ const Homepage = () => {
                 <div className="text-sm text-white/80 font-medium">Minimum Investment</div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-white/20">
-                <div className="text-2xl font-bold text-yellow-400 mb-2">Upto 18%</div>
+                <div className="text-2xl font-bold text-yellow-400 mb-2">
+                  Upto 18%<sup>*</sup>
+                </div>
                 <div className="text-sm text-white/80 font-medium">Annual Returns</div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-white/20">
@@ -409,8 +411,8 @@ const Homepage = () => {
                 >
                   <div
                     className={`absolute top-0 left-1/2 w-0 h-1 ${item.color === "yellow"
-                        ? "bg-gradient-to-r from-yellow-400 to-yellow-600"
-                        : "bg-gradient-to-r from-blue-400 to-blue-600"
+                      ? "bg-gradient-to-r from-yellow-400 to-yellow-600"
+                      : "bg-gradient-to-r from-blue-400 to-blue-600"
                       } group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out`}
                   ></div>
 
@@ -444,7 +446,7 @@ const Homepage = () => {
                 Starting investment with rental income up to ₹6.48L annually*
               </div>
               <div className="text-xs text-gray-600">
-                *Based on 18% annual returns. Terms and conditions apply.
+                *Based on 18%<sup>*</sup> annual returns. Terms and conditions apply.
               </div>
             </div>
 
