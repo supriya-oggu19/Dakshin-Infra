@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Play, Building2, TrendingUp, Award, Users, MapPin, Phone, Mail, Star, Shield, Zap } from "lucide-react";
+import { ArrowRight, Play, Building2, TrendingUp, Award, Users, MapPin, Phone, Mail, Star, Shield, Zap, Briefcase, ShieldCheck } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import ProjectCard from "@/components/ProjectCard";
 import heroImage from "@/assets/hero-skyline.jpg";
@@ -79,7 +79,7 @@ const Homepage = () => {
     },
     {
       title: "Family Care",
-      description: "Ensure your parents' needs are met with steady passive income",
+      description: "Ensure your parents and Childern' needs are met with steady passive income",
       icon: Users
     },
     {
@@ -89,7 +89,7 @@ const Homepage = () => {
     },
     {
       title: "Inflation Protection",
-      description: "Safeguard your wealth against inflation with appreciating real estate",
+      description: "Safeguard your wealth against inflation with appreciating real estate income",
       icon: Zap
     },
     {
@@ -99,7 +99,7 @@ const Homepage = () => {
     },
     {
       title: "Life Goals",
-      description: "Achieve any financial milestone without compromising your lifestyle",
+      description: "Achieve  financial milestone without compromising your lifestyle",
       icon: Award
     }
   ];
@@ -157,7 +157,7 @@ const Homepage = () => {
 
             <p className="text-lg md:text-xl mb-12 text-white/90 leading-relaxed max-w-3xl mx-auto animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
               Own premium commercial properties in Hyderabad's fastest-growing business district.
-              Start with ₹36 lakhs and earn guaranteed rental returns up to 18% annually.
+              Start with ₹36 lakhs and earn guaranteed rental income up to 18% annually.
             </p>
 
             <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto animate-fade-in-scale" style={{ animationDelay: '0.4s' }}>
@@ -296,12 +296,15 @@ const Homepage = () => {
         <div className="container-professional">
           <div className="text-center mb-16 animate-fade-in-scale">
             <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-              Why <span className="text-yellow-600">Invest</span> With Us
+              Start <span className="text-yellow-600">Investment</span> for a Stable Life
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Transform your financial future with investments that deliver security, growth, and peace of mind
+              Transform your financial future with strategic real estate investment. Here is how{" "}
+              <span className="font-semibold text-yellow-600">Kapil Business Park</span> becomes your pathway to financial freedom and peace of mind.
             </p>
           </div>
+
+
 
           <div className="grid md:grid-cols-3 gap-8">
             {benefits.map((benefit, index) => (
@@ -368,39 +371,88 @@ const Homepage = () => {
           <div className="max-w-4xl mx-auto text-center animate-fade-in-scale">
             <div className="mb-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-                Ready to Build Your <span className="text-yellow-600">Financial Future?</span>
+                Why Ramya Constructions is Your{" "}
+                <span className="text-yellow-600">Passport to Prosperity</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
-                Join hundreds of smart investors who have secured their financial independence through strategic commercial real estate.
+                A perfect combination of affordability, transparency, and professional
+                management that creates a win-win opportunity for every investor.
               </p>
             </div>
 
+            {/* --- 3 Feature Cards --- */}
             <div className="grid md:grid-cols-3 gap-6 mb-10">
               {[
-                { icon: Building2, title: "Premium Location", desc: "Strategically positioned for growth & connectivity", color: "yellow" },
-                { icon: TrendingUp, title: "Guaranteed Returns", desc: "Up to 18% annual rental income", color: "blue" },
-                { icon: Shield, title: "RERA Approved", desc: "100% legal and transparent", color: "yellow" }
+                {
+                  icon: TrendingUp,
+                  title: "Unmatched Affordability",
+                  desc: "Starting at just ₹36 lakhs, we’ve made premium commercial real estate accessible to smart investors. Experience wealth creation that’s both affordable and exceptionally rewarding.",
+                  color: "yellow",
+                },
+                {
+                  icon: ShieldCheck,
+                  title: "Complete Transparency",
+                  desc: "We help investors make confident choices by ensuring every property we recommend is transparent, legally verified, and RERA-compliant.",
+                  color: "blue",
+                },
+                {
+                  icon: Briefcase,
+                  title: "Professional Management",
+                  desc: "You own the asset, and we assist in handling everything else. Our expert facility management team ensures your investment generates returns while you focus on what matters most.",
+                  color: "yellow",
+                },
               ].map((item, index) => (
-                <div key={index} className="group relative bg-white p-6 text-center rounded-xl shadow-md border animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden" style={{ animationDelay: `${index * 150}ms` }}>
-                  <div className={`absolute top-0 left-1/2 w-0 h-1 ${item.color === 'yellow' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'} group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out`}></div>
+                <div
+                  key={index}
+                  className="group relative bg-white p-6 text-center rounded-xl shadow-md border animate-slide-in-up hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                  style={{ animationDelay: `${index * 150}ms` }}
+                >
+                  <div
+                    className={`absolute top-0 left-1/2 w-0 h-1 ${item.color === "yellow"
+                        ? "bg-gradient-to-r from-yellow-400 to-yellow-600"
+                        : "bg-gradient-to-r from-blue-400 to-blue-600"
+                      } group-hover:w-full group-hover:left-0 transition-all duration-500 ease-out`}
+                  ></div>
 
-                  <div className={`w-12 h-12 ${item.color === 'yellow' ? 'bg-yellow-100' : 'bg-blue-100'} rounded-xl flex items-center justify-center mx-auto mb-3 transition-transform duration-300 hover:scale-110`}>
-                    <item.icon className={`w-6 h-6 ${item.color === 'yellow' ? 'text-yellow-600' : 'text-blue-900'}`} />
+                  <div
+                    className={`w-12 h-12 ${item.color === "yellow" ? "bg-yellow-100" : "bg-blue-100"
+                      } rounded-xl flex items-center justify-center mx-auto mb-3 transition-transform duration-300 hover:scale-110`}
+                  >
+                    <item.icon
+                      className={`w-6 h-6 ${item.color === "yellow" ? "text-yellow-600" : "text-blue-900"
+                        }`}
+                    />
                   </div>
-                  <h3 className="text-base font-bold mb-2 text-gray-900">{item.title}</h3>
+                  <h3 className="text-base font-bold mb-2 text-gray-900">
+                    {item.title}
+                  </h3>
                   <p className="text-sm text-gray-600">{item.desc}</p>
                 </div>
               ))}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-lg border max-w-xl mx-auto mb-8 animate-fade-in-scale" style={{ animationDelay: '0.3s' }}>
+            {/* --- Investment Highlight --- */}
+            <div
+              className="bg-white rounded-2xl p-6 shadow-lg border max-w-xl mx-auto mb-8 animate-fade-in-scale"
+              style={{ animationDelay: "0.3s" }}
+            >
               <div className="text-sm text-gray-600 mb-1">Investment Highlight</div>
-              <div className="text-2xl md:text-3xl font-bold text-yellow-600 mb-2">₹36,00,000</div>
-              <div className="text-sm text-gray-900 mb-3 font-medium">Starting investment with rental income up to ₹6.48L annually*</div>
-              <div className="text-xs text-gray-600">*Based on 18% annual returns. Terms and conditions apply.</div>
+              <div className="text-2xl md:text-3xl font-bold text-yellow-600 mb-2">
+                ₹36,00,000
+              </div>
+              <div className="text-sm text-gray-900 mb-3 font-medium">
+                Starting investment with rental income up to ₹6.48L annually*
+              </div>
+              <div className="text-xs text-gray-600">
+                *Based on 18% annual returns. Terms and conditions apply.
+              </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-in-up" style={{ animationDelay: '0.4s' }}>
+            {/* --- CTA Buttons --- */}
+            <div
+              className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-in-up"
+              style={{ animationDelay: "0.4s" }}
+            >
               <Link to="/login">
                 <Button className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 text-base font-semibold rounded-lg transition-all duration-300 hover:transform hover:scale-105">
                   Start Your Investment Journey
@@ -417,6 +469,9 @@ const Homepage = () => {
           </div>
         </div>
       </section>
+
+
+
 
     </div>
   );

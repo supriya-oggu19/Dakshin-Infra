@@ -305,28 +305,6 @@ const Contact = () => {
               <div className="lg:col-span-2">
                 <Card className="card-luxury border-0 shadow-lg lg:sticky lg:top-24">
                   <CardContent className="p-6 space-y-7">
-                    <div>
-                      <h3 className="text-xl md:text-2xl font-bold mb-5 text-center md:text-left">Investment Summary</h3>
-                      <div className="space-y-4">
-                        <div className="bg-primary/10 p-5 rounded-xl border border-primary/20 text-center md:text-left">
-                          <p className="text-sm font-medium text-primary">Starting Investment</p>
-                          <p className="text-3xl font-bold text-primary mt-1">₹36,00,000</p>
-                          <p className="text-xs text-muted-foreground mt-1">Min. advance: ₹2,00,000</p>
-                        </div>
-
-                        <div className="bg-accent/10 p-5 rounded-xl border border-accent/20 text-center md:text-left">
-                          <p className="text-sm font-medium text-accent">Expected Returns</p>
-                          <p className="text-3xl font-bold text-accent mt-1">Up to 18% p.a.</p>
-                          <p className="text-xs text-muted-foreground mt-1">*T&C apply</p>
-                        </div>
-
-                        <div className="bg-secondary/10 p-5 rounded-xl border border-secondary/20 text-center md:text-left">
-                          <p className="text-sm font-medium text-secondary">Rental Yield</p>
-                          <p className="text-2xl font-bold text-secondary mt-1">₹225/sq.ft</p>
-                          <p className="text-xs text-muted-foreground mt-1">Monthly calculation</p>
-                        </div>
-                      </div>
-                    </div>
 
                     <div className="pt-4 border-t border-border">
                       <h4 className="font-semibold text-foreground mb-4 text-center md:text-left">Quick Actions</h4>
@@ -344,14 +322,7 @@ const Contact = () => {
                             </Button>
                           )}
 
-                        <Button
-                          variant="outline-luxury"
-                          className="w-full justify-start h-12"
-                          onClick={() => window.open("https://wa.me/+919876543210", "_blank")}
-                        >
-                          <MessageCircle className="w-5 h-5 mr-3" />
-                          WhatsApp
-                        </Button>
+
 
                         {contactInfo
                           .find((i) => i.title === "Email Us")

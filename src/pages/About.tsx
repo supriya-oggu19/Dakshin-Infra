@@ -106,19 +106,18 @@ const About = () => {
 
                 <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-5">
                   Over the years, Ramya Constructions has delivered landmark
-                  projects across Telangana and Andhra Pradesh, spanning
-                  commercial spaces, residential apartments, and open plots —
+                  projects across in Telangana and Andhra Pradesh as
                   fulfilling the aspirations of both individuals and businesses.
                 </p>
 
-                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
+                {/* <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
                   The company is also a promoter of Kapil Business Park,
                   Shamshabad, a flagship commercial project redefining modern
                   business infrastructure in Hyderabad. Within this development,
                   Ramya Constructions oversees the sale of commercial units on
                   the 4th floor, comprising 36,945 sq.ft. of built-up area and
                   467.66 sq.yds. of undivided land share.
-                </p>
+                </p> */}
               </div>
             </div>
           </div>
