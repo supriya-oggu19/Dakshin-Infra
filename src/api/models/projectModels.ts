@@ -67,6 +67,7 @@ export interface ProjectData {
   pricing_details?: PricingDetails;
   quick_info?: QuickInfo;
   gallery_images?: GalleryImage[];
+  brochure?: string[];
   key_highlights?: string[];
   features?: string[];
   investment_highlights?: string[];

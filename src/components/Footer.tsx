@@ -217,7 +217,10 @@ const Footer = () => {
               <a href="/terms" className="hover:text-yellow-600 transition-colors duration-200">
                 Terms
               </a>
-              <a href="/disclaimer" className="hover:text-yellow-600 transition-colors duration-200">
+              <a
+                href="/#"
+                className="hover:text-yellow-600 transition-colors duration-200"
+              >
                 Disclaimer
               </a>
             </div>

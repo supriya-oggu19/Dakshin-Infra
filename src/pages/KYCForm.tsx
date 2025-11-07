@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { KYCFormProps, UserInfo, JointAccountInfo, KYCDocuments, PurchaseStep } from "@/api/models/userInfo.model";
 
 const KYCForm = ({
+  projectName,
   kycDocuments,
   setKycDocuments,
   kycAccepted,
@@ -376,7 +377,7 @@ const KYCForm = ({
                 className="mt-0.5 sm:mt-1 border-2 border-yellow-400 data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
               />
               <Label htmlFor="kycTerms" className="text-xs sm:text-sm leading-relaxed text-gray-700 cursor-pointer">
-                I confirm that all documents uploaded are genuine and authorize <span className="font-semibold text-yellow-800">Kapil Business Park</span> to verify the same. I understand that providing false information may result in legal consequences.
+                I confirm that all documents uploaded are genuine and authorize <span className="font-semibold text-yellow-800">{projectName}</span> to verify the same. I understand that providing false information may result in legal consequences.
               </Label>
             </div>
           </div>

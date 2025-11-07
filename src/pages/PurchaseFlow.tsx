@@ -650,6 +650,7 @@ const PurchaseFlow = () => {
         return (
           <div className="space-y-6">
             <KYCForm
+              projectName={projectName}
               kycDocuments={kycDocuments}
               setKycDocuments={setKycDocuments}
               kycAccepted={kycAccepted}

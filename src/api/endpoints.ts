@@ -83,7 +83,7 @@ export const ENDPOINTS = {
   },
 
   AGREEMENTS: {
-    FETCH_ALL: "/legal-agreements",
+    FETCH_ALL: "/legal-agreements/list",
     FETCH_BY_ID: "/legal-agreements",
     DOWNLOAD: "/legal-agreements/download",
   },
