@@ -78,8 +78,13 @@ const MyUnits = () => {
     Record<string, boolean>
   >({});
   const [activeTabs, setActiveTabs] = useState<Record<string, string>>({});
+  const projectId = sessionStorage.getItem('currentProjectId');
 
   useEffect(() => {
+    if (projectId) {
+      sessionStorage.removeItem(`purchaseState_${projectId}`);
+      sessionStorage.removeItem('currentProjectId');
+    }
     fetchUserData();
   }, []);
 
