@@ -672,8 +672,8 @@ const ProjectDetail = () => {
                 </TabsContent>
 
                 {/* ---- INVESTMENT SCHEMES ---- */}
-                <TabsContent value="investment" className="mt-6">
-                  <div className="card-luxury p-6 sm:p-8 rounded-xl">
+                <TabsContent value="investment">
+                  <div className="card-luxury rounded-xl">
                     <InvestmentSchemes
                       projectName={project.title}
                       projectId={project.id}
@@ -815,14 +815,6 @@ const ProjectDetail = () => {
                     <dd className="font-medium">
                       {project.building_permission || "N/A"}
                     </dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Total Units</dt>
-                    <dd className="font-medium">{project.total_units}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Available Units</dt>
-                    <dd className="font-medium">{project.available_units}</dd>
                   </div>
                 </dl>
               </div>
