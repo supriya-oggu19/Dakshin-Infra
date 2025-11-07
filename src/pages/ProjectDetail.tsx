@@ -6,6 +6,13 @@ import {
 } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tabs,
   TabsContent,
@@ -39,6 +46,7 @@ import {
   Layers,
   Home,
   Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 
 import Navigation from "@/components/Navigation";
@@ -92,7 +100,7 @@ const ProjectDetail = () => {
 
     return () => clearInterval(interval);
   }, [project]);
-
+  const { toast } = useToast();
   const fetchProject = async (projectId: string) => {
     try {
       setLoading(true);
@@ -273,6 +281,36 @@ const ProjectDetail = () => {
   const handleWebsiteClick = () => {
     project?.website_url &&
       window.open(project.website_url, "_blank", "noopener,noreferrer");
+  };
+  const [isBrochureOpen, setIsBrochureOpen] = useState(false);
+  const [activeBrochureIndex, setActiveBrochureIndex] = useState(0);
+
+  const isImageFile = (url: string) => {
+    const imageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+    return imageExtensions.some((ext) => url.toLowerCase().endsWith(ext));
+  };
+
+  const handleDownloadFile = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const fileName = url.split("/").pop() || "file";
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "Could not download file. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBuyNow = () => {
@@ -707,9 +745,12 @@ const ProjectDetail = () => {
                     {isAuthenticated ? "Buy Now" : "Login to Buy"}
                   </Button>
 
-                  <Button variant="outline-luxury" className="w-full">
+                  <Button 
+                    onClick={() => setIsBrochureOpen(true)} 
+                    variant="outline-luxury" 
+                    className="w-full">
                     <Download className="w-4 h-4 mr-2" />
-                    Download Brochure
+                    View Brochures
                   </Button>
 
                   <Button
@@ -789,6 +830,103 @@ const ProjectDetail = () => {
           </div>
         </div>
       </section>
+      {/* ==== BROCHURE POPUP ==== */}
+      <Dialog open={isBrochureOpen} onOpenChange={setIsBrochureOpen}>
+        <DialogContent className="max-w-4xl bg-background/95 backdrop-blur-xl border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gradient-yellow">
+              Project Brochures
+            </DialogTitle>
+          </DialogHeader>
+
+          {project?.brochure?.length ? (
+            <div className="mt-4 space-y-6">
+              {/* IMAGE PREVIEW SECTION */}
+              {isImageFile(project.brochure[activeBrochureIndex]) ? (
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-black/20 flex items-center justify-center">
+                  <img
+                    src={project.brochure[activeBrochureIndex]}
+                    alt="Brochure preview"
+                    className="object-contain max-h-[70vh]"
+                  />
+                  {project.brochure.length > 1 && (
+                    <>
+                      <button
+                        onClick={() =>
+                          setActiveBrochureIndex(
+                            (i) =>
+                              (i - 1 + project.brochure.length) %
+                              project.brochure.length
+                          )
+                        }
+                        className="absolute left-2 bg-black/40 hover:bg-black/60 p-2 rounded-full"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-white" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setActiveBrochureIndex(
+                            (i) => (i + 1) % project.brochure.length
+                          )
+                        }
+                        className="absolute right-2 bg-black/40 hover:bg-black/60 p-2 rounded-full"
+                      >
+                        <ChevronRight className="w-5 h-5 text-white" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* NON-IMAGE FILES */
+                <div className="space-y-3">
+                  {project.brochure.map((file, i) => {
+                    const fileName = file.split("/").pop();
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 border rounded-lg bg-card/50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-yellow-500" />
+                          <span className="text-sm truncate max-w-[250px]">
+                            {fileName}
+                          </span>
+                        </div>
+                        <Button
+                          variant="outline-luxury"
+                          size="sm"
+                          onClick={() => handleDownloadFile(file)}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* DOWNLOAD BUTTON */}
+              {isImageFile(project.brochure[activeBrochureIndex]) && (
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() =>
+                      handleDownloadFile(project.brochure[activeBrochureIndex])
+                    }
+                    variant="luxury"
+                    className="w-auto"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download This Image
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No brochures available.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
