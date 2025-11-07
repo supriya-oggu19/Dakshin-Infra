@@ -97,8 +97,6 @@ const RefundPolicyPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Refund Policy</h1>
-              <p className="text-lg text-gray-600">Clear guidelines for commercial real estate investments</p>
-              <p className="text-sm text-gray-500 mt-1">Last updated: December 2024</p>
             </div>
           </div>
         </div>

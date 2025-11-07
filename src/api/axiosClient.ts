@@ -23,5 +23,5 @@ const createAxiosClient = (baseURL) => {
   return client;
 };
 
-export const mainAxiosClient = createAxiosClient("http://127.0.0.1:8000/api");
-export const getAxiosClient = createAxiosClient("http://127.0.0.1:8001/api");
+export const mainAxiosClient = createAxiosClient("https://frontend-api.ramyaconstructions.com");
+export const getAxiosClient = createAxiosClient("https://frontend-api.ramyaconstructions.com");

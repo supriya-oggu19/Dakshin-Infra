@@ -157,7 +157,7 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-yellow-600 mt-1 flex-shrink-0" />
                 <p>
-                  Survey 115/1, ISB Rd, Financial District, Gachibowli, Hyderabad,
+                  Survey 115/1, Kapil Towers, ISB Rd, Financial District, Gachibowli, Hyderabad,
                   Telangana - 500032
                 </p>
               </div>
