@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Users, UserPlus } from "lucide-react";
+import { Plus, Users, UserPlus, Crown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import UserInfoForm from "@/forms/UserInfoForm";
 import {
@@ -91,11 +91,19 @@ const initialJointInfo: JointAccountInfo = {
   },
 };
 
+// Extended props to include direct payment navigation
+interface ExtendedUserInfoPageProps extends UserInfoPageProps {
+  onDirectToPayment?: (profileIds: string[]) => void;
+  onContinueToKYC?: () => void;
+}
+
 const UserInfoPage = ({
   accounts: initialAccounts,
   onSubmit,
   onAccountsChange,
-}: UserInfoPageProps) => {
+  onDirectToPayment,
+  onContinueToKYC,
+}: ExtendedUserInfoPageProps) => {
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<Account[]>(
     initialAccounts || [
@@ -115,15 +123,17 @@ const UserInfoPage = ({
   >([]);
   const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
+  const [hasFetchedProfiles, setHasFetchedProfiles] = useState(false);
 
   // Fetch existing profiles when toggle is enabled
   useEffect(() => {
     const fetchExistingProfiles = async () => {
-      if (useExistingProfiles) {
+      if (useExistingProfiles && !hasFetchedProfiles) {
         setLoadingProfiles(true);
         try {
           const response = await userProfileApi.listUserProfiles();
           setExistingProfiles(response || []);
+          setHasFetchedProfiles(true);
         } catch (error) {
           console.error("Error fetching profiles:", error);
           setExistingProfiles([]);
@@ -139,7 +149,15 @@ const UserInfoPage = ({
     };
 
     fetchExistingProfiles();
-  }, [useExistingProfiles, toast]);
+  }, [useExistingProfiles, hasFetchedProfiles, toast]);
+
+  // Reset fetched profiles when toggle is turned off
+  useEffect(() => {
+    if (!useExistingProfiles) {
+      setHasFetchedProfiles(false);
+      setSelectedProfileIds([]);
+    }
+  }, [useExistingProfiles]);
 
   const addAccount = () => {
     const newAccount: Account = {
@@ -210,30 +228,45 @@ const UserInfoPage = ({
       return;
     }
 
-    if (onSubmit) {
-      await onSubmit(accounts);
+    // Validate required fields
+    const allFieldsValid = accounts.every((account) => {
+      const data = account.data;
+      return (
+        data.surname &&
+        data.name &&
+        data.dob &&
+        data.email &&
+        data.phone_number &&
+        data.occupation &&
+        data.annual_income
+      );
+    });
+
+    if (!allFieldsValid) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields for all accounts",
+        variant: "destructive",
+      });
       return;
     }
 
-    try {
-      const primaryAccount = accounts.find((acc) => acc.type === "primary");
-      const jointAccounts = accounts.filter((acc) => acc.type === "joint");
+    // Call parent onSubmit if provided
+    if (onSubmit) {
+      const success = await onSubmit(accounts);
+      if (success && onContinueToKYC) {
+        onContinueToKYC(); // Navigate to KYC
+        return;
+      }
+    }
 
-      console.log("Primary Account:", primaryAccount?.data);
-      console.log(
-        "Joint Accounts:",
-        jointAccounts.map((acc) => acc.data)
-      );
-
+    // If no onSubmit prop or it doesn't handle navigation, navigate directly
+    if (onContinueToKYC) {
+      onContinueToKYC();
+    } else {
       toast({
         title: "Success",
-        description: "All accounts submitted successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit accounts",
-        variant: "destructive",
+        description: "Information saved successfully",
       });
     }
   };
@@ -245,14 +278,28 @@ const UserInfoPage = ({
 
   // Handle profile selection from existing profiles
   const handleProfileToggle = (profileId: string) => {
-    const newSelectedIds = selectedProfileIds.includes(profileId)
-      ? selectedProfileIds.filter((id) => id !== profileId)
-      : [...selectedProfileIds, profileId];
+    let newSelectedIds: string[];
+
+    if (selectedProfileIds.includes(profileId)) {
+      // Remove from selection
+      newSelectedIds = selectedProfileIds.filter((id) => id !== profileId);
+    } else {
+      // Add to selection - if this is the first selection, it becomes primary
+      newSelectedIds = [...selectedProfileIds, profileId];
+    }
 
     setSelectedProfileIds(newSelectedIds);
   };
 
-  // Convert selected profiles to accounts
+  // Get primary profile (first selected)
+  const getPrimaryProfile = () => {
+    if (selectedProfileIds.length === 0) return null;
+    return existingProfiles.find(
+      (p) => p.user_profile_id === selectedProfileIds[0]
+    );
+  };
+
+  // Convert selected profiles to accounts AND go directly to payment
   const handleUseSelectedProfiles = () => {
     if (selectedProfileIds.length === 0) {
       toast({
@@ -263,56 +310,35 @@ const UserInfoPage = ({
       return;
     }
 
-    const selectedAccounts: Account[] = selectedProfileIds
-      .map((profileId, index) => {
+    // Extract just the profile IDs for direct payment
+    const profileIds = selectedProfileIds
+      .map((profileId) => {
         const profile = existingProfiles.find(
           (p) => p.user_profile_id === profileId
         );
-        if (!profile) return null;
-
-        return {
-          id: `profile-${profile.user_profile_id}`,
-          type: index === 0 ? "primary" : "joint",
-          data: {
-            surname: profile.surname,
-            name: profile.name,
-            dob: profile.dob,
-            gender: profile.gender,
-            email: profile.email,
-            phone_number: profile.phone_number,
-            present_address: profile.present_address,
-            permanent_address: profile.permanent_address,
-            occupation: profile.occupation,
-            annual_income: profile.annual_income,
-            user_type: profile.user_type,
-            pan_number: profile.pan_number || "",
-            aadhar_number: profile.aadhar_number || "",
-            gst_number: profile.gst_number || "",
-            passport_number: profile.passport_number || "",
-            sameAddress:
-              JSON.stringify(profile.present_address) ===
-              JSON.stringify(profile.permanent_address),
-            account_details: profile.account_details,
-          } as UserInfo,
-          termsAccepted: true,
-          verified: {
-            pan: !!profile.pan_number,
-            aadhar: !!profile.aadhar_number,
-            gst: !!profile.gst_number,
-            passport: !!profile.passport_number,
-          },
-        };
+        return profile?.user_profile_id || "";
       })
-      .filter(Boolean) as Account[];
+      .filter((id) => id !== "");
 
-    setAccounts(selectedAccounts);
+    // Reset the form state
     setUseExistingProfiles(false);
     setSelectedProfileIds([]);
+    setHasFetchedProfiles(false);
 
-    toast({
-      title: "Success",
-      description: "Profiles loaded successfully",
-    });
+    // Call the direct to payment callback with profile IDs
+    if (onDirectToPayment) {
+      onDirectToPayment(profileIds);
+      toast({
+        title: "Success",
+        description: "Proceeding to payment with selected profiles.",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description:
+          "Profiles selected successfully. Please continue to payment.",
+      });
+    }
   };
 
   const getVerificationBadge = (status: string) => {
@@ -353,6 +379,7 @@ const UserInfoPage = ({
               id="existing-profiles"
               checked={useExistingProfiles}
               onCheckedChange={setUseExistingProfiles}
+              className="thick-switch-thumb border-2 border-gray-400 data-[state=checked]:border-primary"
             />
           </div>
 
@@ -379,50 +406,213 @@ const UserInfoPage = ({
               ) : (
                 <>
                   <div className="grid gap-3 max-h-96 overflow-y-auto p-2">
-                    {existingProfiles.map((profile) => (
-                      <div
-                        key={profile.user_profile_id}
-                        className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                          selectedProfileIds.includes(profile.user_profile_id)
-                            ? "border-primary bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() =>
-                          handleProfileToggle(profile.user_profile_id)
-                        }
-                      >
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedProfileIds.includes(
-                              profile.user_profile_id
-                            )}
-                            onChange={() =>
-                              handleProfileToggle(profile.user_profile_id)
-                            }
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">
-                                {profile.surname} {profile.name}
-                              </h4>
-                              {getVerificationBadge(
-                                profile.kyc_verification_status
-                              )}
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-sm text-muted-foreground">
-                              <div>Email: {profile.email}</div>
-                              <div>Phone: {profile.phone_number}</div>
-                              <div>Type: {profile.user_type}</div>
-                              <div>
-                                PAN: {profile.pan_number || "Not provided"}
+                    {existingProfiles.map((profile) => {
+                      const isPrimary =
+                        selectedProfileIds[0] === profile.user_profile_id;
+                      const isSelected = selectedProfileIds.includes(
+                        profile.user_profile_id
+                      );
+
+                      return (
+                        <div
+                          key={profile.user_profile_id}
+                          className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                            isSelected
+                              ? "border-primary bg-blue-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                          onClick={() =>
+                            handleProfileToggle(profile.user_profile_id)
+                          }
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() =>
+                                handleProfileToggle(profile.user_profile_id)
+                              }
+                              className="mt-1"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold">
+                                  {profile.surname} {profile.name}
+                                </h4>
+                                {isPrimary && (
+                                  <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
+                                    <Crown className="w-3 h-3" />
+                                    Primary Holder
+                                  </Badge>
+                                )}
+                                {isSelected && !isPrimary && (
+                                  <Badge variant="secondary">
+                                    Joint Holder
+                                  </Badge>
+                                )}
                               </div>
+
+                              {/* Enhanced profile information with more important fields */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                                {/* Contact Information */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      Email:
+                                    </span>
+                                    <span className="truncate">
+                                      {profile.email}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      Phone:
+                                    </span>
+                                    <span>{profile.phone_number}</span>
+                                  </div>
+                                </div>
+
+                                {/* Personal Details */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      DOB:
+                                    </span>
+                                    <span>
+                                      {profile.dob
+                                        ? new Date(
+                                            profile.dob
+                                          ).toLocaleDateString()
+                                        : "Not provided"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      Gender:
+                                    </span>
+                                    <span className="capitalize">
+                                      {profile.gender || "Not provided"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Professional Information */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      Occupation:
+                                    </span>
+                                    <span>
+                                      {profile.occupation || "Not provided"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      Income:
+                                    </span>
+                                    <span>
+                                      {profile.annual_income
+                                        ? `₹${parseInt(
+                                            profile.annual_income
+                                          ).toLocaleString("en-IN")}`
+                                        : "Not provided"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Identification Documents */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      PAN:
+                                    </span>
+                                    <span className="font-mono">
+                                      {profile.pan_number || "Not provided"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      Aadhar:
+                                    </span>
+                                    <span>
+                                      {profile.aadhar_number
+                                        ? `${profile.aadhar_number.substring(
+                                            0,
+                                            4
+                                          )}XXXX${profile.aadhar_number.substring(
+                                            8
+                                          )}`
+                                        : "Not provided"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Address Information */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      City:
+                                    </span>
+                                    <span>
+                                      {profile.present_address?.city ||
+                                        "Not provided"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      State:
+                                    </span>
+                                    <span>
+                                      {profile.present_address?.state ||
+                                        "Not provided"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Account & KYC Status */}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-gray-700">
+                                      Type:
+                                    </span>
+                                    <span className="capitalize">
+                                      {profile.user_type}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Bank Account Details - Show if available */}
+                              {profile.account_details?.account_number && (
+                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm text-gray-700">
+                                      Bank Account:
+                                    </span>
+                                    <span className="text-sm font-mono">
+                                      {
+                                        profile.account_details
+                                          .bank_account_name
+                                      }{" "}
+                                      •
+                                      {profile.account_details.account_number.substring(
+                                        0,
+                                        4
+                                      )}
+                                      XXXX
+                                      {profile.account_details.account_number.substring(
+                                        profile.account_details.account_number
+                                          .length - 3
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {selectedProfileIds.length > 0 && (
@@ -437,7 +627,7 @@ const UserInfoPage = ({
                         </p>
                       </div>
                       <Button onClick={handleUseSelectedProfiles}>
-                        Use Selected Profiles
+                        Use Selected Profiles & Continue to Payment
                       </Button>
                     </div>
                   )}
@@ -448,41 +638,45 @@ const UserInfoPage = ({
         </CardContent>
       </Card>
 
-      {/* ORIGINAL USER INFO FORM - MAIN FLOW */}
-      <div className="space-y-6">
-        {accounts.map((account) => (
-          <UserInfoForm
-            key={account.id}
-            account={account}
-            isPrimary={account.type === "primary"}
-            index={account.type === "primary" ? 0 : getJointIndex(account.id)}
-            onUpdate={updateAccountData.bind(null, account.id)}
-            onTermsChange={updateAccountTerms.bind(null, account.id)}
-            onRemove={() => removeAccount(account.id)}
-            onVerifiedUpdate={updateAccountVerified.bind(null, account.id)}
-          />
-        ))}
-      </div>
+      {/* ORIGINAL USER INFO FORM - MAIN FLOW - HIDDEN WHEN USING EXISTING PROFILES */}
+      {!useExistingProfiles && (
+        <div className="space-y-6">
+          {accounts.map((account) => (
+            <UserInfoForm
+              key={account.id}
+              account={account}
+              isPrimary={account.type === "primary"}
+              index={account.type === "primary" ? 0 : getJointIndex(account.id)}
+              onUpdate={updateAccountData.bind(null, account.id)}
+              onTermsChange={updateAccountTerms.bind(null, account.id)}
+              onRemove={() => removeAccount(account.id)}
+              onVerifiedUpdate={updateAccountVerified.bind(null, account.id)}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Add Account Button */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-        <Button
-          variant="outline"
-          onClick={addAccount}
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Another Account Holder
-        </Button>
+      {/* Add Account Button - HIDDEN WHEN USING EXISTING PROFILES */}
+      {!useExistingProfiles && (
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+          <Button
+            variant="outline"
+            onClick={addAccount}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Add Another Account Holder
+          </Button>
 
-        <Button
-          onClick={handleSubmit}
-          className="bg-green-600 hover:bg-green-700 text-white"
-          size="lg"
-        >
-          Save & Continue to KYC
-        </Button>
-      </div>
+          <Button
+            onClick={handleSubmit}
+            className="bg-green-600 hover:bg-green-700 text-white"
+            size="lg"
+          >
+            Save & Continue to KYC
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

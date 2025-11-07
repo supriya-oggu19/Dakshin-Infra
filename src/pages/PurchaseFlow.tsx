@@ -12,7 +12,6 @@ import PlanSelectionStep from "@/components/purchase/PlanSelectionStep";
 import ConfirmationStep from "@/components/purchase/ConfirmationStep";
 import OrderSummary from "@/components/purchase/OrderSummary";
 import PurchaseProgress from "@/components/purchase/PurchaseProgress";
-import ProfileSelectionStep from "@/components/purchase/ProfileSelectionStep";
 
 // Import APIs and models
 import { purchaseApi } from "@/api/purchaseApi";
@@ -43,7 +42,6 @@ const PurchaseFlow = () => {
   // Step mapping between URL and internal state
   const stepMapping = {
     plan: "plan-selection",
-    // profiles: "profile-selection", // New step for existing users
     "user-info": "user-info",
     kyc: "kyc",
     payment: "payment",
@@ -52,7 +50,6 @@ const PurchaseFlow = () => {
 
   const reverseStepMapping = {
     "plan-selection": "plan",
-    // "profile-selection": "profiles", // New step for existing users
     "user-info": "user-info",
     kyc: "kyc",
     payment: "payment",
@@ -106,6 +103,8 @@ const PurchaseFlow = () => {
   >([]);
   const [hasExistingProfiles, setHasExistingProfiles] =
     useState<boolean>(false);
+  const [useExistingProfiles, setUseExistingProfiles] =
+    useState<boolean>(false);
   const projectName = location.state?.projectName || "Project";
   const [restoringState, setRestoringState] = useState(true);
 
@@ -123,6 +122,7 @@ const PurchaseFlow = () => {
       setKycAccepted(parsedState.kycAccepted || false);
       setJointKycAccepted(parsedState.jointKycAccepted || []);
       setCustomPayment(parsedState.customPayment || 0);
+      setUseExistingProfiles(parsedState.useExistingProfiles || false);
     }
     setRestoringState(false);
   }, [id]);
@@ -139,6 +139,7 @@ const PurchaseFlow = () => {
       jointKycAccepted,
       customPayment,
       hasExistingProfiles,
+      useExistingProfiles,
     };
     sessionStorage.setItem(`purchaseState_${id}`, JSON.stringify(stateToSave));
   }, [
@@ -151,6 +152,7 @@ const PurchaseFlow = () => {
     jointKycAccepted,
     customPayment,
     hasExistingProfiles,
+    useExistingProfiles,
     id,
   ]);
 
@@ -286,9 +288,14 @@ const PurchaseFlow = () => {
         sameAddress:
           JSON.stringify(profile.present_address) ===
           JSON.stringify(profile.permanent_address),
-        account_details: profile.account_details,
+        account_details: profile.account_details || {
+          account_holder_name: "",
+          bank_account_name: "",
+          account_number: "",
+          ifsc_code: "",
+        },
       } as UserInfo,
-      termsAccepted: true, // Already accepted for existing profiles
+      termsAccepted: true,
       verified: {
         pan: !!profile.pan_number,
         aadhar: !!profile.aadhar_number,
@@ -678,13 +685,12 @@ const PurchaseFlow = () => {
     return ids;
   };
 
-  // Navigation handlers - UPDATED
+  // Navigation handlers
   const nextStep = async () => {
     setLoading(true);
 
     try {
       if (currentStep === "plan-selection" && selectedPlan) {
-        // ALWAYS go to user-info, regardless of existing profiles
         setCurrentStep("user-info");
       } else if (currentStep === "user-info" && validateUserInfo()) {
         setCurrentStep("kyc");
@@ -697,7 +703,6 @@ const PurchaseFlow = () => {
         });
         setCurrentStep("payment");
       } else if (currentStep === "payment") {
-        // This will be handled by PurchaseUnitConfirmation's success callback
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setCurrentStep("confirmation");
         toast({
@@ -775,16 +780,28 @@ const PurchaseFlow = () => {
     });
   };
 
-  const handleUserInfoSubmit = async (submittedAccounts: Account[]) => {
+  const handleUserInfoSubmit = async (
+    submittedAccounts: Account[]
+  ): Promise<boolean> => {
     setAccounts(submittedAccounts);
+
+    // Validate the user info
     if (validateUserInfo()) {
-      toast({ title: "Success", description: "User info saved" });
+      toast({
+        title: "Success",
+        description: "User info saved successfully",
+      });
+
+      // Automatically navigate to KYC step after successful submission
+      setCurrentStep("kyc");
+      return true;
     } else {
       toast({
         title: "Error",
-        description: "Please fix validation errors",
+        description: "Please fix validation errors before continuing",
         variant: "destructive",
       });
+      return false;
     }
   };
 
@@ -810,17 +827,6 @@ const PurchaseFlow = () => {
           />
         );
 
-      // case "profile-selection":
-      //   return (
-      //     <ProfileSelectionStep
-      //       existingProfiles={existingProfiles}
-      //       selectedProfileIds={userProfileIds}
-      //       onProfileSelection={handleProfileSelection}
-      //       onAddNewProfile={() => setCurrentStep("user-info")}
-      //       onContinue={nextStep}
-      //     />
-      //   );
-
       case "user-info":
         return (
           <div className="space-y-6">
@@ -828,6 +834,18 @@ const PurchaseFlow = () => {
               accounts={accounts}
               onSubmit={handleUserInfoSubmit}
               onAccountsChange={setAccounts}
+              onDirectToPayment={(profileIds) => {
+                setUserProfileIds(profileIds);
+                setCurrentStep("payment");
+                toast({
+                  title: "Success",
+                  description:
+                    "Using existing verified profiles. Proceeding to payment.",
+                });
+              }}
+              onContinueToKYC={() => setCurrentStep("kyc")}
+              existingProfiles={existingProfiles}
+              useExistingProfiles={useExistingProfiles}
             />
           </div>
         );
