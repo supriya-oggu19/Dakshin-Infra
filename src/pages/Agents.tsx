@@ -60,7 +60,7 @@ const Agents = () => {
   const benefits = [
     {
       icon: TrendingUp,
-      title: "High Commissions",
+      title: "Attractive Commissions",
       description: "Earn high commissions on property sales with performance bonuses.",
     },
     {
@@ -343,43 +343,7 @@ const Agents = () => {
                     </div>
                   </div>
 
-                  {/* Professional Info */}
-                  <div className="space-y-3 pt-2">
-                    <h3 className="text-lg font-semibold flex items-center">
-                      <FileText className="w-4 h-4 mr-2 text-primary" /> Professional Details
-                    </h3>
-                    <div className="grid md:grid-cols-3 gap-3">
-                      {["reraId", "specialization", "commissionRate"].map((field) => (
-                        <div key={field}>
-                          <label className="text-xs font-medium mb-1.5 block">
-                            {field === "reraId" ? "RERA ID" : field === "commissionRate" ? "Commission Rate (%)" : "Specialization"}
-                          </label>
-                          <Input
-                            name={field}
-                            type={field === "commissionRate" ? "number" : "text"}
-                            placeholder={field === "commissionRate" ? "e.g., 3.2" : field === "reraId" ? "Enter your RERA ID" : "e.g., Commercial"}
-                            value={formData[field as keyof FormData]}
-                            onChange={handleInputChange}
-                            className={`h-9 text-sm ${errors[field as keyof FormData] ? "border-red-500" : ""}`}
-                          />
-                          {errors[field as keyof FormData] && <p className="text-red-500 text-xs mt-0.5">{errors[field as keyof FormData]}</p>}
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium mb-1.5 block">About Yourself *</label>
-                      <Textarea
-                        name="about"
-                        placeholder="Tell us about your experience..."
-                        rows={4}
-                        value={formData.about}
-                        onChange={handleInputChange}
-                        className={`resize-none text-sm ${errors.about ? "border-red-500" : ""}`}
-                        required
-                      />
-                      {errors.about && <p className="text-red-500 text-xs mt-0.5">{errors.about}</p>}
-                    </div>
-                  </div>
+               
 
                   {/* Documents */}
                   <div className="space-y-3 pt-2">
@@ -388,7 +352,6 @@ const Agents = () => {
                     </h3>
                     <div className="grid md:grid-cols-2 gap-3">
                       {[
-                        { key: "reraCertificate", label: "RERA Certificate" },
                         { key: "panCard", label: "PAN Card" },
                         { key: "aadharCard", label: "Aadhar Card" },
                         { key: "resumeCv", label: "Resume/CV" },

@@ -10,33 +10,31 @@ import {
   Linkedin,
   Instagram,
 } from "lucide-react";
-// Remove these imports:
-// import PrivacyPolicy from "./PrivacyPolicy";
-// import TermsAndConditions from "./TermsAndConditions";
-// import RefundPolicy from "./RefundPolicy";
+
+import { contactInfoApi } from "../api/contactInfoApi";   // adjust path if needed
+import { ContactInfo } from "../api/models/contactInfo.model"; // adjust path if needed
 
 const Footer = () => {
-  const [contactInfo, setContactInfo] = useState({ phones: [], emails: [] });
+  const [contactInfo, setContactInfo] = useState<{
+    phones: ContactInfo[];
+    emails: ContactInfo[];
+  }>({ phones: [], emails: [] });
   const [loading, setLoading] = useState(true);
 
-  // Remove all modal state and handlers
-  // const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
-  // const [isTermsOpen, setIsTermsOpen] = useState(false);
-  // const [isRefundOpen, setIsRefundOpen] = useState(false);
-
   useEffect(() => {
-    const fetchContactInfo = async () => {
+    const loadContacts = async () => {
       try {
-        const response = await fetch("https://www.ramyaconstructions.com/api/contactInfo/all");
-        const data = await response.json();
+        const { data } = await contactInfoApi.getAll();
 
         const active = data.filter((c) => c.is_active);
+
         const phones = active
           .filter((c) => c.contact_type === "phone")
-          .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+          .sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+
         const emails = active
           .filter((c) => c.contact_type === "email")
-          .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+          .sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
 
         setContactInfo({ phones, emails });
       } catch (err) {
@@ -45,7 +43,8 @@ const Footer = () => {
         setLoading(false);
       }
     };
-    fetchContactInfo();
+
+    loadContacts();
   }, []);
 
   const quickLinks = [
@@ -56,7 +55,6 @@ const Footer = () => {
     { name: "Contact", href: "/contact" },
   ];
 
-  // Update legalLinks to use href instead of actions
   const legalLinks = [
     { name: "Privacy Policy", href: "/privacy-policy" },
     { name: "Terms & Conditions", href: "/terms" },
@@ -124,17 +122,13 @@ const Footer = () => {
           <ul className="space-y-2 text-sm text-gray-700">
             {quickLinks.map((link, i) => (
               <li key={i}>
-                <a
-                  href={link.href}
-                  className="hover:text-yellow-600 transition-colors"
-                >
+                <a href={link.href} className="hover:text-yellow-600 transition-colors">
                   {link.name}
                 </a>
               </li>
             ))}
           </ul>
 
-          {/* Policies */}
           <div className="mt-8">
             <h3 className="text-lg font-bold text-yellow-700 mb-4 uppercase tracking-wide">
               Policies
@@ -142,10 +136,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-gray-700">
               {legalLinks.map((link, i) => (
                 <li key={i}>
-                  <a
-                    href={link.href}
-                    className="hover:text-yellow-600 transition-colors"
-                  >
+                  <a href={link.href} className="hover:text-yellow-600 transition-colors">
                     {link.name}
                   </a>
                 </li>
@@ -160,7 +151,7 @@ const Footer = () => {
             Contact
           </h3>
           {loading ? (
-            <p className="text-gray-500 text-sm">Loading contact info...</p>
+            <p className="text-gray-500 text-sm">Loading contact info…</p>
           ) : (
             <div className="space-y-4 text-sm text-gray-700">
               <div className="flex items-start space-x-3">
@@ -171,8 +162,9 @@ const Footer = () => {
                 </p>
               </div>
 
-              {contactInfo.phones.length > 0 && (
-                <div>
+              {/* Phones */}
+              {contactInfo.phones.length > 0 ? (
+                <div className="space-y-2">
                   {contactInfo.phones.map((p) => (
                     <a
                       key={p.id}
@@ -184,10 +176,13 @@ const Footer = () => {
                     </a>
                   ))}
                 </div>
+              ) : (
+                <p className="text-gray-500">No phone numbers available</p>
               )}
 
-              {contactInfo.emails.length > 0 && (
-                <div>
+              {/* Emails */}
+              {contactInfo.emails.length > 0 ? (
+                <div className="space-y-2">
                   {contactInfo.emails.map((e) => (
                     <a
                       key={e.id}
@@ -199,6 +194,8 @@ const Footer = () => {
                     </a>
                   ))}
                 </div>
+              ) : (
+                <p className="text-gray-500">No emails available</p>
               )}
             </div>
           )}
@@ -209,23 +206,15 @@ const Footer = () => {
       <div className="border-t border-gray-200 bg-gray-50/60 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-800">
-            {/* Left side - Copyright */}
             <div className="text-center md:text-left mb-3 md:mb-0">
               <p>© 2024 Ramya Constructions Ltd. All rights reserved.</p>
             </div>
 
-            {/* Right side - Policy links */}
             <div className="flex space-x-6 text-[15px] text-gray-700 font-medium">
-              <a
-                href="/privacy-policy"
-                className="hover:text-yellow-600 transition-colors duration-200"
-              >
+              <a href="/privacy-policy" className="hover:text-yellow-600 transition-colors duration-200">
                 Privacy
               </a>
-              <a
-                href="/terms"
-                className="hover:text-yellow-600 transition-colors duration-200"
-              >
+              <a href="/terms" className="hover:text-yellow-600 transition-colors duration-200">
                 Terms
               </a>
               <a

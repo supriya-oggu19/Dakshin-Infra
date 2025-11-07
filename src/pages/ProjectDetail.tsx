@@ -549,7 +549,7 @@ const ProjectDetail = () => {
                     <div className="card-luxury p-6 sm:p-8 rounded-xl">
                       <h3 className="text-xl sm:text-2xl font-bold mb-5 flex items-center text-gradient-yellow">
                         <Star className="w-6 h-6 mr-2 text-yellow-400" />
-                        Key Highlights
+                        Project Highlights
                       </h3>
                       <ul className="space-y-3">
                         {project.highlights.map((h, i) => (
