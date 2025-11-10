@@ -84,13 +84,13 @@ const ProjectDetail = () => {
   const [project, setProject] = useState<FormattedProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [imageLoadError, setImageLoadError] = useState<{[key: string]: boolean}>({});
+  const [imageLoadError, setImageLoadError] = useState<{ [key: string]: boolean }>({});
 
   /* -------------------------- FETCH -------------------------- */
   useEffect(() => {
     if (id) fetchProject(id);
   }, [id]);
-  
+
   useEffect(() => {
     if (!project?.gallery?.length) return;
 
@@ -170,7 +170,7 @@ const ProjectDetail = () => {
           : "N/A",
         gallery: galleryUrls,
         highlights: projectData.key_highlights || [],
-        features: projectData.features || [],
+        // features: projectData.features || [],
         amenities: projectData.amenities || [],
         investmentHighlights:
           projectData.investment_highlights?.map((h: string) => {
@@ -480,11 +480,10 @@ const ProjectDetail = () => {
               <button
                 key={i}
                 onClick={() => setCurrentImageIndex(i)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  i === currentImageIndex
-                    ? "bg-yellow-400"
-                    : "bg-white/40"
-                }`}
+                className={`w-2 h-2 rounded-full transition-colors ${i === currentImageIndex
+                  ? "bg-yellow-400"
+                  : "bg-white/40"
+                  }`}
               />
             ))}
           </div>
@@ -499,26 +498,26 @@ const ProjectDetail = () => {
             <div className="lg:col-span-2 space-y-8">
               <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-yellow-500/10 backdrop-blur-sm border border-yellow-500/20">
-                  <TabsTrigger 
-                    value="overview" 
+                  <TabsTrigger
+                    value="overview"
                     className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="amenities" 
+                  <TabsTrigger
+                    value="amenities"
                     className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Features
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="investment" 
+                  <TabsTrigger
+                    value="investment"
                     className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Investment
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="gallery" 
+                  <TabsTrigger
+                    value="gallery"
                     className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Gallery
@@ -601,37 +600,15 @@ const ProjectDetail = () => {
                   )}
                 </TabsContent>
 
-                {/* ---- FEATURES & AMENITIES ---- */}
+                {/* ---- FEATURES (COMBINED FEATURES & AMENITIES) ---- */}
                 <TabsContent value="amenities" className="mt-6">
                   <div className="space-y-8">
-                    {/* Features Section */}
-                    {project.features.length > 0 && (
+                    {project.amenities.length > 0 ? (
                       <div className="card-luxury p-6 sm:p-8 rounded-xl">
                         <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-yellow">
-                          Key Features
+                          Features & Aminities
                         </h2>
-                        <ul className="space-y-3">
-                          {project.features.map((feature, index) => (
-                            <li
-                              key={index}
-                              className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border/50 transition-all duration-300 hover:border-yellow-500/30"
-                            >
-                              <Star className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
-                              <span className="text-foreground leading-snug">
-                                {feature}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
 
-                    {/* Amenities Section */}
-                    {project.amenities.length > 0 && (
-                      <div className="card-luxury p-6 sm:p-8 rounded-xl">
-                        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-yellow">
-                          Amenities
-                        </h2>
                         <div className="grid sm:grid-cols-2 gap-5">
                           {project.amenities.map((amenity, index) => {
                             const Icon = getIconComponent(amenity.icon);
@@ -658,19 +635,15 @@ const ProjectDetail = () => {
                           })}
                         </div>
                       </div>
-                    )}
-
-                    {/* Fallback if no features or amenities */}
-                    {project.features.length === 0 && project.amenities.length === 0 && (
+                    ) : (
                       <div className="card-luxury p-6 sm:p-8 rounded-xl">
                         <p className="text-muted-foreground text-center py-8">
-                          No features or amenities listed.
+                          No features listed.
                         </p>
                       </div>
                     )}
                   </div>
                 </TabsContent>
-
                 {/* ---- INVESTMENT SCHEMES ---- */}
                 <TabsContent value="investment">
                   <div className="card-luxury rounded-xl">
@@ -745,10 +718,22 @@ const ProjectDetail = () => {
                     {isAuthenticated ? "Buy Now" : "Login to Buy"}
                   </Button>
 
-                  <Button 
-                    onClick={() => setIsBrochureOpen(true)} 
-                    variant="outline-luxury" 
-                    className="w-full">
+                  <Button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        toast({
+                          title: "Authentication Required",
+                          description: "Please login to view brochures",
+                          variant: "destructive",
+                        });
+                        navigate("/login", { state: { from: `/project/${id}` } });
+                      } else {
+                        setIsBrochureOpen(true);
+                      }
+                    }}
+                    variant="outline-luxury"
+                    className="w-full"
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     View Brochures
                   </Button>
@@ -798,7 +783,7 @@ const ProjectDetail = () => {
                       </div>
                     );
                   })}
-                  
+
                   {/* Static Quick Info Items */}
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Property Type</dt>

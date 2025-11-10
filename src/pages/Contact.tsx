@@ -235,7 +235,7 @@ const Contact = () => {
                           </label>
                           <Input
                             name="full_name"
-                            placeholder="John Doe"
+                            placeholder="Enter Name"
                             className="h-12 bg-background"
                             value={formData.full_name}
                             onChange={handleInputChange}
@@ -249,7 +249,7 @@ const Contact = () => {
                           <Input
                             name="email"
                             type="email"
-                            placeholder="john@example.com"
+                            placeholder="Enter your email address"
                             className="h-12 bg-background"
                             value={formData.email}
                             onChange={handleInputChange}
@@ -265,7 +265,7 @@ const Contact = () => {
                         <Input
                           name="phone"
                           type="tel"
-                          placeholder="+91 98765 43210"
+                          placeholder="+91-XXXXX-XXXXX"
                           className="h-12 bg-background"
                           value={formData.phone}
                           onChange={handleInputChange}
