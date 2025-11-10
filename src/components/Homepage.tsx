@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Play, Building2, TrendingUp, Award, Users, MapPin, Phone, Mail, Star, Shield, Zap, Briefcase, ShieldCheck } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import ProjectCard from "@/components/ProjectCard";
-import heroImage from "@/assets/hero-skyline.jpg";
+import heroImage from "@/assets/image.png";
 import { Link } from "react-router-dom";
 
 import { projectApi } from "@/api/projectApi";

@@ -154,7 +154,7 @@ const Navigation = () => {
                     <User className="w-4 h-4 text-primary" />
                   </div>
                   <span className="text-sm font-medium text-foreground">
-                    Welcome, <span className="text-primary">{user?.username}</span>
+                    <span className="text-primary">{user?.username}</span>
                   </span>
                 </div>
                 <Button

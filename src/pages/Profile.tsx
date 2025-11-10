@@ -10,7 +10,9 @@ import { User, Mail, Phone, Save } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+// const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://frontend-api.ramyaconstructions.com";
+
 
 const Profile = () => {
   const [name, setName] = useState("");
