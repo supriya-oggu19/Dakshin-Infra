@@ -672,8 +672,8 @@ const ProjectDetail = () => {
                 </TabsContent>
 
                 {/* ---- INVESTMENT SCHEMES ---- */}
-                <TabsContent value="investment" className="mt-6">
-                  <div className="card-luxury p-6 sm:p-8 rounded-xl">
+                <TabsContent value="investment">
+                  <div className="card-luxury rounded-xl">
                     <InvestmentSchemes
                       projectName={project.title}
                       projectId={project.id}
