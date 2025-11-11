@@ -62,8 +62,10 @@ const Navigation = () => {
             <img
               src={logo}
               alt="Ramya Constructions logo"
-              className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl shadow-lg object-contain bg-white"
+              className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 object-contain bg-transparent shadow-none"
+              style={{ backgroundColor: "transparent" }}
             />
+
 
             <span className="text-base md:text-xl lg:text-2xl font-bold text-foreground whitespace-nowrap">
               Ramya <span className="text-gold-elegant">Constructions</span>
@@ -80,8 +82,8 @@ const Navigation = () => {
                   key={item.name}
                   to={item.href}
                   className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                      ? "nav-item-active"
-                      : "nav-item-professional"
+                    ? "nav-item-active"
+                    : "nav-item-professional"
                     }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
@@ -99,8 +101,8 @@ const Navigation = () => {
               >
                 <button
                   className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isPortfolioActive
-                      ? "nav-item-active"
-                      : "nav-item-professional"
+                    ? "nav-item-active"
+                    : "nav-item-professional"
                     }`}
                 >
                   <Briefcase className="w-4 h-4 mr-2" />
@@ -112,8 +114,8 @@ const Navigation = () => {
                 {/* Dropdown Menu */}
                 <div
                   className={`absolute top-full left-0 w-48 bg-white rounded-lg shadow-lg border border-border transition-all duration-200 ${isPortfolioOpen
-                      ? 'opacity-100 visible translate-y-0'
-                      : 'opacity-0 invisible -translate-y-2'
+                    ? 'opacity-100 visible translate-y-0'
+                    : 'opacity-0 invisible -translate-y-2'
                     }`}
                   style={{
                     marginTop: '0.25rem',
@@ -130,8 +132,8 @@ const Navigation = () => {
                           to={item.href}
                           onClick={() => setIsPortfolioOpen(false)}
                           className={`flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 ${isActive
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             }`}
                         >
                           <Icon className="w-4 h-4 mr-3" />
@@ -205,8 +207,8 @@ const Navigation = () => {
                     to={item.href}
                     onClick={() => setIsMenuOpen(false)}
                     className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                   >
                     <Icon className="w-4 h-4 mr-3" />
@@ -221,8 +223,8 @@ const Navigation = () => {
                   <button
                     onClick={() => setIsPortfolioOpen(!isPortfolioOpen)}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isPortfolioActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                   >
                     <div className="flex items-center">
@@ -244,8 +246,8 @@ const Navigation = () => {
                             to={item.href}
                             onClick={handlePortfolioItemClick}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                                ? "bg-primary/10 text-primary"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
                               }`}
                           >
                             <Icon className="w-4 h-4 mr-3" />

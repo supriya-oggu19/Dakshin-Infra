@@ -697,7 +697,7 @@ const MyUnits = () => {
                           </div>
                           <div className="mb-3">
                             <div className="text-sm text-muted-foreground mb-1">
-                              Unit Number
+                              Booking ID
                             </div>
                             <div className="text-xl font-bold text-primary">
                               {property.unit_number}

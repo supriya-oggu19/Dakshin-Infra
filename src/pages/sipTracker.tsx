@@ -204,7 +204,7 @@ const SipTracker = () => {
       doc.setFontSize(12);
       doc.text(`Receipt ID: RC-${transaction_info.cf_payment_id}`, 20, 40);
       doc.text(`Order ID: ${order_info.cf_order_id}`, 20, 50);
-      doc.text(`Unit Number: ${order_info.unit_number}`, 20, 60);
+      doc.text(`Booking ID: ${order_info.unit_number}`, 20, 60);
       doc.text(`Customer Name: ${customer_info.customer_name}`, 20, 70);
       doc.text(`Email: ${customer_info.customer_email}`, 20, 80);
       doc.text(`Phone: ${customer_info.customer_phone}`, 20, 90);
@@ -446,7 +446,7 @@ const SipTracker = () => {
           {/* Unit Selector */}
           <div className="mb-6 sm:mb-8">
             <label className="block text-sm font-medium text-muted-foreground mb-3">
-              Select Investment Unit
+            Select Booking ID
             </label>
             <div className="flex flex-wrap gap-2 sm:gap-3">
               {visibleUnits.map((unit) => (
@@ -778,7 +778,7 @@ const SipTracker = () => {
                       Export
                     </Button>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                      Unit: {paymentData?.unit_number || "N/A"}
+                      ID: {paymentData?.unit_number || "N/A"}
                     </Badge>
                   </div>
                 </div>

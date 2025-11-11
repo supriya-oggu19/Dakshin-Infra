@@ -449,10 +449,7 @@ const ProjectDetail = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-4 text-white/70 text-sm sm:text-base">
-                    <div className="flex items-center">
-                      <Square className="w-4 h-4 mr-1" />
-                      {project.area}
-                    </div>
+
                     <div className="flex items-center">
                       <TrendingUp className="w-4 h-4 mr-1" />
                       {project.type}
@@ -527,18 +524,18 @@ const ProjectDetail = () => {
                 {/* ---- OVERVIEW ---- */}
                 <TabsContent value="overview" className="mt-6 space-y-8">
                   {/* Project Overview */}
+                  {/* Project Overview */}
                   <div className="card-luxury p-6 sm:p-8 rounded-xl">
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gradient-yellow">
                       Project Overview
                     </h2>
-                    {project.description && (
-                      <p className="text-muted-foreground leading-relaxed mb-4">
-                        {project.description}
-                      </p>
-                    )}
-                    {project.long_description && (
-                      <p className="text-muted-foreground leading-relaxed">
+                    {project.long_description ? (
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
                         {project.long_description}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        No detailed description available.
                       </p>
                     )}
                   </div>
@@ -738,13 +735,7 @@ const ProjectDetail = () => {
                     View Brochures
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    className="w-full bg-gradient-to-r from-secondary/10 to-secondary/5"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Virtual Tour
-                  </Button>
+
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-border">
