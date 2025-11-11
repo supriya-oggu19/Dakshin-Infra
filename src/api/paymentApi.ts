@@ -21,7 +21,7 @@ export const paymentApi = {
   getCustomerInfo: (unitNumber: string) =>getAxiosClient.get(ENDPOINTS.PAYMENTS.CUSTOMER_INFO(unitNumber)),
   
   // Verify order status
-  verifyOrder: (orderId: string) =>mainAxiosClient.get(ENDPOINTS.PAYMENTS.CUSTOMER_INFO(orderId)),
+  verifyOrder: (orderId: string) =>mainAxiosClient.get(ENDPOINTS.PAYMENTS.VERIFY_ORDER(orderId)),
 
   // get receipt data
   getReceipt: (orderId: string): Promise<ReceiptData> => 
