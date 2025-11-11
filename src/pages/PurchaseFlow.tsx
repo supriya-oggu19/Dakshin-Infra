@@ -732,23 +732,27 @@ const PurchaseFlow = () => {
           <PurchaseProgress currentStep={currentStep} />
 
           <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+            {/* Left content - scrollable */}
+            <div className="lg:col-span-2 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto">
               {renderCurrentStep()}
             </div>
 
-            <OrderSummary
-              ref={orderSummaryRef}  // This line is crucial
-              selectedPlan={selectedPlan}
-              currentStep={currentStep}
-              loading={loading}
-              onNextStep={nextStep}
-              onPrevStep={prevStep}
-              getMinPayment={getMinPayment}
-              validateUserInfo={validateUserInfo}
-              validateKYC={validateKYC}
-              isValidPaymentAmount={isValidPaymentAmount}
-              formatCurrency={formatCurrency}
-            />
+            {/* Right sidebar - fixed/sticky */}
+            <div className="lg:sticky lg:top-24 lg:h-fit">
+              <OrderSummary
+                ref={orderSummaryRef}
+                selectedPlan={selectedPlan}
+                currentStep={currentStep}
+                loading={loading}
+                onNextStep={nextStep}
+                onPrevStep={prevStep}
+                getMinPayment={getMinPayment}
+                validateUserInfo={validateUserInfo}
+                validateKYC={validateKYC}
+                isValidPaymentAmount={isValidPaymentAmount}
+                formatCurrency={formatCurrency}
+              />
+            </div>
           </div>
         </div>
       </div>

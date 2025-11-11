@@ -257,7 +257,7 @@ const Agreements = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
-                  placeholder="Search by Unit Number (e.g., KBP-07-RMYCL-1125-UB0070)"
+                  placeholder="Search by Booking ID (e.g., KBP-07-RMYCL-1125-UB0070)"
                   className="pl-11 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-base"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}

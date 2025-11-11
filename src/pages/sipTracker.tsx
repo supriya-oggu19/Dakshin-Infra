@@ -439,7 +439,7 @@ const SipTracker = () => {
           {/* Unit Selector */}
           <div className="mb-6 sm:mb-8">
             <label className="block text-sm font-medium text-muted-foreground mb-3">
-              Select Investment Unit
+            Select Booking ID
             </label>
             <div className="flex flex-wrap gap-2 sm:gap-3">
               {visibleUnits.map((unit) => (
@@ -771,7 +771,7 @@ const SipTracker = () => {
                       Export
                     </Button>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                      Unit: {paymentData?.unit_number || "N/A"}
+                      ID: {paymentData?.unit_number || "N/A"}
                     </Badge>
                   </div>
                 </div>
@@ -905,7 +905,7 @@ const SipTracker = () => {
 
                                     {/* Additional Payment Details */}
                                     <div className="flex flex-wrap gap-2">
-                                      {payment.rebate_amount && payment.rebate_amount > 0 && (
+                                      {/* {payment.rebate_amount && payment.rebate_amount > 0 && (
                                         <Badge
                                           variant="outline"
                                           className="text-green-600 border-green-200 bg-green-50 text-xs"
@@ -922,7 +922,7 @@ const SipTracker = () => {
                                           <AlertTriangle className="w-3 h-3 mr-1" />
                                           -{formatCurrency(payment.penalty_amount)} penalty
                                         </Badge>
-                                      )}
+                                      )} */}
                                       {payment.due_date && (
                                         <Badge
                                           variant="outline"

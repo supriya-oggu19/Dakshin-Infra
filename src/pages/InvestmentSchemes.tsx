@@ -258,22 +258,7 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
               </CardContent>
             </Card>
 
-            {/* Max Area */}
-            <Card className="shadow-lg">
-              <CardContent className="pt-5 sm:pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Investment Amount</p>
-                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
-                      {formatCurrency(totalInvestmentAmount)}
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+           
           </div>
         )}
 
