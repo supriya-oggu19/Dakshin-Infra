@@ -1,4 +1,3 @@
-// components/purchase/PlanSelectionStep.tsx
 import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Building, Plus, Minus, IndianRupee, AlertCircle } from 'lucide-react';
+import { PlanSelection } from "@/api/models/purchase.model";
 
 // Mock types for demonstration
 interface Scheme {
@@ -18,17 +18,6 @@ interface Scheme {
   monthly_rental_income: number;
   rental_start_month?: number;
   balance_payment_days?: number;
-}
-
-interface PlanSelection {
-  planId: string;
-  type: string;
-  area: number;
-  price: number;
-  units: number;
-  installments?: number;
-  totalInvestment: number;
-  paymentAmount: number;
 }
 
 const SchemeType = {

@@ -50,6 +50,7 @@ export const ENDPOINTS = {
     CUSTOMER_INFO: (unitNumber: string) => `/payments/customer-info/${unitNumber}`,
     LIST: "/payments/list",
     VERIFY_ORDER: (orderId: string) => `/payments/verify-order/${orderId}`,
+    GET_RECEIPT: (orderId: string) => `/payments/receipt/${orderId}`,
   },
 
   USER_PROFILE: {

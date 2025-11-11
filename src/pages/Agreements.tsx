@@ -48,7 +48,6 @@ const Agreements = () => {
 
   const location = useLocation();
 
-  // Map status
   const mapStatus = (status: string): string => {
     switch (status) {
       case "signed":
@@ -62,7 +61,6 @@ const Agreements = () => {
     }
   };
 
-  // Map type to display name
   const mapType = (type: string): string => {
     const map: Record<string, string> = {
       mou: "MOU",
@@ -75,7 +73,6 @@ const Agreements = () => {
     return map[type] || type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  // Group agreements by unit_number
   const groupAgreements = (data: LegalAgreement[]): GroupedAgreement[] => {
     const grouped = new Map<string, GroupedAgreement>();
 
@@ -97,7 +94,6 @@ const Agreements = () => {
 
       const group = grouped.get(key)!;
 
-      // Add document if not duplicate
       const docExists = group.documents.some((d) => d.path === item.file_path);
       if (!docExists) {
         group.documents.push({
@@ -107,14 +103,12 @@ const Agreements = () => {
         });
       }
 
-      // Merge signatories
       item.signatories.forEach((s) => {
         if (!group.signatories.includes(s)) {
           group.signatories.push(s);
         }
       });
 
-      // Update latest date
       if (new Date(item.agreement_date) > new Date(group.agreementDate)) {
         group.agreementDate = item.agreement_date;
       }
@@ -125,7 +119,6 @@ const Agreements = () => {
     );
   };
 
-  // Fetch agreements
   const fetchAgreements = useCallback(
     async (pageNum: number, append = false) => {
       if (isFetching) return;
@@ -155,7 +148,6 @@ const Agreements = () => {
     [isFetching]
   );
 
-  // Initial load + URL unit search
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const unitFromUrl = params.get("unit");
@@ -167,7 +159,6 @@ const Agreements = () => {
     fetchAgreements(1, false);
   }, [location.search]);
 
-  // Infinite scroll observer
   const lastAgreementRef = useCallback(
     (node: HTMLDivElement | null) => {
       if (loading || isFetching) return;
@@ -184,14 +175,12 @@ const Agreements = () => {
     [loading, isFetching, hasMore]
   );
 
-  // Load more on page change
   useEffect(() => {
     if (page > 1) {
       fetchAgreements(page, true);
     }
   }, [page, fetchAgreements]);
 
-  // Filter by unit_number
   const filteredAgreements = groupedAgreements.filter((agreement) =>
     agreement.unitNumber.toLowerCase().includes(searchTerm.toLowerCase().trim())
   );
@@ -277,23 +266,6 @@ const Agreements = () => {
             </CardContent>
           </Card>
 
-          {/* No Results or Not Available */}
-          {showNotAvailable && (
-            <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
-              <CardContent className="p-12 text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-red-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Legal documents are not available for this unit
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Unit: <strong>{searchTerm}</strong>
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
           {/* No Agreements Found (Empty Case) */}
           {!loading && groupedAgreements.length === 0 && !showNotAvailable && (
             <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
@@ -312,145 +284,204 @@ const Agreements = () => {
           )}
 
           {/* Agreements List */}
-          {!showNotAvailable && (
-            <div className="space-y-4">
-              {filteredAgreements.map((agreement, index) => (
-                <Card
-                  key={agreement.unitNumber}
-                  ref={index === filteredAgreements.length - 2 ? lastAgreementRef : null}
-                  className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur overflow-hidden"
+          <div className="space-y-4">
+            {filteredAgreements.map((agreement, index) => (
+              <Card
+                key={agreement.unitNumber}
+                ref={index === filteredAgreements.length - 2 ? lastAgreementRef : null}
+                className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur overflow-hidden"
+              >
+                <CardHeader
+                  className="p-5 cursor-pointer bg-gradient-to-r from-indigo-50 to-white"
+                  onClick={() => toggleExpand(agreement.unitNumber)}
                 >
-                  <CardHeader
-                    className="p-5 cursor-pointer bg-gradient-to-r from-indigo-50 to-white"
-                    onClick={() => toggleExpand(agreement.unitNumber)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Building className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <h3 className="font-semibold text-gray-900 text-lg truncate">
-                                {agreement.unitNumber}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {agreement.projectName}
-                              </p>
-                            </div>
-                            <Badge className={`${getStatusColor(agreement.status)} font-medium`}>
-                              {agreement.status}
-                            </Badge>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Building className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-900 text-lg truncate">
+                              {agreement.unitNumber}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {agreement.projectName}
+                            </p>
                           </div>
+                          <Badge className={`${getStatusColor(agreement.status)} font-medium`}>
+                            {agreement.status}
+                          </Badge>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExpand(agreement.unitNumber);
-                        }}
-                      >
-                        {expandedUnit === agreement.unitNumber ? (
-                          <ChevronUp className="w-5 h-5" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5" />
-                        )}
-                      </Button>
                     </div>
-                  </CardHeader>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(agreement.unitNumber);
+                      }}
+                    >
+                      {expandedUnit === agreement.unitNumber ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
 
-                  {expandedUnit === agreement.unitNumber && (
-                    <CardContent className="p-6 space-y-6 border-t">
-                      <div className="grid md:grid-cols-2 gap-6">
-                        {/* Details */}
-                        <div className="space-y-4">
-                          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-indigo-600" />
-                            Agreement Details
-                          </h4>
-                          <div className="space-y-3 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600 flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                Date:
-                              </span>
-                              <span className="font-medium">
-                                {new Date(agreement.agreementDate).toLocaleDateString("en-IN")}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600 flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                Valid Until:
-                              </span>
-                              <span className="font-medium">
-                                {new Date(agreement.validUntil).toLocaleDateString("en-IN")}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-start">
-                              <span className="text-gray-600 flex items-center gap-1">
-                                <Users className="w-4 h-4" />
-                                Signatories:
-                              </span>
-                              <span className="font-medium text-right max-w-[180px] text-xs">
-                                {agreement.signatories.join(", ")}
-                              </span>
-                            </div>
+                {expandedUnit === agreement.unitNumber && (
+                  <CardContent className="p-6 space-y-6 border-t">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Details */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-indigo-600" />
+                          Agreement Details
+                        </h4>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              Date:
+                            </span>
+                            <span className="font-medium">
+                              {new Date(agreement.agreementDate).toLocaleDateString("en-IN")}
+                            </span>
                           </div>
-                        </div>
-
-                        {/* Documents */}
-                        <div className="space-y-4">
-                          <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <Download className="w-5 h-5 text-indigo-600" />
-                            Available Documents ({agreement.documents.length})
-                          </h4>
-                          <div className="space-y-2">
-                            {agreement.documents.map((doc) => (
-                              <div
-                                key={doc.path}
-                                className="flex items-center justify-between p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 transition-colors"
-                              >
-                                <div className="flex items-center gap-2 min-w-0 flex-1">
-                                  <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-medium text-gray-800 truncate">
-                                      {doc.type}
-                                    </p>
-                                    <p className="text-xs text-gray-600 truncate">
-                                      {doc.name}
-                                    </p>
-                                  </div>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-emerald-700 hover:bg-emerald-200"
-                                  onClick={() => handleDownload(doc.path, doc.name)}
-                                >
-                                  <Download className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            ))}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              Valid Until:
+                            </span>
+                            <span className="font-medium">
+                              {new Date(agreement.validUntil).toLocaleDateString("en-IN")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-gray-600 flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              Signatories:
+                            </span>
+                            <span className="font-medium text-right max-w-[180px] text-xs">
+                              {agreement.signatories.join(", ")}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
 
-              {/* Loading more */}
-              {isFetching && page > 1 && (
-                <div className="flex justify-center py-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                </div>
-              )}
-            </div>
-          )}
+                      {/* Documents */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <Download className="w-5 h-5 text-indigo-600" />
+                          Available Documents ({agreement.documents.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {agreement.documents.map((doc) => (
+                            <div
+                              key={doc.path}
+                              className="flex items-center justify-between p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 transition-colors"
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-gray-800 truncate">
+                                    {doc.type}
+                                  </p>
+                                  <p className="text-xs text-gray-600 truncate">
+                                    {doc.name}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-emerald-700 hover:bg-emerald-200"
+                                onClick={() => handleDownload(doc.path, doc.name)}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+
+            {/* Not Available Card (Same style as others) */}
+            {showNotAvailable && (
+              <Card className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 bg-white/80 backdrop-blur overflow-hidden">
+                <CardHeader
+                  className="p-5 cursor-pointer bg-gradient-to-r from-indigo-50 to-white"
+                  onClick={() => toggleExpand(searchTerm)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Building className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-900 text-lg truncate">
+                              {searchTerm}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              Ramya Constructions
+                            </p>
+                          </div>
+                          <Badge className="bg-red-100 text-red-700 border-red-200 font-medium">
+                            Not Available
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(searchTerm);
+                      }}
+                    >
+                      {expandedUnit === searchTerm ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+
+                {expandedUnit === searchTerm && (
+                  <CardContent className="p-12 text-center border-t">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FileText className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Legal documents are not available for this unit
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      No documents found for <strong>{searchTerm}</strong>
+                    </p>
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
+            {/* Loading more */}
+            {isFetching && page > 1 && (
+              <div className="flex justify-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
