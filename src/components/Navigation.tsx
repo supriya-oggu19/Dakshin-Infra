@@ -62,14 +62,9 @@ const Navigation = () => {
             <img
               src={logo}
               alt="Ramya Constructions logo"
-              className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 object-contain bg-transparent shadow-none"
-              style={{ backgroundColor: "transparent" }}
+              className="w-32 h-auto md:w-36 lg:w-40 object-contain bg-transparent"
+              style={{ backgroundColor: 'transparent', marginTop: '-4px' }}
             />
-
-
-            <span className="text-base md:text-xl lg:text-2xl font-bold text-foreground whitespace-nowrap">
-              Ramya <span className="text-gold-elegant">Constructions</span>
-            </span>
           </Link>
 
           {/* Desktop Navigation - Center */}
