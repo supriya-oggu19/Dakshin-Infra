@@ -50,7 +50,6 @@ const Footer = () => {
   const quickLinks = [
     { name: "About Us", href: "/about" },
     { name: "Projects", href: "/projects" },
-    { name: "Investment", href: "/projects/1" },
     { name: "FAQ", href: "/faq" },
     { name: "Contact", href: "/contact" },
   ];
@@ -59,8 +58,7 @@ const Footer = () => {
     { name: "Privacy Policy", href: "/privacy-policy" },
     { name: "Terms & Conditions", href: "/terms" },
     { name: "Refund Policy", href: "/refund-policy" },
-    { name: "Disclaimer", href: "/disclaimer" },
-    { name: "RERA Details", href: "/rera" },
+   
   ];
 
   return (
@@ -217,12 +215,7 @@ const Footer = () => {
               <a href="/terms" className="hover:text-yellow-600 transition-colors duration-200">
                 Terms
               </a>
-              <a
-                href="/#"
-                className="hover:text-yellow-600 transition-colors duration-200"
-              >
-                Disclaimer
-              </a>
+             
             </div>
           </div>
         </div>
