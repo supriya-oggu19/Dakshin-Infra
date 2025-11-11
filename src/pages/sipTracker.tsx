@@ -877,12 +877,12 @@ const SipTracker = () => {
                                             Latest
                                           </Badge>
                                         )}
-                                        {isLastInstallment && (
+                                        {/* {isLastInstallment && (
                                           <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
                                             <Star className="w-3 h-3 mr-1" />
                                             Final
                                           </Badge>
-                                        )}
+                                        )} */}
                                       </div>
                                     </div>
 
