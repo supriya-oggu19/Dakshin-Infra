@@ -36,6 +36,9 @@ import {
 } from "../api/models/portfolio.model";
 import { portfolioApi } from "../api/portfolio-api";
 import PaymentModal from "@/components/PaymentModal";
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
+import ReceiptDocument from '../forms/ReceiptDocument';
 
 // Payment Data Interfaces
 interface Payment {
@@ -188,39 +191,29 @@ const SipTracker = () => {
     }
   };
 
-  const handleDownloadReceipt = async (payment: Payment) => {
+  const handleDownloadReceipt = async (orderId: string) => {
     try {
-      const response = await paymentApi.verifyOrder(payment.order_id);
-      const data = response.data;
-
-      // extract details
-      const { order_info, customer_info, transaction_info } = data;
-
-      // create PDF
-      const doc = new jsPDF();
-      doc.setFontSize(18);
-      doc.text("Payment Receipt", 80, 20);
-
-      doc.setFontSize(12);
-      doc.text(`Receipt ID: RC-${transaction_info.cf_payment_id}`, 20, 40);
-      doc.text(`Order ID: ${order_info.cf_order_id}`, 20, 50);
-      doc.text(`Unit Number: ${order_info.unit_number}`, 20, 60);
-      doc.text(`Customer Name: ${customer_info.customer_name}`, 20, 70);
-      doc.text(`Email: ${customer_info.customer_email}`, 20, 80);
-      doc.text(`Phone: ${customer_info.customer_phone}`, 20, 90);
-      doc.text(`Payment Method: ${transaction_info.payment_method}`, 20, 100);
-      doc.text(`Payment Status: ${transaction_info.payment_status}`, 20, 110);
-      doc.text(`Payment Time: ${formatDate(transaction_info.payment_time)}`, 20, 120);
-      doc.text(`Amount Paid: ₹${order_info.order_amount}`, 20, 130);
-
-      doc.text("-------------------------------", 20, 140);
-      doc.text("Thank you for your payment!", 20, 150);
-
-      doc.save(`receipt_${order_info.cf_order_id}.pdf`);
+      // Fetch raw receipt data from backend
+      const receiptData = await paymentApi.getReceipt(orderId);
+      
+      // Generate PDF blob
+      const blob = await pdf(<ReceiptDocument data={receiptData} />).toBlob();
+      
+      // Download the file
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt_${receiptData.receipt_id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Receipt Downloaded",
-        description: `Receipt for ${order_info.cf_order_id} downloaded successfully.`,
+        description: `Receipt ${receiptData.receipt_id} downloaded successfully.`,
         duration: 3000,
       });
     } catch (err) {
@@ -967,7 +960,7 @@ const SipTracker = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleDownloadReceipt(payment)}
+                                      onClick={() => handleDownloadReceipt(payment.order_id)}
                                       className="flex-shrink-0 shadow-sm border-gray-400"
                                     >
                                       <Download className="w-4 h-4" />
