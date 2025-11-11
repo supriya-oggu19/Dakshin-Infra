@@ -47,7 +47,7 @@ const OrderSummary = forwardRef<HTMLDivElement, OrderSummaryProps>(({
   };
 
   return (
-    <div ref={ref} id="order-summary" className="space-y-6 lg:sticky lg:top-24">
+    <div ref={ref} id="order-summary" className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Order Summary</CardTitle>

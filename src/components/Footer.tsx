@@ -109,7 +109,7 @@ const Footer = () => {
             <p>CIN: U45200AP1992PLC014532</p>
             <p>Incorporated: 17th Dec 1992</p>
             <p className="text-yellow-600 font-medium pt-2 border-t border-gray-200 mt-2">
-              RERA Approved Project
+              RERA Approved 
             </p>
           </div>
         </div>
@@ -157,7 +157,7 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-yellow-600 mt-1 flex-shrink-0" />
                 <p>
-                  Survey 115/1, Kapil Towers, ISB Rd, Financial District, Gachibowli, Hyderabad,
+                   Kapil Towers, Survey 115/1 , ISB Rd , Financial District, Gachibowli, Hyderabad,
                   Telangana - 500032
                 </p>
               </div>

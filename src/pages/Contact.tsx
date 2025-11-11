@@ -23,7 +23,7 @@ const Contact = () => {
   const [contactInfo, setContactInfo] = useState([{
     icon: MapPin,
     title: "Visit Our Office",
-    details: ["Survey 115/1, Kapil Towers, ISB Rd , Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
+    details: [" Kapil Towers, Survey 115/1 ,  ISB Rd , Financial District, Gachibowli, Hyderabad, Nanakramguda, Telangana 500032"],
   },
   {
     icon: Phone,
