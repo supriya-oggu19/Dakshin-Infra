@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate  } from "react-router-dom";
 import { CheckCircle, XCircle, Clock, Download, Copy, Home, Receipt, Building, AlertCircle } from "lucide-react";
 import { paymentApi } from "@/api/paymentApi";
+import { useToast } from "@/hooks/use-toast";
+import { pdf } from '@react-pdf/renderer';
+import ReceiptDocument from '../forms/ReceiptDocument';
 
 interface PaymentDetails {
   order_info?: {
@@ -32,6 +35,7 @@ interface PaymentDetails {
 }
 
 export default function PaymentResult(): JSX.Element {
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState<boolean>(true);
   const [result, setResult] = useState<PaymentDetails | null>(null);
@@ -47,7 +51,7 @@ export default function PaymentResult(): JSX.Element {
         sessionStorage.removeItem(`purchaseState_${projectId}`);
         sessionStorage.removeItem('currentProjectId');
       }
-    navigate(`/sip?unit=${result.order_info.unit_number}`);
+    navigate(`/sip?unit=${result?.order_info?.unit_number}`);
     } else {
       // Extract project ID from order data or use a different method
       const projectId = sessionStorage.getItem('currentProjectId') ||
@@ -56,7 +60,7 @@ export default function PaymentResult(): JSX.Element {
       if (projectId) {
         navigate(`/purchase/${projectId}/payment`);
       } else {
-        navigate(`/sip?unit=${result.order_info.unit_number}`);
+        navigate(`/sip?unit=${result?.order_info?.unit_number}`);
       }
     }
   };
@@ -178,7 +182,7 @@ export default function PaymentResult(): JSX.Element {
         return {
           icon: <AlertCircle className="text-orange-500 w-16 h-16" />,
           title: "Payment Incomplete",
-          message: "It seems you didn’t finish the payment. You can retry anytime.",
+          message: "It seems you didn't finish the payment. You can retry anytime.",
           bgColor: "bg-orange-50",
           borderColor: "border-orange-200",
           textColor: "text-orange-800"
@@ -198,7 +202,7 @@ export default function PaymentResult(): JSX.Element {
         return {
           icon: <Clock className="text-gray-500 w-16 h-16" />,
           title: "Payment Status Unknown",
-          message: "We’re checking your payment status. Please refresh the page.",
+          message: "We're checking your payment status. Please refresh the page.",
           bgColor: "bg-gray-50",
           borderColor: "border-gray-200",
           textColor: "text-gray-800"
@@ -208,6 +212,41 @@ export default function PaymentResult(): JSX.Element {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadReceipt = async (receiptOrderId: string) => {
+    try {
+      // Fetch raw receipt data from backend
+      const receiptData = await paymentApi.getReceipt(receiptOrderId);
+      
+      // Generate PDF blob
+      const blob = await pdf(<ReceiptDocument data={receiptData} />).toBlob();
+      
+      // Download the file
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt_${receiptData.receipt_id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Receipt Downloaded",
+        description: `Receipt ${receiptData.receipt_id} downloaded successfully.`,
+        duration: 3000,
+      });
+    } catch (err) {
+      console.error("Error generating receipt:", err);
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate receipt. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -372,7 +411,7 @@ export default function PaymentResult(): JSX.Element {
               </h3>
               <div className="space-y-3">
                 <DetailItem 
-                  label="Unit Number" 
+                  label="Booking Id" 
                   value={result?.order_info?.unit_number} 
                   onCopy={() => copyToClipboard(result?.order_info?.unit_number || "", "unit_number")}
                   copied={copiedField === "unit_number"}
@@ -451,15 +490,28 @@ export default function PaymentResult(): JSX.Element {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6 border-t no-print">
+            {isSuccess ? (
+              <button
+                onClick={() => orderId && handleDownloadReceipt(orderId)}
+                disabled={!orderId}
+                className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-5 h-5" />
+                Download Receipt
+              </button>
+            ) : (
+              <button
+                onClick={() => handlePrint()}
+                disabled={!orderId}
+                className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-5 h-5" />
+                Download Receipt
+              </button>
+            )}
+
+            {/* Navigation Button */}
             <button
-              onClick={handlePrint}
-              className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-            >
-              <Download className="w-5 h-5" />
-              Download Receipt
-            </button>
-            
-            <a
               onClick={handleNavigation}
               className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-medium transition-colors ${
                 isSuccess
@@ -469,7 +521,7 @@ export default function PaymentResult(): JSX.Element {
             >
               <Home className="w-5 h-5" />
               {isSuccess ? "Go to Dashboard" : "Back to Payment"}
-            </a>
+            </button>
           </div>
 
           {/* Help Text */}
@@ -557,7 +609,7 @@ export default function PaymentResult(): JSX.Element {
           <div className="print-section">
             <h3 className="text-lg font-bold text-gray-900 mb-3 border-b font-playfair">Transaction Details</h3>
             <div className="space-y-2">
-              <PrintDetailItem label="Unit Number" value={result?.order_info?.unit_number} />
+              <PrintDetailItem label="Booking Id" value={result?.order_info?.unit_number} />
               <PrintDetailItem label="Transaction ID" value={result?.transaction_info?.cf_payment_id} />
               <PrintDetailItem label="Payment Method" value={result?.transaction_info?.payment_method || "Online Payment"} />
               <PrintDetailItem label="Payment Time" value={formatDate(result?.transaction_info?.payment_time || "")} />

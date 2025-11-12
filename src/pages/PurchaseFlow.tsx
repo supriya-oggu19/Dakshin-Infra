@@ -32,6 +32,9 @@ import {
 } from "@/api/models/userInfo.model";
 import { validatePhone } from "@/utils/validation";
 
+const MIN_PAYMENT_FLOOR = 0; 
+const GATEWAY_MAX = 1_000_000;
+
 const PurchaseFlow = () => {
   const { id, step: urlStep } = useParams<{ id: string; step?: string }>();
   const navigate = useNavigate();
@@ -388,6 +391,8 @@ const PurchaseFlow = () => {
   const handlePlanSelection = (scheme: Scheme, units: number) => {
     const type =
       scheme.scheme_type === "single_payment" ? "single" : "installment";
+
+    // Compute totalPrice and basePerUnit
     const totalPrice =
       type === "single"
         ? scheme.booking_advance * units
@@ -397,7 +402,14 @@ const PurchaseFlow = () => {
     const basePerUnit =
       scheme.booking_advance ||
       (type === "installment" ? scheme.monthly_installment_amount! : 0);
-    const minPayment = Math.max(basePerUnit * units, 50000);
+
+    // min payment per selected units (respect MIN_PAYMENT_FLOOR)
+    const minPayment = Math.max(basePerUnit * units, MIN_PAYMENT_FLOOR);
+
+    const monthlyAmount =
+      type === "installment"
+        ? scheme.monthly_installment_amount! * units
+        : undefined;
 
     setSelectedPlan({
       type,
@@ -405,10 +417,7 @@ const PurchaseFlow = () => {
       area: scheme.area_sqft,
       price: totalPrice,
       totalInvestment: totalInvestment,
-      monthlyAmount:
-        type === "installment"
-          ? scheme.monthly_installment_amount! * units
-          : undefined,
+      monthlyAmount: monthlyAmount,
       installments:
         type === "installment" ? scheme.total_installments! : undefined,
       rentalStart: scheme.rental_start_month
@@ -442,6 +451,50 @@ const PurchaseFlow = () => {
 
   const handleCustomPaymentChange = (value: string) => {
     const numValue = parseInt(value) || 0;
+
+    // If plan is installment, do not allow changing custom payment
+    if (selectedPlan && selectedPlan.type === "installment") {
+      toast({
+        title: "Not allowed",
+        description:
+          "Installment payments are fixed (advance or monthly). Custom amount is only allowed for single payment plans.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Enforce gateway max
+    if (numValue > GATEWAY_MAX) {
+      toast({
+        title: "Amount too large",
+        description: `Payment cannot exceed ${GATEWAY_MAX.toLocaleString()}`,
+        variant: "destructive",
+      });
+      // still set to max to avoid confusion
+      setCustomPayment(GATEWAY_MAX);
+      if (selectedPlan) {
+        setSelectedPlan({
+          ...selectedPlan,
+          paymentAmount: GATEWAY_MAX,
+        });
+      }
+      return;
+    }
+
+    // enforce minimum
+    const minPayment = getMinPayment();
+    if (numValue < minPayment) {
+      // allow input but mark invalid via isValidPaymentAmount; optionally show toast
+      setCustomPayment(numValue);
+      if (selectedPlan) {
+        setSelectedPlan({
+          ...selectedPlan,
+          paymentAmount: numValue,
+        });
+      }
+      return;
+    }
+
     setCustomPayment(numValue);
     if (selectedPlan) {
       setSelectedPlan({
@@ -453,20 +506,29 @@ const PurchaseFlow = () => {
 
   // Validation helpers
   const getMinPayment = () => {
-    if (!selectedPlan) return 50000;
+    if (!selectedPlan) return MIN_PAYMENT_FLOOR;
     const scheme = schemes.find((s) => s.id === selectedPlan.planId);
-    if (!scheme) return 50000;
+    if (!scheme) return MIN_PAYMENT_FLOOR;
     const type =
       scheme.scheme_type === "single_payment" ? "single" : "installment";
     const basePerUnit =
       scheme.booking_advance ||
       (type === "installment" ? scheme.monthly_installment_amount! : 0);
-    return Math.max(basePerUnit * selectedPlan.units, 50000);
+    return Math.max(basePerUnit * selectedPlan.units, MIN_PAYMENT_FLOOR);
   };
 
   const isValidPaymentAmount = () => {
     if (!selectedPlan) return false;
-    return customPayment >= getMinPayment();
+    const minPayment = getMinPayment();
+
+    // For installment, payment is fixed and must be within min/max bounds
+    if (selectedPlan.type === "installment") {
+      const amt = selectedPlan.paymentAmount ?? 0;
+      return amt >= minPayment && amt <= GATEWAY_MAX;
+    }
+
+    // For single payment allow custom payment but enforce min/max
+    return customPayment >= minPayment && customPayment <= GATEWAY_MAX;
   };
 
   const validateUserInfo = () => {
@@ -715,6 +777,26 @@ const PurchaseFlow = () => {
         });
         setCurrentStep("payment");
       } else if (currentStep === "payment") {
+        // Final verification before proceeding to confirmation/payment success
+        const paymentAmount =
+          selectedPlan?.type === "installment"
+            ? selectedPlan.paymentAmount ?? 0
+            : customPayment;
+
+        // check min/max
+        const minPayment = getMinPayment();
+        if (paymentAmount < minPayment) {
+          throw new Error(
+            `Payment amount is less than minimum required: ${minPayment}`
+          );
+        }
+        if (paymentAmount > GATEWAY_MAX) {
+          throw new Error(
+            `Payment amount exceeds maximum allowed by gateway: ${GATEWAY_MAX}`
+          );
+        }
+
+        // Fake delay / payment processing
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setCurrentStep("confirmation");
         toast({
