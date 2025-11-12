@@ -1,6 +1,7 @@
 import {mainAxiosClient,getAxiosClient} from "./axiosClient";
 import { ENDPOINTS } from "./endpoints";
 import {
+  APIUserProfileResponse,
   CreateUserProfileRequest,
   UpdateUserProfileRequest,
   UserProfileResponse,
@@ -26,4 +27,8 @@ export const userProfileApi = {
   // Get user profile
   getUserProfile: (id: string) =>
     getAxiosClient.get<UserProfileResponse>(`${ENDPOINTS.USER_PROFILE.GET}/${id}`),
+
+  // List user profiles - FIXED: API returns array directly
+  listUserProfiles: (): Promise<APIUserProfileResponse[]> =>
+    getAxiosClient.get(ENDPOINTS.USER_PROFILE.LIST).then(response => response.data),
 };

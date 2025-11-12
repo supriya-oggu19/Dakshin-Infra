@@ -88,10 +88,45 @@ export interface JointAccountInfo {
   account_details: AccountDetails;
 }
 
-/** --- User Profile Response --- */
+/** --- API User Profile Response --- */
+export interface APIUserProfileResponse {
+  user_profile_id: string;
+  user_id: string;
+  surname: string;
+  name: string;
+  dob: string;
+  gender: "male" | "female" | "other";
+  present_address: Address;
+  permanent_address: Address;
+  occupation: string;
+  annual_income: string;
+  user_type: "individual" | "business" | "NRI";
+  status: string;
+  pan_number: string | null;
+  aadhar_number: string | null;
+  gst_number: string | null;
+  passport_number: string | null;
+  phone_number: string;
+  email: string;
+  account_details: AccountDetails;
+  kyc_documents: Array<{
+    type: string;
+    status: string;
+    file_name: string;
+    file_path: string;
+    uploaded_at: string;
+  }>;
+  kyc_verification_status: "verified" | "pending" | "rejected";
+  kyc_verified_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** --- User Profile Response (for your existing usage) --- */
 export interface UserProfileResponse {
   status: "success" | "error";
   message: string;
   user_profile_id?: string;
   user_profile?: any;
+  data?: APIUserProfileResponse[]; // For list responses
 }

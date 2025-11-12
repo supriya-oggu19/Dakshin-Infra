@@ -58,6 +58,7 @@ export const ENDPOINTS = {
     UPDATE: (id: string) => `/user_profile/update/${id}`,
     DELETE: (id: string) => `/user_profile/delete/${id}`,
     GET: (id: string) => `/user_profile/${id}`,
+    LIST: "/user_profile/list",
   },
 
   PURCHASED_UNITS: {
