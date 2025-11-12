@@ -79,13 +79,6 @@ const PurchaseUnitConfirmation = ({
   // Since you're using sandbox, set mode to "sandbox"
   const CASHFREE_MODE = "sandbox"; // Change to 'production' for live
 
-  console.log("projectId Data:", projectId);
-  console.log("schemeId Data:", schemeId);
-  console.log("isJointOwnership Data:", isJointOwnership);
-  console.log("userProfileIds Data:", userProfileIds);
-  console.log("paymentAmount Data:", paymentAmount);
-  console.log("Scheme Data:", schemeData);
-
   const formatCurrency = (amount: number) => {
     if (!amount || isNaN(amount)) {
       return "₹0";
@@ -278,7 +271,7 @@ const PurchaseUnitConfirmation = ({
           customer_phone: userInfo.phone,
           customer_name: userInfo.name, // Added for completeness, assuming backend accepts
           customer_email: userInfo.email, // Added for completeness, assuming backend accepts
-          payment_methods: paymentMethod,
+          payment_methods: "upi,cc,dc,nb",
         },
       };
 
@@ -511,21 +504,6 @@ const PurchaseUnitConfirmation = ({
                   {errors.phone}
                 </p>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-gray-700">Payment Method *</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select payment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="cc">Credit Card</SelectItem>
-                  <SelectItem value="dc">Debit Card</SelectItem>
-                  <SelectItem value="nb">Net Banking</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </div>
