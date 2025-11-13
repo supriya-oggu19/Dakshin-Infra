@@ -121,6 +121,7 @@ const PurchaseFlow = () => {
     useState<boolean>(false);
   const projectName = location.state?.projectName || "Project";
   const [restoringState, setRestoringState] = useState(true);
+  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -137,6 +138,7 @@ const PurchaseFlow = () => {
       setJointKycAccepted(parsedState.jointKycAccepted || []);
       setCustomPayment(parsedState.customPayment || 0);
       setUseExistingProfiles(parsedState.useExistingProfiles || false);
+      setSelectedProfileIds(parsedState.selectedProfileIds || []);
     }
     setRestoringState(false);
   }, [id]);
@@ -152,7 +154,7 @@ const PurchaseFlow = () => {
       kycAccepted,
       jointKycAccepted,
       customPayment,
-      hasExistingProfiles,
+      selectedProfileIds,
       useExistingProfiles,
     };
     sessionStorage.setItem(`purchaseState_${id}`, JSON.stringify(stateToSave));
@@ -165,7 +167,7 @@ const PurchaseFlow = () => {
     kycAccepted,
     jointKycAccepted,
     customPayment,
-    hasExistingProfiles,
+    selectedProfileIds,
     useExistingProfiles,
     id,
   ]);
@@ -670,6 +672,10 @@ const PurchaseFlow = () => {
     primaryFormData.append("document1", primaryDoc1);
     if (primaryDoc2) primaryFormData.append("document2", primaryDoc2);
 
+    const primaryPhoto = kycDocuments.photo as File;
+    if (!primaryPhoto) throw new Error("Missing photo for primary user");
+    primaryFormData.append("photo", primaryPhoto);
+
     try {
       const primaryResponse = await userProfileApi.createUserProfile(
         primaryFormData
@@ -735,6 +741,10 @@ const PurchaseFlow = () => {
 
       jointFormData.append("document1", jointDoc1);
       if (jointDoc2) jointFormData.append("document2", jointDoc2);
+      
+      const jointPhoto = kycDocuments[`${baseKey}Photo`] as File;
+      if (!jointPhoto) throw new Error(`Missing photo for joint user ${jointIndex}`);
+      jointFormData.append("photo", jointPhoto);
 
       try {
         const jointResponse = await userProfileApi.createUserProfile(
@@ -766,7 +776,12 @@ const PurchaseFlow = () => {
       if (currentStep === "plan-selection" && selectedPlan) {
         setCurrentStep("user-info");
       } else if (currentStep === "user-info" && validateUserInfo()) {
-        setCurrentStep("kyc");
+        if (useExistingProfiles) {
+          setCurrentStep("payment");
+          toast({ title: "Skipped", description: "Using existing profiles." });
+        } else {
+          setCurrentStep("kyc");
+        }
       } else if (currentStep === "kyc" && validateKYC()) {
         const userProfileIds = await createUserProfiles();
         setUserProfileIds(userProfileIds);
@@ -941,7 +956,11 @@ const PurchaseFlow = () => {
               onContinueToKYC={() => setCurrentStep("kyc")}
               existingProfiles={existingProfiles}
               useExistingProfiles={useExistingProfiles}
-              onProfileSelection={handleProfileSelection}
+              selectedProfileIds={selectedProfileIds}  // New prop
+              onProfileSelection={(ids) => {
+                setSelectedProfileIds(ids);  // Save locally
+                handleProfileSelection(ids);  // Existing logic
+              }}
             />
           </div>
         );

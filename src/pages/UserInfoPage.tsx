@@ -55,40 +55,8 @@ const initialUserInfo: UserInfo = {
 };
 
 const initialJointInfo: JointAccountInfo = {
-  surname: "",
-  name: "",
-  dob: "",
-  gender: "male",
-  email: "",
-  phone_number: "",
-  present_address: {
-    street: "",
-    city: "",
-    state: "",
-    country: "India",
-    postal_code: "",
-  },
-  permanent_address: {
-    street: "",
-    city: "",
-    state: "",
-    country: "India",
-    postal_code: "",
-  },
+  ...initialUserInfo,
   sameAddress: true,
-  occupation: "",
-  annual_income: "",
-  user_type: "individual",
-  pan_number: "",
-  aadhar_number: "",
-  gst_number: "",
-  passport_number: "",
-  account_details: {
-    account_holder_name: "",
-    bank_account_name: "",
-    account_number: "",
-    ifsc_code: "",
-  },
 };
 
 // Extended props to include direct payment navigation
@@ -98,6 +66,7 @@ interface ExtendedUserInfoPageProps extends Omit<UserInfoPageProps, 'onSubmit'> 
   onContinueToKYC?: () => void;
   existingProfiles?: APIUserProfileResponse[];
   useExistingProfiles?: boolean;
+  selectedProfileIds?: string[];
   onProfileSelection?: (profileIds: string[]) => void;
 }
 
@@ -107,6 +76,9 @@ const UserInfoPage = ({
   onAccountsChange,
   onDirectToPayment,
   onContinueToKYC,
+  selectedProfileIds: propSelectedProfileIds = [],
+  existingProfiles: propExistingProfiles = [],  // Default empty
+  useExistingProfiles: propUseExistingProfiles = false,
   onProfileSelection,
 }: ExtendedUserInfoPageProps) => {
   const { toast } = useToast();
@@ -122,16 +94,26 @@ const UserInfoPage = ({
     ]
   );
 
-  const [useExistingProfiles, setUseExistingProfiles] = useState(false);
-  const [existingProfiles, setExistingProfiles] = useState<APIUserProfileResponse[]>([]);
-  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
+  const [localUseExistingProfiles, setLocalUseExistingProfiles] = useState(propUseExistingProfiles);
+  const [existingProfiles, setExistingProfiles] = useState<APIUserProfileResponse[]>(propExistingProfiles);
+  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>(propSelectedProfileIds);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [hasFetchedProfiles, setHasFetchedProfiles] = useState(false);
+
+  // Sync prop changes
+  useEffect(() => {
+    setLocalUseExistingProfiles(propUseExistingProfiles);
+    setExistingProfiles(propExistingProfiles);
+  }, [propUseExistingProfiles, propExistingProfiles]);
+  
+  useEffect(() => {
+    setSelectedProfileIds(propSelectedProfileIds);
+  }, [propSelectedProfileIds]);
 
   // Fetch existing profiles when toggle is enabled
   useEffect(() => {
     const fetchExistingProfiles = async () => {
-      if (useExistingProfiles && !hasFetchedProfiles) {
+      if (localUseExistingProfiles && !hasFetchedProfiles) {
         setLoadingProfiles(true);
         try {
           const response = await userProfileApi.listUserProfiles();
@@ -152,19 +134,23 @@ const UserInfoPage = ({
     };
 
     fetchExistingProfiles();
-  }, [useExistingProfiles, hasFetchedProfiles, toast]);
+  }, [localUseExistingProfiles]);
 
   // Reset fetched profiles when toggle is turned off
   useEffect(() => {
-    if (!useExistingProfiles) {
+    if (!localUseExistingProfiles) {
       setHasFetchedProfiles(false);
       setSelectedProfileIds([]);
     }
-  }, [useExistingProfiles]);
+  }, [localUseExistingProfiles]);
 
   const addAccount = () => {
+    if (accounts.length >= 5) {  // Legal max joints + primary
+      toast({ title: "Limit Reached", description: "Max 4 joint holders allowed.", variant: "destructive" });
+      return;
+    }
     const newAccount: Account = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),  // Safer ID
       type: "joint",
       data: initialJointInfo,
       termsAccepted: false,
@@ -231,7 +217,7 @@ const UserInfoPage = ({
       return;
     }
 
-    // Validate required fields
+    //validation
     const allFieldsValid = accounts.every((account) => {
       const data = account.data;
       return (
@@ -241,7 +227,11 @@ const UserInfoPage = ({
         data.email &&
         data.phone_number &&
         data.occupation &&
-        data.annual_income
+        data.annual_income &&
+        data.present_address?.street &&
+        data.present_address?.city &&
+        data.account_details?.account_number &&
+        data.account_details?.ifsc_code
       );
     });
 
@@ -254,23 +244,16 @@ const UserInfoPage = ({
       return;
     }
 
-    // Call parent onSubmit if provided
+    // Call parent onSubmit if provided (parent handles navigation)
     if (onSubmit) {
       const success = await onSubmit(accounts);
-      if (success && onContinueToKYC) {
-        onContinueToKYC(); // Navigate to KYC
-        return;
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Information saved successfully",
+        });
       }
-    }
-
-    // If no onSubmit prop or it doesn't handle navigation, navigate directly
-    if (onContinueToKYC) {
-      onContinueToKYC();
-    } else {
-      toast({
-        title: "Success",
-        description: "Information saved successfully",
-      });
+      return;  // Let parent navigate; no local onContinueToKYC
     }
   };
 
@@ -324,9 +307,10 @@ const UserInfoPage = ({
       .filter((id) => id !== "");
 
     // Reset the form state
-    setUseExistingProfiles(false);
+    setLocalUseExistingProfiles(false);
     setSelectedProfileIds([]);
-    setHasFetchedProfiles(false);
+    onProfileSelection?.([]);
+
 
     // Call the direct to payment callback with profile IDs
     if (onDirectToPayment) {
@@ -341,19 +325,6 @@ const UserInfoPage = ({
         description:
           "Profiles selected successfully. Please continue to payment.",
       });
-    }
-  };
-
-  const getVerificationBadge = (status: string) => {
-    switch (status) {
-      case "verified":
-        return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case "rejected":
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="secondary">Unknown</Badge>;
     }
   };
 
@@ -380,14 +351,14 @@ const UserInfoPage = ({
             </div>
             <Switch
               id="existing-profiles"
-              checked={useExistingProfiles}
-              onCheckedChange={setUseExistingProfiles}
+              checked={localUseExistingProfiles}
+              onCheckedChange={setLocalUseExistingProfiles}
               className="thick-switch-thumb border-2 border-gray-400 data-[state=checked]:border-primary"
             />
           </div>
 
           {/* Profile Selection Section */}
-          {useExistingProfiles && (
+          {localUseExistingProfiles && (
             <div className="mt-6 space-y-4">
               {loadingProfiles ? (
                 <div className="text-center py-8">
@@ -456,7 +427,7 @@ const UserInfoPage = ({
                               </div>
 
                               {/* Enhanced profile information with more important fields */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-muted-foreground">
                                 {/* Contact Information */}
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1">
@@ -483,9 +454,7 @@ const UserInfoPage = ({
                                     </span>
                                     <span>
                                       {profile.dob
-                                        ? new Date(
-                                            profile.dob
-                                          ).toLocaleDateString()
+                                        ? new Date(profile.dob).toLocaleDateString('en-IN')  // Guard + locale
                                         : "Not provided"}
                                     </span>
                                   </div>
@@ -515,9 +484,7 @@ const UserInfoPage = ({
                                     </span>
                                     <span>
                                       {profile.annual_income
-                                        ? `₹${parseInt(
-                                            profile.annual_income
-                                          ).toLocaleString("en-IN")}`
+                                        ? `₹${Number(profile.annual_income).toLocaleString("en-IN")}`  // Safe Number
                                         : "Not provided"}
                                     </span>
                                   </div>
@@ -538,14 +505,9 @@ const UserInfoPage = ({
                                       Aadhar:
                                     </span>
                                     <span>
-                                      {profile.aadhar_number
-                                        ? `${profile.aadhar_number.substring(
-                                            0,
-                                            4
-                                          )}XXXX${profile.aadhar_number.substring(
-                                            8
-                                          )}`
-                                        : "Not provided"}
+                                      {profile.aadhar_number && profile.aadhar_number.length === 12
+                                        ? `${profile.aadhar_number.substring(0, 4)}XXXX${profile.aadhar_number.substring(8)}`
+                                        : profile.aadhar_number || "Not provided"}  // Guard length
                                     </span>
                                   </div>
                                 </div>
@@ -557,8 +519,7 @@ const UserInfoPage = ({
                                       City:
                                     </span>
                                     <span>
-                                      {profile.present_address?.city ||
-                                        "Not provided"}
+                                      {profile.present_address?.city || "Not provided"}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -566,8 +527,7 @@ const UserInfoPage = ({
                                       State:
                                     </span>
                                     <span>
-                                      {profile.present_address?.state ||
-                                        "Not provided"}
+                                      {profile.present_address?.state || "Not provided"}
                                     </span>
                                   </div>
                                 </div>
@@ -586,26 +546,18 @@ const UserInfoPage = ({
                               </div>
 
                               {/* Bank Account Details - Show if available */}
-                              {profile.account_details?.account_number && (
+                              {profile.account_details?.account_number && profile.account_details.account_number.length >= 7 && (
                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium text-sm text-gray-700">
                                       Bank Account:
                                     </span>
                                     <span className="text-sm font-mono">
-                                      {
-                                        profile.account_details
-                                          .bank_account_name
-                                      }{" "}
-                                      •
-                                      {profile.account_details.account_number.substring(
-                                        0,
-                                        4
-                                      )}
+                                      {profile.account_details.bank_account_name} •
+                                      {profile.account_details.account_number.substring(0, 4)}
                                       XXXX
                                       {profile.account_details.account_number.substring(
-                                        profile.account_details.account_number
-                                          .length - 3
+                                        profile.account_details.account_number.length - 3
                                       )}
                                     </span>
                                   </div>
@@ -642,7 +594,7 @@ const UserInfoPage = ({
       </Card>
 
       {/* ORIGINAL USER INFO FORM - MAIN FLOW - HIDDEN WHEN USING EXISTING PROFILES */}
-      {!useExistingProfiles && (
+      {!localUseExistingProfiles && (
         <div className="space-y-6">
           {accounts.map((account) => (
             <UserInfoForm
@@ -660,7 +612,7 @@ const UserInfoPage = ({
       )}
 
       {/* Add Account Button - HIDDEN WHEN USING EXISTING PROFILES */}
-      {!useExistingProfiles && (
+      {!localUseExistingProfiles && (
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
           <Button
             variant="outline"
