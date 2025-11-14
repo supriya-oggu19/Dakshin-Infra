@@ -108,7 +108,7 @@ const PurchaseFlow = () => {
   const [hasExistingProfiles, setHasExistingProfiles] = useState<boolean>(false);
   const [useExistingProfiles, setUseExistingProfiles] = useState<boolean>(false);
   const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
-  const projectName = location.state?.projectName || "Project";
+  const [projectName, setProjectName] = useState<string>(location.state?.projectName || "Project");
   const [restoringState, setRestoringState] = useState(true);
 
   // Helper functions for initial state
@@ -221,6 +221,7 @@ const PurchaseFlow = () => {
       selectedProfileIds,
       useExistingProfiles,
       existingProfiles, // Save existing profiles too
+      projectName,
     };
     sessionStorage.setItem(`purchaseState_${id}`, JSON.stringify(stateToSave));
   }, [
@@ -237,6 +238,7 @@ const PurchaseFlow = () => {
     id,
     restoringState,
     existingProfiles,
+    projectName
   ]);
 
   // STATE PERSISTENCE - Restore state on component mount
@@ -264,7 +266,7 @@ const PurchaseFlow = () => {
         setUseExistingProfiles(parsedState.useExistingProfiles || false);
         setSelectedProfileIds(parsedState.selectedProfileIds || []);
         setExistingProfiles(parsedState.existingProfiles || []);
-        
+        setProjectName(parsedState.projectName || location.state?.projectName || "Project");
         // Restore current step if it exists and no URL step is specified
         if (parsedState.currentStep && !urlStep) {
           setCurrentStep(parsedState.currentStep);
@@ -390,6 +392,16 @@ const PurchaseFlow = () => {
       initializeData();
     }
   }, [id, toast, restoringState, existingProfiles.length]);
+
+  useEffect(() => {
+    // Auto-select scheme if provided in navigation state and schemes are loaded
+    if (location.state?.selectedSchemeId && schemes.length > 0 && !selectedPlan) {
+      const schemeToSelect = schemes.find(scheme => scheme.id === location.state.selectedSchemeId);
+      if (schemeToSelect) {
+        handlePlanSelection(schemeToSelect, 1);
+      }
+    }
+  }, [schemes, location.state?.selectedSchemeId, selectedPlan]);
 
   // Handle profile selection from existing profiles
   const handleProfileSelection = (selectedProfileIds: string[]) => {
