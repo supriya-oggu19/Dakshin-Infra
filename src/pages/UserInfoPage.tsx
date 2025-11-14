@@ -66,6 +66,7 @@ interface ExtendedUserInfoPageProps extends Omit<UserInfoPageProps, 'onSubmit'> 
   onContinueToKYC?: () => void;
   existingProfiles?: APIUserProfileResponse[];
   useExistingProfiles?: boolean;
+  onUseExistingProfilesChange?: (value: boolean) => void;
   selectedProfileIds?: string[];
   onProfileSelection?: (profileIds: string[]) => void;
 }
@@ -77,51 +78,36 @@ const UserInfoPage = ({
   onDirectToPayment,
   onContinueToKYC,
   selectedProfileIds: propSelectedProfileIds = [],
-  existingProfiles: propExistingProfiles = [],  // Default empty
+  existingProfiles: propExistingProfiles = [],
   useExistingProfiles: propUseExistingProfiles = false,
+  onUseExistingProfilesChange,
   onProfileSelection,
 }: ExtendedUserInfoPageProps) => {
   const { toast } = useToast();
-  const [accounts, setAccounts] = useState<Account[]>(
-    initialAccounts || [
-      {
-        id: "primary",
-        type: "primary",
-        data: initialUserInfo,
-        termsAccepted: false,
-        verified: { pan: false, aadhar: false, gst: false, passport: false },
-      },
-    ]
-  );
-
-  const [localUseExistingProfiles, setLocalUseExistingProfiles] = useState(propUseExistingProfiles);
-  const [existingProfiles, setExistingProfiles] = useState<APIUserProfileResponse[]>(propExistingProfiles);
-  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>(propSelectedProfileIds);
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts || []);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [hasFetchedProfiles, setHasFetchedProfiles] = useState(false);
 
   // Sync prop changes
   useEffect(() => {
-    setLocalUseExistingProfiles(propUseExistingProfiles);
-    setExistingProfiles(propExistingProfiles);
-  }, [propUseExistingProfiles, propExistingProfiles]);
-  
-  useEffect(() => {
-    setSelectedProfileIds(propSelectedProfileIds);
-  }, [propSelectedProfileIds]);
+    if (initialAccounts && initialAccounts.length > 0) {
+      setAccounts(initialAccounts);
+    }
+  }, [initialAccounts]);
 
-  // Fetch existing profiles when toggle is enabled
+  // Fetch existing profiles when toggle is enabled and we don't have them
   useEffect(() => {
     const fetchExistingProfiles = async () => {
-      if (localUseExistingProfiles && !hasFetchedProfiles) {
+      if (propUseExistingProfiles && !hasFetchedProfiles && propExistingProfiles.length === 0) {
         setLoadingProfiles(true);
         try {
           const response = await userProfileApi.listUserProfiles();
-          setExistingProfiles(response || []);
-          setHasFetchedProfiles(true);
+          if (onProfileSelection && response && response.length > 0) {
+            // Update parent with fetched profiles
+            onProfileSelection([]); // Reset selection initially
+          }
         } catch (error) {
           console.error("Error fetching profiles:", error);
-          setExistingProfiles([]);
           toast({
             title: "Error",
             description: "Failed to load existing profiles",
@@ -129,20 +115,13 @@ const UserInfoPage = ({
           });
         } finally {
           setLoadingProfiles(false);
+          setHasFetchedProfiles(true);
         }
       }
     };
 
     fetchExistingProfiles();
-  }, [localUseExistingProfiles]);
-
-  // Reset fetched profiles when toggle is turned off
-  useEffect(() => {
-    if (!localUseExistingProfiles) {
-      setHasFetchedProfiles(false);
-      setSelectedProfileIds([]);
-    }
-  }, [localUseExistingProfiles]);
+  }, [propUseExistingProfiles, hasFetchedProfiles, propExistingProfiles.length, onProfileSelection, toast]);
 
   const addAccount = () => {
     if (accounts.length >= 5) {  // Legal max joints + primary
@@ -266,29 +245,28 @@ const UserInfoPage = ({
   const handleProfileToggle = (profileId: string) => {
     let newSelectedIds: string[];
 
-    if (selectedProfileIds.includes(profileId)) {
+    if (propSelectedProfileIds.includes(profileId)) {
       // Remove from selection
-      newSelectedIds = selectedProfileIds.filter((id) => id !== profileId);
+      newSelectedIds = propSelectedProfileIds.filter((id) => id !== profileId);
     } else {
       // Add to selection - if this is the first selection, it becomes primary
-      newSelectedIds = [...selectedProfileIds, profileId];
+      newSelectedIds = [...propSelectedProfileIds, profileId];
     }
 
-    setSelectedProfileIds(newSelectedIds);
     onProfileSelection?.(newSelectedIds);
   };
 
   // Get primary profile (first selected)
   const getPrimaryProfile = () => {
-    if (selectedProfileIds.length === 0) return null;
-    return existingProfiles.find(
-      (p) => p.user_profile_id === selectedProfileIds[0]
+    if (propSelectedProfileIds.length === 0) return null;
+    return propExistingProfiles.find(
+      (p) => p.user_profile_id === propSelectedProfileIds[0]
     );
   };
 
   // Convert selected profiles to accounts AND go directly to payment
   const handleUseSelectedProfiles = () => {
-    if (selectedProfileIds.length === 0) {
+    if (propSelectedProfileIds.length === 0) {
       toast({
         title: "No profiles selected",
         description: "Please select at least one profile",
@@ -297,20 +275,14 @@ const UserInfoPage = ({
       return;
     }
 
-    const profileIds = selectedProfileIds
+    const profileIds = propSelectedProfileIds
       .map((profileId) => {
-        const profile = existingProfiles.find(
+        const profile = propExistingProfiles.find(
           (p) => p.user_profile_id === profileId
         );
         return profile?.user_profile_id || "";
       })
       .filter((id) => id !== "");
-
-    // Reset the form state
-    setLocalUseExistingProfiles(false);
-    setSelectedProfileIds([]);
-    onProfileSelection?.([]);
-
 
     // Call the direct to payment callback with profile IDs
     if (onDirectToPayment) {
@@ -326,6 +298,11 @@ const UserInfoPage = ({
           "Profiles selected successfully. Please continue to payment.",
       });
     }
+  };
+
+  // Handle use existing profiles toggle change
+  const handleToggleChange = (value: boolean) => {
+    onUseExistingProfilesChange?.(value);
   };
 
   return (
@@ -351,14 +328,14 @@ const UserInfoPage = ({
             </div>
             <Switch
               id="existing-profiles"
-              checked={localUseExistingProfiles}
-              onCheckedChange={setLocalUseExistingProfiles}
+              checked={propUseExistingProfiles}
+              onCheckedChange={handleToggleChange}
               className="thick-switch-thumb border-2 border-gray-400 data-[state=checked]:border-primary"
             />
           </div>
 
           {/* Profile Selection Section */}
-          {localUseExistingProfiles && (
+          {propUseExistingProfiles && (
             <div className="mt-6 space-y-4">
               {loadingProfiles ? (
                 <div className="text-center py-8">
@@ -367,7 +344,7 @@ const UserInfoPage = ({
                     Loading profiles...
                   </p>
                 </div>
-              ) : existingProfiles.length === 0 ? (
+              ) : propExistingProfiles.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed rounded-lg">
                   <UserPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">
@@ -380,10 +357,10 @@ const UserInfoPage = ({
               ) : (
                 <>
                   <div className="grid gap-3 max-h-96 overflow-y-auto p-2">
-                    {existingProfiles.map((profile) => {
+                    {propExistingProfiles.map((profile) => {
                       const isPrimary =
-                        selectedProfileIds[0] === profile.user_profile_id;
-                      const isSelected = selectedProfileIds.includes(
+                        propSelectedProfileIds[0] === profile.user_profile_id;
+                      const isSelected = propSelectedProfileIds.includes(
                         profile.user_profile_id
                       );
 
@@ -454,7 +431,7 @@ const UserInfoPage = ({
                                     </span>
                                     <span>
                                       {profile.dob
-                                        ? new Date(profile.dob).toLocaleDateString('en-IN')  // Guard + locale
+                                        ? new Date(profile.dob).toLocaleDateString('en-IN')
                                         : "Not provided"}
                                     </span>
                                   </div>
@@ -484,7 +461,7 @@ const UserInfoPage = ({
                                     </span>
                                     <span>
                                       {profile.annual_income
-                                        ? `₹${Number(profile.annual_income).toLocaleString("en-IN")}`  // Safe Number
+                                        ? `₹${Number(profile.annual_income).toLocaleString("en-IN")}`
                                         : "Not provided"}
                                     </span>
                                   </div>
@@ -507,7 +484,7 @@ const UserInfoPage = ({
                                     <span>
                                       {profile.aadhar_number && profile.aadhar_number.length === 12
                                         ? `${profile.aadhar_number.substring(0, 4)}XXXX${profile.aadhar_number.substring(8)}`
-                                        : profile.aadhar_number || "Not provided"}  // Guard length
+                                        : profile.aadhar_number || "Not provided"}
                                     </span>
                                   </div>
                                 </div>
@@ -569,23 +546,6 @@ const UserInfoPage = ({
                       );
                     })}
                   </div>
-
-                  {selectedProfileIds.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                      <div>
-                        <span className="font-medium text-blue-800">
-                          {selectedProfileIds.length} profile
-                          {selectedProfileIds.length > 1 ? "s" : ""} selected
-                        </span>
-                        <p className="text-sm text-blue-700">
-                          First selected will be primary account holder
-                        </p>
-                      </div>
-                      <Button onClick={handleUseSelectedProfiles}>
-                        Use Selected Profiles & Continue to Payment
-                      </Button>
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -594,7 +554,7 @@ const UserInfoPage = ({
       </Card>
 
       {/* ORIGINAL USER INFO FORM - MAIN FLOW - HIDDEN WHEN USING EXISTING PROFILES */}
-      {!localUseExistingProfiles && (
+      {!propUseExistingProfiles && (
         <div className="space-y-6">
           {accounts.map((account) => (
             <UserInfoForm
@@ -612,7 +572,7 @@ const UserInfoPage = ({
       )}
 
       {/* Add Account Button - HIDDEN WHEN USING EXISTING PROFILES */}
-      {!localUseExistingProfiles && (
+      {!propUseExistingProfiles && (
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
           <Button
             variant="outline"
@@ -621,14 +581,6 @@ const UserInfoPage = ({
           >
             <Plus className="w-5 h-5" />
             Add Another Account Holder
-          </Button>
-
-          <Button
-            onClick={handleSubmit}
-            className="bg-green-600 hover:bg-green-700 text-white"
-            size="lg"
-          >
-            Save & Continue to KYC
           </Button>
         </div>
       )}

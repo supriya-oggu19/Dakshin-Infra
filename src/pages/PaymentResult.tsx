@@ -50,6 +50,7 @@ export default function PaymentResult(): JSX.Element {
       if (projectId) {
         sessionStorage.removeItem(`purchaseState_${projectId}`);
         sessionStorage.removeItem('currentProjectId');
+        sessionStorage.removeItem(`billingInfo_${projectId}`);
       }
     navigate(`/sip?unit=${result?.order_info?.unit_number}`);
     } else {

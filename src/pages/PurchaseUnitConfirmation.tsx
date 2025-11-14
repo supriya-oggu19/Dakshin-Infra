@@ -1,28 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Building,
-  FileText,
   Users,
-  IndianRupee,
   CheckCircle,
   ClipboardClock,
   AlertCircle,
-  Shield,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { paymentApi } from "@/api/paymentApi"; // Adjust path as needed based on your project structure
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { paymentApi } from "@/api/paymentApi";
 
 interface PurchaseUnitConfirmationProps {
   projectId: string;
@@ -37,7 +27,7 @@ interface PurchaseUnitConfirmationProps {
   projectName?: string;
 }
 
-interface UserInfo {
+interface BillingInfo {
   name: string;
   email: string;
   phone: string;
@@ -61,7 +51,7 @@ const PurchaseUnitConfirmation = ({
   paymentAmount,
   projectName,
 }: PurchaseUnitConfirmationProps) => {
-  const [userInfo, setUserInfo] = useState<UserInfo>({
+  const [billingInfo, setBillingInfo] = useState<BillingInfo>({
     name: "",
     email: "",
     phone: "",
@@ -73,11 +63,48 @@ const PurchaseUnitConfirmation = ({
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { getToken } = useAuth();
-  const [paymentMethod, setPaymentMethod] = useState("dc");
+  const { user } = useAuth();
 
   // Since you're using sandbox, set mode to "sandbox"
   const CASHFREE_MODE = "sandbox"; // Change to 'production' for live
+
+  // Load billing data from session storage on component mount
+  useEffect(() => {
+    const loadBillingData = () => {
+      const savedBillingInfo = sessionStorage.getItem(`billingInfo_${projectId}`);
+      if (savedBillingInfo) {
+        try {
+          const parsedInfo = JSON.parse(savedBillingInfo);
+          setBillingInfo(prev => ({
+            name: parsedInfo.name || "",
+            email: parsedInfo.email || "",
+            phone: parsedInfo.phone || "",
+          }));
+        } catch (error) {
+          console.error("Error parsing saved billing info:", error);
+        }
+      }
+      
+      // Only pre-fill with auth user data if no saved billing data exists
+      // This allows the user to start with their account info but change it if needed
+      if (user && (!savedBillingInfo || !JSON.parse(savedBillingInfo).email)) {
+        setBillingInfo(prev => ({
+          name: prev.name || user.name || "",
+          email: prev.email || user.email || "",
+          phone: prev.phone || "",
+        }));
+      }
+    };
+
+    loadBillingData();
+  }, [projectId, user]);
+
+  // Save billing info to session storage when it changes
+  useEffect(() => {
+    if (billingInfo.name || billingInfo.email || billingInfo.phone) {
+      sessionStorage.setItem(`billingInfo_${projectId}`, JSON.stringify(billingInfo));
+    }
+  }, [billingInfo, projectId]);
 
   const formatCurrency = (amount: number) => {
     if (!amount || isNaN(amount)) {
@@ -126,8 +153,8 @@ const PurchaseUnitConfirmation = ({
     return "";
   };
 
-  const handleInputChange = (field: keyof UserInfo, value: string) => {
-    setUserInfo((prev) => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: keyof BillingInfo, value: string) => {
+    setBillingInfo((prev) => ({ ...prev, [field]: value }));
 
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -135,9 +162,9 @@ const PurchaseUnitConfirmation = ({
   };
 
   const validateForm = (): boolean => {
-    const nameError = validateName(userInfo.name);
-    const emailError = validateEmail(userInfo.email);
-    const phoneError = validatePhone(userInfo.phone);
+    const nameError = validateName(billingInfo.name);
+    const emailError = validateEmail(billingInfo.email);
+    const phoneError = validatePhone(billingInfo.phone);
 
     setErrors({
       name: nameError,
@@ -146,6 +173,15 @@ const PurchaseUnitConfirmation = ({
     });
 
     return !nameError && !emailError && !phoneError;
+  };
+
+  const clearBillingData = () => {
+    sessionStorage.removeItem(`billingInfo_${projectId}`);
+    setBillingInfo({
+      name: "",
+      email: "",
+      phone: "",
+    });
   };
 
   const initiateCashfreePayment = (orderData: any) => {
@@ -207,20 +243,13 @@ const PurchaseUnitConfirmation = ({
         redirectTarget: "_self", // Opens in the same tab; use '_blank' for new tab
       };
 
-      // For redirect, no promise; user will be redirected back to your return_url set in order creation
-      // If using '_modal' or inline, you can chain .then/.catch
       cashfree.checkout(checkoutOptions);
 
-      // Note: For redirect mode, success/error handling happens on your server or return_url
-      // Here, we assume the redirect will handle the flow; you may want to show a message
       toast({
         title: "Redirecting",
         description: "Opening secure payment page...",
       });
 
-      // Since it's redirect, we don't call onPurchaseSuccess here
-      // The parent component or return_url should handle the final success
-      // For now, to match your flow, you might need to adjust based on your backend return handling
     } catch (error) {
       console.error("Cashfree Initialization Error:", error);
       setLoading(false);
@@ -249,12 +278,6 @@ const PurchaseUnitConfirmation = ({
     setLoading(true);
 
     try {
-      // Assuming the first profile ID is the primary user
-      const primaryUserProfileId = userProfileIds[0];
-      const jointOwners = isJointOwnership
-        ? userProfileIds.slice(1).map((id) => ({ user_profile_id: id }))
-        : null;
-
       const requestData = {
         unit_data: {
           project_id: projectId,
@@ -268,9 +291,9 @@ const PurchaseUnitConfirmation = ({
         },
         order_data: {
           order_amount: paymentAmount,
-          customer_phone: userInfo.phone,
-          customer_name: userInfo.name, // Added for completeness, assuming backend accepts
-          customer_email: userInfo.email, // Added for completeness, assuming backend accepts
+          customer_phone: billingInfo.phone,
+          customer_name: billingInfo.name,
+          customer_email: billingInfo.email,
           payment_methods: "upi,cc,dc,nb",
         },
       };
@@ -278,7 +301,6 @@ const PurchaseUnitConfirmation = ({
       const response = await paymentApi.createOrder(requestData);
 
       const data = response.data;
-      console.log("Order Creation Response:", data);
       if (data.status === "success") {
         toast({
           title: "Success",
@@ -307,6 +329,9 @@ const PurchaseUnitConfirmation = ({
   const totalInvestment = getTotalInvestment();
   const isInstallment = schemeData?.scheme_type === "installment";
 
+  // Get project name with fallbacks
+  const displayProjectName = projectName || "Project";
+
   return (
     <Card className="border-2 border-amber-200 shadow-lg">
       <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-50 border-b-2 border-amber-200">
@@ -329,7 +354,7 @@ const PurchaseUnitConfirmation = ({
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Project:</span>
-                <span className="font-semibold">{projectName}</span>
+                <span className="font-semibold">{displayProjectName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Scheme:</span>
@@ -401,9 +426,9 @@ const PurchaseUnitConfirmation = ({
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="font-medium">Total Inverstment:</span>
+                    <span className="font-medium">Total Investment:</span>
                     <span className="font-semibold">
-                      {formatCurrency(totalInvestmentOfProject)}
+                      {formatCurrency(totalInvestment)}
                     </span>
                   </div>
                   <div className="flex justify-between text-green-600">
@@ -436,12 +461,22 @@ const PurchaseUnitConfirmation = ({
         </div>
 
         <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <CheckCircle className="w-5 h-5" />
-            Your Information
-          </h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Billing Information
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearBillingData}
+              className="text-xs"
+            >
+              Clear
+            </Button>
+          </div>
           <p className="text-sm text-blue-700">
-            Please provide your details for the payment reference
+            Please provide your billing details for payment processing.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -451,9 +486,9 @@ const PurchaseUnitConfirmation = ({
               </Label>
               <Input
                 id="name"
-                value={userInfo.name}
+                value={billingInfo.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Enter your full name"
+                placeholder="Enter billing name"
                 className={errors.name ? "border-red-500" : ""}
               />
               {errors.name && (
@@ -471,9 +506,9 @@ const PurchaseUnitConfirmation = ({
               <Input
                 id="email"
                 type="email"
-                value={userInfo.email}
+                value={billingInfo.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Enter your email address"
+                placeholder="Enter billing email"
                 className={errors.email ? "border-red-500" : ""}
               />
               {errors.email && (
@@ -490,11 +525,11 @@ const PurchaseUnitConfirmation = ({
               </Label>
               <Input
                 id="phone"
-                value={userInfo.phone}
+                value={billingInfo.phone}
                 onChange={(e) =>
                   handleInputChange("phone", e.target.value.replace(/\D/g, ""))
                 }
-                placeholder="Enter your 10-digit phone number"
+                placeholder="Enter billing phone number"
                 maxLength={10}
                 className={errors.phone ? "border-red-500" : ""}
               />
@@ -531,8 +566,7 @@ const PurchaseUnitConfirmation = ({
 
         <div className="text-center text-xs text-gray-500">
           <p>
-            Your information is secure and will only be used for purchase
-            processing
+            Your billing information is secure and will only be used for payment processing
           </p>
         </div>
       </CardContent>
