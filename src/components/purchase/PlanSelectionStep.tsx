@@ -374,11 +374,14 @@ const PaymentInputSection: React.FC<any> = ({
             onChange={(e) => onCustomPaymentChange(e.target.value)}
             placeholder={`Minimum ${formatCurrency(getMinPayment())}`}
             className="text-sm"
+            disabled={selectedPlan.type === "installment"}
           />
         </div>
         {!isValidPaymentAmount() && (
           <p className="text-xs text-red-600 mt-1">
-            Payment must be at least {formatCurrency(getMinPayment())}
+            {Number(customPayment) < getMinPayment()
+              ? `Payment must be at least ${formatCurrency(getMinPayment())}`
+              : `Maximum allowed payment is ₹10,00,000`}
           </p>
         )}
         <div className="text-sm mt-2 space-y-1">
@@ -420,7 +423,9 @@ const PaymentStructureInfo: React.FC<any> = ({ getMinPayment, scheme, formatCurr
       <li>• Minimum initial payment: {formatCurrency(getMinPayment())} {selectedPlan.type === "single" ? "(booking advance)" : "(booking advance or 1st installment)"}</li>
       <li>• Any amount above minimum {selectedPlan.type === "single" ? "goes toward main payment" : "reduces future installments"}</li>
       <li>• {selectedPlan.type === "single" ? `Remaining balance within ${scheme?.balance_payment_days || 90} days` : `Paid over ${selectedPlan.installments} monthly installments`}</li>
-      <li>• You can pay more now to {selectedPlan.type === "single" ? "complete sooner" : "reduce future payments"}</li>
+      {selectedPlan.type === "single" && (
+        <li>• You can pay more now to complete your payment sooner.</li>
+      )}
     </ul>
   </div>
 );

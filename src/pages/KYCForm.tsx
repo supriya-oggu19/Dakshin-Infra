@@ -7,6 +7,8 @@ import { CheckCircle, FileText, User, Users, Edit, Upload, AlertCircle } from "l
 import { Button } from "@/components/ui/button";
 import { KYCFormProps, UserInfo, JointAccountInfo, KYCDocuments, PurchaseStep } from "@/api/models/userInfo.model";
 
+const MAX_FILE_SIZE_MB = 10;
+
 const KYCForm = ({
   projectName,
   kycDocuments,
@@ -22,13 +24,37 @@ const KYCForm = ({
   setCurrentStep,
 }: KYCFormProps) => {
   const [showDocuments, setShowDocuments] = useState(false);
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
+
+  const validateFileSize = (file: File) => {
+    const sizeInMB = file.size / (1024 * 1024);
+    return sizeInMB <= MAX_FILE_SIZE_MB;
+  };
 
   const handleFileUpload = (field: string, file: File) => {
+    if (!validateFileSize(file)) {
+      setFileErrors(prev => ({
+        ...prev,
+        [field]: `File too large. Max size is ${MAX_FILE_SIZE_MB}MB.`,
+      }));
+      return;
+    }
+
+    setFileErrors(prev => ({ ...prev, [field]: "" }));
     setKycDocuments(prev => ({ ...prev, [field]: file }));
   };
 
   const handleJointFileUpload = (jointIndex: number, field: string, file: File) => {
     const jointField = `joint${jointIndex + 1}${field.charAt(0).toUpperCase() + field.slice(1)}`;
+    if (!validateFileSize(file)) {
+      setFileErrors(prev => ({
+        ...prev,
+        [jointField]: `File too large. Max size is ${MAX_FILE_SIZE_MB}MB.`,
+      }));
+      return;
+    }
+
+    setFileErrors(prev => ({ ...prev, [jointField]: "" }));
     setKycDocuments(prev => ({ ...prev, [jointField]: file }));
   };
 
@@ -361,7 +387,7 @@ const KYCForm = ({
                   
                   <div className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
                     <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                    <p className="text-yellow-800">JPG, PNG, PDF (Max 5MB)</p>
+                    <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
                   </div>
                 </div>
               </div>
@@ -435,7 +461,7 @@ const KYCForm = ({
                       
                       <div className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
                         <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                        <p className="text-yellow-800">JPG, PNG, PDF (Max 5MB)</p>
+                        <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
                       </div>
                     </div>
                   </div>

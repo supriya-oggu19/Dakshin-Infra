@@ -770,7 +770,7 @@ const SipTracker = () => {
                       <Download className="w-3 h-3 mr-1" />
                       Export
                     </Button>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800">
                       ID: {paymentData?.unit_number || "N/A"}
                     </Badge>
                   </div>

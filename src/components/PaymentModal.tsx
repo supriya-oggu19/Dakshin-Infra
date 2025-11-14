@@ -210,13 +210,13 @@ const PaymentModal = ({
         order_amount: amount,
         order_currency: "INR",
         customer_name: customerInfo?.customer_name || "",
-        customer_email: customerInfo?.customer_email || "",
+        customer_email: customerInfo?.customer_email || NaN,
         customer_phone: customerInfo?.customer_phone || "",
         payment_methods: "upi,cc,dc,nb",
       };
 
       // Validate customer info
-      if (!paymentPayload.customer_name || !paymentPayload.customer_email || !paymentPayload.customer_phone) {
+      if (!paymentPayload.customer_name || !paymentPayload.customer_phone) {
         throw new Error("Complete customer information is required for payment processing");
       }
 
@@ -375,7 +375,7 @@ const PaymentModal = ({
                   </span>
                 </div>
               </div>
-              {(!customerInfo.customer_name || !customerInfo.customer_email || !customerInfo.customer_phone) && (
+              {(!customerInfo.customer_name || !customerInfo.customer_phone) && (
                 <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
                   <p className="text-xs text-orange-700">
                     ⚠️ Complete customer information is required for payment processing
