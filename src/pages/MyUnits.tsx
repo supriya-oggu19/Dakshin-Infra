@@ -27,6 +27,7 @@ import {
 } from "../api/models/portfolio.model";
 import PaymentModal from "@/components/PaymentModal";
 import { Link } from "react-router-dom";
+import { clearPurchaseAndBillingSession } from "@/utils/clearPurchaseBilling";
 
 // Payment Data Interfaces
 interface Payment {
@@ -81,6 +82,7 @@ const MyUnits = () => {
   const projectId = sessionStorage.getItem('currentProjectId');
 
   useEffect(() => {
+    clearPurchaseAndBillingSession();
     if (projectId) {
       sessionStorage.removeItem(`purchaseState_${projectId}`);
       sessionStorage.removeItem('currentProjectId');

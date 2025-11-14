@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { clearPurchaseAndBillingSession } from "@/utils/clearPurchaseBilling";
 import {
   Card,
   CardContent,
@@ -144,8 +145,9 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
   };
 
   const handleInvestNow = (schemeId: string) => {
+    clearPurchaseAndBillingSession();
     if (isAuthenticated) {
-      navigate(`/purchase/${id}`, { state: { selectedSchemeId: schemeId } });
+      navigate(`/purchase/${id}`, { state: { selectedSchemeId: schemeId, projectName: projectName } });
     } else {
       navigate('/login', {
         state: { from: `/purchase/${id}`, selectedSchemeId: schemeId },

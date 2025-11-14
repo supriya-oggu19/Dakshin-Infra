@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Users, UserPlus, Crown } from "lucide-react";
+import { Plus, Users, UserPlus, Crown, Building } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import UserInfoForm from "@/forms/UserInfoForm";
 import {
@@ -236,6 +236,54 @@ const UserInfoPage = ({
     }
   };
 
+  interface InfoRowProps {
+    label: string;
+    value: string | null | undefined;
+    monospace?: boolean;
+    important?: boolean;
+    capitalize?: boolean;
+    fullWidth?: boolean;
+  }
+
+  const InfoRow: React.FC<InfoRowProps> = ({ 
+    label, 
+    value, 
+    monospace = false, 
+    important = false,
+    capitalize = false,
+    fullWidth = false
+  }) => (
+    <div className={`flex ${fullWidth ? 'flex-col' : 'flex-row items-center justify-between'} gap-2`}>
+      <span className={`text-sm font-medium text-gray-600 ${fullWidth ? 'mb-1' : 'min-w-24'}`}>
+        {label}:
+      </span>
+      <span 
+        className={`
+          text-sm font-semibold 
+          ${monospace ? 'font-mono' : ''}
+          ${important ? 'text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200' : 'text-gray-900'}
+          ${capitalize ? 'capitalize' : ''}
+          ${fullWidth ? 'break-words' : 'truncate'}
+        `}
+        title={value || undefined}
+      >
+        {value || "Not provided"}
+      </span>
+    </div>
+  );
+
+// Compact address formatter
+const getCompactAddress = (address: any) => {
+  if (!address) return "Not provided";
+  
+  const parts = [];
+  if (address.street) parts.push(address.street);
+  if (address.city) parts.push(address.city);
+  if (address.state) parts.push(address.state);
+  
+  return parts.length > 0 ? parts.join(', ') : "Address not available";
+};
+
   const getJointIndex = (accountId: string) => {
     const joints = accounts.filter((a) => a.type === "joint");
     return joints.findIndex((a) => a.id === accountId) + 1;
@@ -330,7 +378,16 @@ const UserInfoPage = ({
               id="existing-profiles"
               checked={propUseExistingProfiles}
               onCheckedChange={handleToggleChange}
-              className="thick-switch-thumb border-2 border-gray-400 data-[state=checked]:border-primary"
+              className="
+                border-2 
+                border-gray-400
+
+                data-[state=unchecked]:bg-gray-300 
+                data-[state=unchecked]:border-gray-500
+                
+                data-[state=checked]:bg-primary
+                data-[state=checked]:border-primary
+              "
             />
           </div>
 
@@ -363,7 +420,6 @@ const UserInfoPage = ({
                       const isSelected = propSelectedProfileIds.includes(
                         profile.user_profile_id
                       );
-
                       return (
                         <div
                           key={profile.user_profile_id}
@@ -372,17 +428,13 @@ const UserInfoPage = ({
                               ? "border-primary bg-blue-50"
                               : "border-gray-200 hover:border-gray-300"
                           }`}
-                          onClick={() =>
-                            handleProfileToggle(profile.user_profile_id)
-                          }
+                          onClick={() => handleProfileToggle(profile.user_profile_id)}
                         >
                           <div className="flex items-start gap-3">
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() =>
-                                handleProfileToggle(profile.user_profile_id)
-                              }
+                              onChange={() => handleProfileToggle(profile.user_profile_id)}
                               className="mt-1"
                             />
                             <div className="flex-1">
@@ -403,22 +455,16 @@ const UserInfoPage = ({
                                 )}
                               </div>
 
-                              {/* Enhanced profile information with more important fields */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                              {/* Simplified Information Grid */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.2fr] gap-2 text-sm text-muted-foreground">
                                 {/* Contact Information */}
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      Email:
-                                    </span>
-                                    <span className="truncate">
-                                      {profile.email}
-                                    </span>
+                                    <span className="font-medium text-gray-700">Email:</span>
+                                    <span className="truncate">{profile.email}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      Phone:
-                                    </span>
+                                    <span className="font-medium text-gray-700">Phone:</span>
                                     <span>{profile.phone_number}</span>
                                   </div>
                                 </div>
@@ -426,9 +472,7 @@ const UserInfoPage = ({
                                 {/* Personal Details */}
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      DOB:
-                                    </span>
+                                    <span className="font-medium text-gray-700">DOB:</span>
                                     <span>
                                       {profile.dob
                                         ? new Date(profile.dob).toLocaleDateString('en-IN')
@@ -436,105 +480,74 @@ const UserInfoPage = ({
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      Gender:
-                                    </span>
-                                    <span className="capitalize">
-                                      {profile.gender || "Not provided"}
-                                    </span>
+                                    <span className="font-medium text-gray-700">Type:</span>
+                                    <span className="capitalize">{profile.user_type}</span>
                                   </div>
                                 </div>
 
-                                {/* Professional Information */}
+                                {/* Identification - SHOW FULL NUMBERS */}
                                 <div className="space-y-1">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      Occupation:
-                                    </span>
-                                    <span>
-                                      {profile.occupation || "Not provided"}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      Income:
-                                    </span>
-                                    <span>
-                                      {profile.annual_income
-                                        ? `₹${Number(profile.annual_income).toLocaleString("en-IN")}`
-                                        : "Not provided"}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Identification Documents */}
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      PAN:
-                                    </span>
-                                    <span className="font-mono">
-                                      {profile.pan_number || "Not provided"}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      Aadhar:
-                                    </span>
-                                    <span>
-                                      {profile.aadhar_number && profile.aadhar_number.length === 12
-                                        ? `${profile.aadhar_number.substring(0, 4)}XXXX${profile.aadhar_number.substring(8)}`
-                                        : profile.aadhar_number || "Not provided"}
-                                    </span>
-                                  </div>
+                                  {profile.user_type === "individual" && (
+                                    <>
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-medium text-gray-700">PAN:</span>
+                                        <span className="font-mono text-blue-600">
+                                          {profile.pan_number || "Not provided"}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-medium text-gray-700">Aadhar:</span>
+                                        <span className="text-blue-600">
+                                          {profile.aadhar_number || "Not provided"}
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
+                                  {profile.user_type === "business" && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-medium text-gray-700">GST:</span>
+                                      <span className="font-mono text-blue-600">
+                                        {profile.gst_number || "Not provided"}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {profile.user_type === "NRI" && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-medium text-gray-700">Passport:</span>
+                                      <span className="font-mono text-blue-600">
+                                        {profile.passport_number || "Not provided"}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Address Information */}
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      City:
-                                    </span>
-                                    <span>
-                                      {profile.present_address?.city || "Not provided"}
-                                    </span>
+                                    <span className="font-medium text-gray-700">City:</span>
+                                    <span>{profile.present_address?.city || "Not provided"}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      State:
-                                    </span>
-                                    <span>
-                                      {profile.present_address?.state || "Not provided"}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Account & KYC Status */}
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium text-gray-700">
-                                      Type:
-                                    </span>
-                                    <span className="capitalize">
-                                      {profile.user_type}
-                                    </span>
+                                    <span className="font-medium text-gray-700">State:</span>
+                                    <span>{profile.present_address?.state || "Not provided"}</span>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Bank Account Details - Show if available */}
-                              {profile.account_details?.account_number && profile.account_details.account_number.length >= 7 && (
+                              {/* Bank Account Details - Show full details without masking */}
+                              {profile.account_details?.account_number && (
                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-medium text-sm text-gray-700">
-                                      Bank Account:
-                                    </span>
-                                    <span className="text-sm font-mono">
-                                      {profile.account_details.bank_account_name} •
-                                      {profile.account_details.account_number.substring(0, 4)}
-                                      XXXX
-                                      {profile.account_details.account_number.substring(
-                                        profile.account_details.account_number.length - 3
+                                    <span className="font-medium text-sm text-gray-700">Bank Account:</span>
+                                    <span className="text-sm">
+                                      {profile.account_details.bank_account_name} • 
+                                      <span className="font-mono text-blue-600 ml-1">
+                                        {profile.account_details.account_number}
+                                      </span>
+                                      {profile.account_details.ifsc_code && (
+                                        <span className="font-mono text-blue-600 ml-2">
+                                          (IFSC: {profile.account_details.ifsc_code})
+                                        </span>
                                       )}
                                     </span>
                                   </div>

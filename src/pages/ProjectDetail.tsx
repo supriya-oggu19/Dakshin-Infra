@@ -60,6 +60,7 @@ import {
   Amenity,
   GalleryImage,
 } from "@/api/models/projectModels";
+import { clearPurchaseAndBillingSession } from "@/utils/clearPurchaseBilling";
 
 interface FormattedProject
   extends Omit<ProjectData, "status" | "property_type"> {
@@ -156,8 +157,6 @@ const ProjectDetail = () => {
         }).filter(url => url && url.trim() !== ''); // Remove empty URLs
       }
 
-      console.log("Processed Gallery URLs:", galleryUrls); // Debug log
-
       const formatted: FormattedProject = {
         ...projectData,
         status: formatStatus(projectData.status),
@@ -170,7 +169,7 @@ const ProjectDetail = () => {
           : "N/A",
         gallery: galleryUrls,
         highlights: projectData.key_highlights || [],
-        // features: projectData.features || [],
+        features: projectData.features || [],
         amenities: projectData.amenities || [],
         investmentHighlights:
           projectData.investment_highlights?.map((h: string) => {
@@ -314,11 +313,17 @@ const ProjectDetail = () => {
   };
 
   const handleBuyNow = () => {
-    // Clear any existing purchase state for this project
-    sessionStorage.removeItem(`purchaseState_${id}`);
-    sessionStorage.setItem('currentProjectId', id);
-    if (isAuthenticated) navigate(`/purchase/${id}`, { state: { projectName: project?.title } });
-    else navigate("/login", { state: { from: `/purchase/${id}` } });
+    clearPurchaseAndBillingSession();
+
+    sessionStorage.setItem("currentProjectId", id);
+
+    if (isAuthenticated) {
+      navigate(`/purchase/${id}`, {
+        state: { projectName: project?.title },
+      });
+    } else {
+      navigate("/login", { state: { from: `/purchase/${id}` } });
+    }
   };
 
   const handleImageError = (imageUrl: string) => {
