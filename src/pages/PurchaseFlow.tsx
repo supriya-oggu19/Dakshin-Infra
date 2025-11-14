@@ -95,15 +95,7 @@ const PurchaseFlow = () => {
   const [selectedPlan, setSelectedPlan] = useState<PlanSelection | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<number>(1);
   const [customPayment, setCustomPayment] = useState<number>(0);
-  const [accounts, setAccounts] = useState<Account[]>([
-    {
-      id: "primary",
-      type: "primary",
-      data: getInitialUserInfo(user),
-      termsAccepted: false,
-      verified: { pan: false, aadhar: false, gst: false, passport: false },
-    },
-  ]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [kycDocuments, setKycDocuments] = useState<KYCDocuments>({});
   const [kycAccepted, setKycAccepted] = useState(false);
   const [jointKycAccepted, setJointKycAccepted] = useState<boolean[]>([]);
@@ -112,89 +104,12 @@ const PurchaseFlow = () => {
   const [totalInvestment, setTotalInvestment] = useState<number>(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userProfileIds, setUserProfileIds] = useState<string[]>([]);
-  const [existingProfiles, setExistingProfiles] = useState<
-    APIUserProfileResponse[]
-  >([]);
-  const [hasExistingProfiles, setHasExistingProfiles] =
-    useState<boolean>(false);
-  const [useExistingProfiles, setUseExistingProfiles] =
-    useState<boolean>(false);
+  const [existingProfiles, setExistingProfiles] = useState<APIUserProfileResponse[]>([]);
+  const [hasExistingProfiles, setHasExistingProfiles] = useState<boolean>(false);
+  const [useExistingProfiles, setUseExistingProfiles] = useState<boolean>(false);
+  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
   const projectName = location.state?.projectName || "Project";
   const [restoringState, setRestoringState] = useState(true);
-
-  useEffect(() => {
-    if (id) {
-      sessionStorage.setItem("currentProjectId", id);
-    }
-    const savedState = sessionStorage.getItem(`purchaseState_${id}`);
-    if (savedState) {
-      const parsedState = JSON.parse(savedState);
-      setSelectedPlan(parsedState.selectedPlan);
-      setSelectedUnits(parsedState.selectedUnits || 1);
-      setAccounts(parsedState.accounts || []);
-      setUserProfileIds(parsedState.userProfileIds || []);
-      setKycAccepted(parsedState.kycAccepted || false);
-      setJointKycAccepted(parsedState.jointKycAccepted || []);
-      setCustomPayment(parsedState.customPayment || 0);
-      setUseExistingProfiles(parsedState.useExistingProfiles || false);
-    }
-    setRestoringState(false);
-  }, [id]);
-
-  // Save state when it changes
-  useEffect(() => {
-    const stateToSave = {
-      selectedPlan,
-      selectedUnits,
-      accounts,
-      currentStep,
-      userProfileIds,
-      kycAccepted,
-      jointKycAccepted,
-      customPayment,
-      hasExistingProfiles,
-      useExistingProfiles,
-    };
-    sessionStorage.setItem(`purchaseState_${id}`, JSON.stringify(stateToSave));
-  }, [
-    selectedPlan,
-    selectedUnits,
-    accounts,
-    currentStep,
-    userProfileIds,
-    kycAccepted,
-    jointKycAccepted,
-    customPayment,
-    hasExistingProfiles,
-    useExistingProfiles,
-    id,
-  ]);
-
-  // Update when accounts change
-  useEffect(() => {
-    const jointCount = accounts.filter(
-      (account) => account.type === "joint"
-    ).length;
-    setJointKycAccepted(Array(jointCount).fill(false));
-  }, [accounts]);
-
-  // Check for existing profiles
-  const checkExistingProfiles = async (): Promise<boolean> => {
-    try {
-      const response = await userProfileApi.listUserProfiles();
-      if (response && response.length > 0) {
-        setExistingProfiles(response);
-        setHasExistingProfiles(true);
-        return true;
-      }
-      setHasExistingProfiles(false);
-      return false;
-    } catch (error) {
-      console.error("Error checking existing profiles:", error);
-      setHasExistingProfiles(false);
-      return false;
-    }
-  };
 
   // Helper functions for initial state
   function getInitialUserInfo(user: any): UserInfo {
@@ -236,42 +151,13 @@ const PurchaseFlow = () => {
     };
   }
 
-  function getInitialJointInfo(): JointAccountInfo {
+  function getInitialAccount(user: any): Account {
     return {
-      surname: "",
-      name: "",
-      dob: "",
-      gender: "male",
-      email: "",
-      phone_number: "",
-      present_address: {
-        street: "",
-        city: "",
-        state: "",
-        country: "India",
-        postal_code: "",
-      },
-      permanent_address: {
-        street: "",
-        city: "",
-        state: "",
-        country: "India",
-        postal_code: "",
-      },
-      occupation: "",
-      annual_income: "",
-      pan_number: "",
-      aadhar_number: "",
-      gst_number: "",
-      passport_number: "",
-      sameAddress: true,
-      user_type: "individual",
-      account_details: {
-        account_holder_name: "",
-        bank_account_name: "",
-        account_number: "",
-        ifsc_code: "",
-      },
+      id: "primary",
+      type: "primary",
+      data: getInitialUserInfo(user),
+      termsAccepted: false,
+      verified: { pan: false, aadhar: false, gst: false, passport: false },
     };
   }
 
@@ -319,6 +205,118 @@ const PurchaseFlow = () => {
     };
   };
 
+  // STATE PERSISTENCE - Save state when it changes
+  useEffect(() => {
+    if (restoringState) return; // Don't save while restoring
+    
+    const stateToSave = {
+      selectedPlan,
+      selectedUnits,
+      accounts,
+      currentStep,
+      userProfileIds,
+      kycAccepted,
+      jointKycAccepted,
+      customPayment,
+      selectedProfileIds,
+      useExistingProfiles,
+      existingProfiles, // Save existing profiles too
+    };
+    sessionStorage.setItem(`purchaseState_${id}`, JSON.stringify(stateToSave));
+  }, [
+    selectedPlan,
+    selectedUnits,
+    accounts,
+    currentStep,
+    userProfileIds,
+    kycAccepted,
+    jointKycAccepted,
+    customPayment,
+    selectedProfileIds,
+    useExistingProfiles,
+    id,
+    restoringState,
+    existingProfiles,
+  ]);
+
+  // STATE PERSISTENCE - Restore state on component mount
+  useEffect(() => {
+    if (id) {
+      sessionStorage.setItem("currentProjectId", id);
+    }
+    
+    const savedState = sessionStorage.getItem(`purchaseState_${id}`);
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        console.log("Restoring state:", parsedState);
+        
+        // Restore all state with proper defaults
+        setSelectedPlan(parsedState.selectedPlan || null);
+        setSelectedUnits(parsedState.selectedUnits || 1);
+        setAccounts(parsedState.accounts && parsedState.accounts.length > 0 
+          ? parsedState.accounts 
+          : [getInitialAccount(user)]);
+        setUserProfileIds(parsedState.userProfileIds || []);
+        setKycAccepted(parsedState.kycAccepted || false);
+        setJointKycAccepted(parsedState.jointKycAccepted || []);
+        setCustomPayment(parsedState.customPayment || 0);
+        setUseExistingProfiles(parsedState.useExistingProfiles || false);
+        setSelectedProfileIds(parsedState.selectedProfileIds || []);
+        setExistingProfiles(parsedState.existingProfiles || []);
+        
+        // Restore current step if it exists and no URL step is specified
+        if (parsedState.currentStep && !urlStep) {
+          setCurrentStep(parsedState.currentStep);
+        }
+      } catch (error) {
+        console.error("Error restoring state:", error);
+        // Initialize with default state if restoration fails
+        setAccounts([getInitialAccount(user)]);
+      }
+    } else {
+      // Initialize with default state if no saved state
+      setAccounts([getInitialAccount(user)]);
+    }
+    
+    setRestoringState(false);
+  }, [id, user]);
+
+  // Update when accounts change
+  useEffect(() => {
+    const jointCount = accounts.filter(
+      (account) => account.type === "joint"
+    ).length;
+    setJointKycAccepted(Array(jointCount).fill(false));
+  }, [accounts]);
+
+  // Check for existing profiles
+  const checkExistingProfiles = async (): Promise<boolean> => {
+    try {
+      const response = await userProfileApi.listUserProfiles();
+      if (response && response.length > 0) {
+        setExistingProfiles(response);
+        setHasExistingProfiles(true);
+        return true;
+      }
+      setHasExistingProfiles(false);
+      return false;
+    } catch (error) {
+      console.error("Error checking existing profiles:", error);
+      setHasExistingProfiles(false);
+      return false;
+    }
+  };
+
+  // Helper to get the correct profile IDs based on flow
+  const getProfileIdsForPayment = (): string[] => {
+    if (useExistingProfiles) {
+      return selectedProfileIds;
+    } else {
+      return userProfileIds;
+    }
+  };
+
   // Authentication check
   useEffect(() => {
     if (!isAuthenticated) {
@@ -362,8 +360,12 @@ const PurchaseFlow = () => {
           setFetchError("No investment schemes available for this project");
         }
 
-        // Check for existing profiles
-        await checkExistingProfiles();
+        // Check for existing profiles if we don't have them in restored state
+        if (existingProfiles.length === 0) {
+          await checkExistingProfiles();
+        } else {
+          setHasExistingProfiles(true);
+        }
       } catch (error: any) {
         console.error("Fetch error:", error);
         setFetchError(
@@ -384,8 +386,53 @@ const PurchaseFlow = () => {
       }
     };
 
-    initializeData();
-  }, [id, toast]);
+    if (!restoringState) {
+      initializeData();
+    }
+  }, [id, toast, restoringState, existingProfiles.length]);
+
+  // Handle profile selection from existing profiles
+  const handleProfileSelection = (selectedProfileIds: string[]) => {
+    const selectedAccounts: Account[] = [];
+    const newSelectedProfileIds = [...selectedProfileIds];
+
+    // Add primary account (first selected profile)
+    const primaryProfile = existingProfiles.find(
+      (profile) => profile.user_profile_id === newSelectedProfileIds[0]
+    );
+    if (primaryProfile) {
+      selectedAccounts.push(convertProfileToAccount(primaryProfile, true));
+    }
+
+    // Add joint accounts (remaining selected profiles)
+    newSelectedProfileIds.slice(1).forEach((profileId) => {
+      const jointProfile = existingProfiles.find(
+        (profile) => profile.user_profile_id === profileId
+      );
+      if (jointProfile) {
+        selectedAccounts.push(convertProfileToAccount(jointProfile, false));
+      }
+    });
+
+    setAccounts(selectedAccounts);
+    setSelectedProfileIds(newSelectedProfileIds);
+  };
+
+  // Handle use existing profiles toggle
+  const handleUseExistingProfilesChange = (value: boolean) => {
+    setUseExistingProfiles(value);
+    
+    if (!value) {
+      // When turning off, reset to default account
+      setAccounts([getInitialAccount(user)]);
+      setSelectedProfileIds([]);
+    } else {
+      // When turning on, ensure we have existing profiles
+      if (existingProfiles.length === 0) {
+        checkExistingProfiles();
+      }
+    }
+  };
 
   // Plan selection handlers
   const handlePlanSelection = (scheme: Scheme, units: number) => {
@@ -670,6 +717,10 @@ const PurchaseFlow = () => {
     primaryFormData.append("document1", primaryDoc1);
     if (primaryDoc2) primaryFormData.append("document2", primaryDoc2);
 
+    const primaryPhoto = kycDocuments.photo as File;
+    if (!primaryPhoto) throw new Error("Missing photo for primary user");
+    primaryFormData.append("photo", primaryPhoto);
+
     try {
       const primaryResponse = await userProfileApi.createUserProfile(
         primaryFormData
@@ -735,6 +786,10 @@ const PurchaseFlow = () => {
 
       jointFormData.append("document1", jointDoc1);
       if (jointDoc2) jointFormData.append("document2", jointDoc2);
+      
+      const jointPhoto = kycDocuments[`${baseKey}Photo`] as File;
+      if (!jointPhoto) throw new Error(`Missing photo for joint user ${jointIndex}`);
+      jointFormData.append("photo", jointPhoto);
 
       try {
         const jointResponse = await userProfileApi.createUserProfile(
@@ -766,15 +821,21 @@ const PurchaseFlow = () => {
       if (currentStep === "plan-selection" && selectedPlan) {
         setCurrentStep("user-info");
       } else if (currentStep === "user-info" && validateUserInfo()) {
-        setCurrentStep("kyc");
+        if (useExistingProfiles) {
+          setCurrentStep("payment");
+          toast({ title: "Skipped", description: "Using existing profiles." });
+        } else {
+          setCurrentStep("kyc");
+        }
       } else if (currentStep === "kyc" && validateKYC()) {
-        const userProfileIds = await createUserProfiles();
-        setUserProfileIds(userProfileIds);
-
-        toast({
-          title: "Success",
-          description: "User profiles created successfully",
-        });
+        if (!useExistingProfiles) {
+          const newUserProfileIds = await createUserProfiles();
+          setUserProfileIds(newUserProfileIds);
+          toast({
+            title: "Success",
+            description: "User profiles created successfully",
+          });
+        }
         setCurrentStep("payment");
       } else if (currentStep === "payment") {
         // Final verification before proceeding to confirmation/payment success
@@ -794,6 +855,12 @@ const PurchaseFlow = () => {
           throw new Error(
             `Payment amount exceeds maximum allowed by gateway: ${GATEWAY_MAX}`
           );
+        }
+
+        // Validate we have profile IDs
+        const profileIdsForPayment = getProfileIdsForPayment();
+        if (!profileIdsForPayment || profileIdsForPayment.length === 0) {
+          throw new Error("No user profiles found. Please complete previous steps.");
         }
 
         // Fake delay / payment processing
@@ -825,31 +892,6 @@ const PurchaseFlow = () => {
     } else if (currentStep === "payment") {
       setCurrentStep("kyc");
     }
-  };
-
-  // Handle profile selection from existing profiles
-  const handleProfileSelection = (selectedProfileIds: string[]) => {
-    const selectedAccounts: Account[] = [];
-
-    // Add primary account (first selected profile)
-    const primaryProfile = existingProfiles.find(
-      (profile) => profile.user_profile_id === selectedProfileIds[0]
-    );
-    if (primaryProfile) {
-      selectedAccounts.push(convertProfileToAccount(primaryProfile, true));
-    }
-
-    // Add joint accounts (remaining selected profiles)
-    selectedProfileIds.slice(1).forEach((profileId) => {
-      const jointProfile = existingProfiles.find(
-        (profile) => profile.user_profile_id === profileId
-      );
-      if (jointProfile) {
-        selectedAccounts.push(convertProfileToAccount(jointProfile, false));
-      }
-    });
-
-    setAccounts(selectedAccounts);
   };
 
   // Utility functions
@@ -899,6 +941,18 @@ const PurchaseFlow = () => {
     }
   };
 
+  // Handle direct to payment with existing profiles
+  const handleDirectToPayment = (profileIds: string[]) => {
+    // Make sure we set both selectedProfileIds and useExistingProfiles
+    setSelectedProfileIds(profileIds);
+    setUseExistingProfiles(true);
+    setCurrentStep("payment");
+    toast({
+      title: "Success",
+      description: "Using existing verified profiles. Proceeding to payment.",
+    });
+  };
+
   // Render different steps
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -929,18 +983,12 @@ const PurchaseFlow = () => {
               accounts={accounts}
               onSubmit={handleUserInfoSubmit}
               onAccountsChange={setAccounts}
-              onDirectToPayment={(profileIds) => {
-                setUserProfileIds(profileIds);
-                setCurrentStep("payment");
-                toast({
-                  title: "Success",
-                  description:
-                    "Using existing verified profiles. Proceeding to payment.",
-                });
-              }}
+              onDirectToPayment={handleDirectToPayment}
               onContinueToKYC={() => setCurrentStep("kyc")}
               existingProfiles={existingProfiles}
               useExistingProfiles={useExistingProfiles}
+              onUseExistingProfilesChange={handleUseExistingProfilesChange}
+              selectedProfileIds={selectedProfileIds}
               onProfileSelection={handleProfileSelection}
             />
           </div>
@@ -983,7 +1031,7 @@ const PurchaseFlow = () => {
               isJointOwnership={accounts.length > 1}
               numberOfUnits={selectedUnits}
               onPurchaseSuccess={handlePurchaseSuccess}
-              userProfileIds={userProfileIds}
+              userProfileIds={getProfileIdsForPayment()}
               schemeData={schemes.find((s) => s.id === selectedPlan.planId)}
               paymentAmount={getCurrentPaymentAmount()}
             />

@@ -55,40 +55,8 @@ const initialUserInfo: UserInfo = {
 };
 
 const initialJointInfo: JointAccountInfo = {
-  surname: "",
-  name: "",
-  dob: "",
-  gender: "male",
-  email: "",
-  phone_number: "",
-  present_address: {
-    street: "",
-    city: "",
-    state: "",
-    country: "India",
-    postal_code: "",
-  },
-  permanent_address: {
-    street: "",
-    city: "",
-    state: "",
-    country: "India",
-    postal_code: "",
-  },
+  ...initialUserInfo,
   sameAddress: true,
-  occupation: "",
-  annual_income: "",
-  user_type: "individual",
-  pan_number: "",
-  aadhar_number: "",
-  gst_number: "",
-  passport_number: "",
-  account_details: {
-    account_holder_name: "",
-    bank_account_name: "",
-    account_number: "",
-    ifsc_code: "",
-  },
 };
 
 // Extended props to include direct payment navigation
@@ -98,6 +66,8 @@ interface ExtendedUserInfoPageProps extends Omit<UserInfoPageProps, 'onSubmit'> 
   onContinueToKYC?: () => void;
   existingProfiles?: APIUserProfileResponse[];
   useExistingProfiles?: boolean;
+  onUseExistingProfilesChange?: (value: boolean) => void;
+  selectedProfileIds?: string[];
   onProfileSelection?: (profileIds: string[]) => void;
 }
 
@@ -107,39 +77,37 @@ const UserInfoPage = ({
   onAccountsChange,
   onDirectToPayment,
   onContinueToKYC,
+  selectedProfileIds: propSelectedProfileIds = [],
+  existingProfiles: propExistingProfiles = [],
+  useExistingProfiles: propUseExistingProfiles = false,
+  onUseExistingProfilesChange,
   onProfileSelection,
 }: ExtendedUserInfoPageProps) => {
   const { toast } = useToast();
-  const [accounts, setAccounts] = useState<Account[]>(
-    initialAccounts || [
-      {
-        id: "primary",
-        type: "primary",
-        data: initialUserInfo,
-        termsAccepted: false,
-        verified: { pan: false, aadhar: false, gst: false, passport: false },
-      },
-    ]
-  );
-
-  const [useExistingProfiles, setUseExistingProfiles] = useState(false);
-  const [existingProfiles, setExistingProfiles] = useState<APIUserProfileResponse[]>([]);
-  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts || []);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [hasFetchedProfiles, setHasFetchedProfiles] = useState(false);
 
-  // Fetch existing profiles when toggle is enabled
+  // Sync prop changes
+  useEffect(() => {
+    if (initialAccounts && initialAccounts.length > 0) {
+      setAccounts(initialAccounts);
+    }
+  }, [initialAccounts]);
+
+  // Fetch existing profiles when toggle is enabled and we don't have them
   useEffect(() => {
     const fetchExistingProfiles = async () => {
-      if (useExistingProfiles && !hasFetchedProfiles) {
+      if (propUseExistingProfiles && !hasFetchedProfiles && propExistingProfiles.length === 0) {
         setLoadingProfiles(true);
         try {
           const response = await userProfileApi.listUserProfiles();
-          setExistingProfiles(response || []);
-          setHasFetchedProfiles(true);
+          if (onProfileSelection && response && response.length > 0) {
+            // Update parent with fetched profiles
+            onProfileSelection([]); // Reset selection initially
+          }
         } catch (error) {
           console.error("Error fetching profiles:", error);
-          setExistingProfiles([]);
           toast({
             title: "Error",
             description: "Failed to load existing profiles",
@@ -147,24 +115,21 @@ const UserInfoPage = ({
           });
         } finally {
           setLoadingProfiles(false);
+          setHasFetchedProfiles(true);
         }
       }
     };
 
     fetchExistingProfiles();
-  }, [useExistingProfiles, hasFetchedProfiles, toast]);
-
-  // Reset fetched profiles when toggle is turned off
-  useEffect(() => {
-    if (!useExistingProfiles) {
-      setHasFetchedProfiles(false);
-      setSelectedProfileIds([]);
-    }
-  }, [useExistingProfiles]);
+  }, [propUseExistingProfiles, hasFetchedProfiles, propExistingProfiles.length, onProfileSelection, toast]);
 
   const addAccount = () => {
+    if (accounts.length >= 5) {  // Legal max joints + primary
+      toast({ title: "Limit Reached", description: "Max 4 joint holders allowed.", variant: "destructive" });
+      return;
+    }
     const newAccount: Account = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),  // Safer ID
       type: "joint",
       data: initialJointInfo,
       termsAccepted: false,
@@ -231,7 +196,7 @@ const UserInfoPage = ({
       return;
     }
 
-    // Validate required fields
+    //validation
     const allFieldsValid = accounts.every((account) => {
       const data = account.data;
       return (
@@ -241,7 +206,11 @@ const UserInfoPage = ({
         data.email &&
         data.phone_number &&
         data.occupation &&
-        data.annual_income
+        data.annual_income &&
+        data.present_address?.street &&
+        data.present_address?.city &&
+        data.account_details?.account_number &&
+        data.account_details?.ifsc_code
       );
     });
 
@@ -254,23 +223,16 @@ const UserInfoPage = ({
       return;
     }
 
-    // Call parent onSubmit if provided
+    // Call parent onSubmit if provided (parent handles navigation)
     if (onSubmit) {
       const success = await onSubmit(accounts);
-      if (success && onContinueToKYC) {
-        onContinueToKYC(); // Navigate to KYC
-        return;
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Information saved successfully",
+        });
       }
-    }
-
-    // If no onSubmit prop or it doesn't handle navigation, navigate directly
-    if (onContinueToKYC) {
-      onContinueToKYC();
-    } else {
-      toast({
-        title: "Success",
-        description: "Information saved successfully",
-      });
+      return;  // Let parent navigate; no local onContinueToKYC
     }
   };
 
@@ -283,29 +245,28 @@ const UserInfoPage = ({
   const handleProfileToggle = (profileId: string) => {
     let newSelectedIds: string[];
 
-    if (selectedProfileIds.includes(profileId)) {
+    if (propSelectedProfileIds.includes(profileId)) {
       // Remove from selection
-      newSelectedIds = selectedProfileIds.filter((id) => id !== profileId);
+      newSelectedIds = propSelectedProfileIds.filter((id) => id !== profileId);
     } else {
       // Add to selection - if this is the first selection, it becomes primary
-      newSelectedIds = [...selectedProfileIds, profileId];
+      newSelectedIds = [...propSelectedProfileIds, profileId];
     }
 
-    setSelectedProfileIds(newSelectedIds);
     onProfileSelection?.(newSelectedIds);
   };
 
   // Get primary profile (first selected)
   const getPrimaryProfile = () => {
-    if (selectedProfileIds.length === 0) return null;
-    return existingProfiles.find(
-      (p) => p.user_profile_id === selectedProfileIds[0]
+    if (propSelectedProfileIds.length === 0) return null;
+    return propExistingProfiles.find(
+      (p) => p.user_profile_id === propSelectedProfileIds[0]
     );
   };
 
   // Convert selected profiles to accounts AND go directly to payment
   const handleUseSelectedProfiles = () => {
-    if (selectedProfileIds.length === 0) {
+    if (propSelectedProfileIds.length === 0) {
       toast({
         title: "No profiles selected",
         description: "Please select at least one profile",
@@ -314,19 +275,14 @@ const UserInfoPage = ({
       return;
     }
 
-    const profileIds = selectedProfileIds
+    const profileIds = propSelectedProfileIds
       .map((profileId) => {
-        const profile = existingProfiles.find(
+        const profile = propExistingProfiles.find(
           (p) => p.user_profile_id === profileId
         );
         return profile?.user_profile_id || "";
       })
       .filter((id) => id !== "");
-
-    // Reset the form state
-    setUseExistingProfiles(false);
-    setSelectedProfileIds([]);
-    setHasFetchedProfiles(false);
 
     // Call the direct to payment callback with profile IDs
     if (onDirectToPayment) {
@@ -344,17 +300,9 @@ const UserInfoPage = ({
     }
   };
 
-  const getVerificationBadge = (status: string) => {
-    switch (status) {
-      case "verified":
-        return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case "rejected":
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="secondary">Unknown</Badge>;
-    }
+  // Handle use existing profiles toggle change
+  const handleToggleChange = (value: boolean) => {
+    onUseExistingProfilesChange?.(value);
   };
 
   return (
@@ -380,14 +328,14 @@ const UserInfoPage = ({
             </div>
             <Switch
               id="existing-profiles"
-              checked={useExistingProfiles}
-              onCheckedChange={setUseExistingProfiles}
+              checked={propUseExistingProfiles}
+              onCheckedChange={handleToggleChange}
               className="thick-switch-thumb border-2 border-gray-400 data-[state=checked]:border-primary"
             />
           </div>
 
           {/* Profile Selection Section */}
-          {useExistingProfiles && (
+          {propUseExistingProfiles && (
             <div className="mt-6 space-y-4">
               {loadingProfiles ? (
                 <div className="text-center py-8">
@@ -396,7 +344,7 @@ const UserInfoPage = ({
                     Loading profiles...
                   </p>
                 </div>
-              ) : existingProfiles.length === 0 ? (
+              ) : propExistingProfiles.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed rounded-lg">
                   <UserPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">
@@ -409,10 +357,10 @@ const UserInfoPage = ({
               ) : (
                 <>
                   <div className="grid gap-3 max-h-96 overflow-y-auto p-2">
-                    {existingProfiles.map((profile) => {
+                    {propExistingProfiles.map((profile) => {
                       const isPrimary =
-                        selectedProfileIds[0] === profile.user_profile_id;
-                      const isSelected = selectedProfileIds.includes(
+                        propSelectedProfileIds[0] === profile.user_profile_id;
+                      const isSelected = propSelectedProfileIds.includes(
                         profile.user_profile_id
                       );
 
@@ -456,7 +404,7 @@ const UserInfoPage = ({
                               </div>
 
                               {/* Enhanced profile information with more important fields */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-muted-foreground">
                                 {/* Contact Information */}
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1">
@@ -483,9 +431,7 @@ const UserInfoPage = ({
                                     </span>
                                     <span>
                                       {profile.dob
-                                        ? new Date(
-                                            profile.dob
-                                          ).toLocaleDateString()
+                                        ? new Date(profile.dob).toLocaleDateString('en-IN')
                                         : "Not provided"}
                                     </span>
                                   </div>
@@ -515,9 +461,7 @@ const UserInfoPage = ({
                                     </span>
                                     <span>
                                       {profile.annual_income
-                                        ? `₹${parseInt(
-                                            profile.annual_income
-                                          ).toLocaleString("en-IN")}`
+                                        ? `₹${Number(profile.annual_income).toLocaleString("en-IN")}`
                                         : "Not provided"}
                                     </span>
                                   </div>
@@ -538,14 +482,9 @@ const UserInfoPage = ({
                                       Aadhar:
                                     </span>
                                     <span>
-                                      {profile.aadhar_number
-                                        ? `${profile.aadhar_number.substring(
-                                            0,
-                                            4
-                                          )}XXXX${profile.aadhar_number.substring(
-                                            8
-                                          )}`
-                                        : "Not provided"}
+                                      {profile.aadhar_number && profile.aadhar_number.length === 12
+                                        ? `${profile.aadhar_number.substring(0, 4)}XXXX${profile.aadhar_number.substring(8)}`
+                                        : profile.aadhar_number || "Not provided"}
                                     </span>
                                   </div>
                                 </div>
@@ -557,8 +496,7 @@ const UserInfoPage = ({
                                       City:
                                     </span>
                                     <span>
-                                      {profile.present_address?.city ||
-                                        "Not provided"}
+                                      {profile.present_address?.city || "Not provided"}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -566,8 +504,7 @@ const UserInfoPage = ({
                                       State:
                                     </span>
                                     <span>
-                                      {profile.present_address?.state ||
-                                        "Not provided"}
+                                      {profile.present_address?.state || "Not provided"}
                                     </span>
                                   </div>
                                 </div>
@@ -586,26 +523,18 @@ const UserInfoPage = ({
                               </div>
 
                               {/* Bank Account Details - Show if available */}
-                              {profile.account_details?.account_number && (
+                              {profile.account_details?.account_number && profile.account_details.account_number.length >= 7 && (
                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium text-sm text-gray-700">
                                       Bank Account:
                                     </span>
                                     <span className="text-sm font-mono">
-                                      {
-                                        profile.account_details
-                                          .bank_account_name
-                                      }{" "}
-                                      •
-                                      {profile.account_details.account_number.substring(
-                                        0,
-                                        4
-                                      )}
+                                      {profile.account_details.bank_account_name} •
+                                      {profile.account_details.account_number.substring(0, 4)}
                                       XXXX
                                       {profile.account_details.account_number.substring(
-                                        profile.account_details.account_number
-                                          .length - 3
+                                        profile.account_details.account_number.length - 3
                                       )}
                                     </span>
                                   </div>
@@ -617,23 +546,6 @@ const UserInfoPage = ({
                       );
                     })}
                   </div>
-
-                  {selectedProfileIds.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                      <div>
-                        <span className="font-medium text-blue-800">
-                          {selectedProfileIds.length} profile
-                          {selectedProfileIds.length > 1 ? "s" : ""} selected
-                        </span>
-                        <p className="text-sm text-blue-700">
-                          First selected will be primary account holder
-                        </p>
-                      </div>
-                      <Button onClick={handleUseSelectedProfiles}>
-                        Use Selected Profiles & Continue to Payment
-                      </Button>
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -642,7 +554,7 @@ const UserInfoPage = ({
       </Card>
 
       {/* ORIGINAL USER INFO FORM - MAIN FLOW - HIDDEN WHEN USING EXISTING PROFILES */}
-      {!useExistingProfiles && (
+      {!propUseExistingProfiles && (
         <div className="space-y-6">
           {accounts.map((account) => (
             <UserInfoForm
@@ -660,7 +572,7 @@ const UserInfoPage = ({
       )}
 
       {/* Add Account Button - HIDDEN WHEN USING EXISTING PROFILES */}
-      {!useExistingProfiles && (
+      {!propUseExistingProfiles && (
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
           <Button
             variant="outline"
@@ -669,14 +581,6 @@ const UserInfoPage = ({
           >
             <Plus className="w-5 h-5" />
             Add Another Account Holder
-          </Button>
-
-          <Button
-            onClick={handleSubmit}
-            className="bg-green-600 hover:bg-green-700 text-white"
-            size="lg"
-          >
-            Save & Continue to KYC
           </Button>
         </div>
       )}

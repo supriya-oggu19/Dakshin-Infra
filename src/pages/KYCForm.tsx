@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +23,11 @@ const KYCForm = ({
   userInfo,
   setCurrentStep,
 }: KYCFormProps) => {
-  const [showDocuments, setShowDocuments] = useState(false);
   const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
+  const primaryFileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const jointFileRefs = useRef<Record<number, Record<string, HTMLInputElement | null>>>({});  // Nested for joints
+
+  const effectiveUserType = userType || userInfo?.user_type || 'individual';
 
   const validateFileSize = (file: File) => {
     const sizeInMB = file.size / (1024 * 1024);
@@ -33,10 +36,14 @@ const KYCForm = ({
 
   const handleFileUpload = (field: string, file: File) => {
     if (!validateFileSize(file)) {
+      setKycDocuments(prev => ({ ...prev, [field]: undefined }));
       setFileErrors(prev => ({
         ...prev,
         [field]: `File too large. Max size is ${MAX_FILE_SIZE_MB}MB.`,
       }));
+      if (primaryFileRefs.current[field]) {
+        primaryFileRefs.current[field]!.value = '';  // Safe: guard + !
+      }
       return;
     }
 
@@ -47,10 +54,14 @@ const KYCForm = ({
   const handleJointFileUpload = (jointIndex: number, field: string, file: File) => {
     const jointField = `joint${jointIndex + 1}${field.charAt(0).toUpperCase() + field.slice(1)}`;
     if (!validateFileSize(file)) {
+      setKycDocuments(prev => ({ ...prev, [jointField]: undefined }));
       setFileErrors(prev => ({
         ...prev,
         [jointField]: `File too large. Max size is ${MAX_FILE_SIZE_MB}MB.`,
       }));
+      if (jointFileRefs.current[jointIndex]?.[field]) {
+        jointFileRefs.current[jointIndex]![field]!.value = '';  // Safe: nested guard + !
+      }
       return;
     }
 
@@ -70,7 +81,7 @@ const KYCForm = ({
 
   // Correct document mapping based on user type
   const getPrimaryDocs = () => {
-    switch (userType) {
+    switch (effectiveUserType) {
       case 'individual':
         return [
           { key: 'pan', label: 'PAN Card', required: true },
@@ -118,22 +129,24 @@ const KYCForm = ({
   const getPrimaryAddress = (type: 'present' | 'permanent') => {
     if (!userInfo) return 'Address not available';
 
-    // If sameAddress is true, always use present_address
     const addr =
       userInfo.sameAddress || type === 'present'
         ? userInfo.present_address
         : userInfo.permanent_address;
 
-    return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`
-      .trim()
-      .replace(/,\s*,/g, ',')  // clean double commas
-      .replace(/,\s*-/g, '');  // clean ", -"
+    if (!addr) return 'Address not available';
+
+    const parts: string[] = [];
+    if (addr.street) parts.push(addr.street);
+    if (addr.city) parts.push(addr.city);
+    if (addr.state) parts.push(addr.state);
+    const addressStr = parts.length > 0 ? parts.join(', ') : 'Address details unavailable';
+    return addr.postal_code ? `${addressStr} - ${addr.postal_code}` : addressStr;
   };
 
   const getJointAddress = (jointAccount: JointAccountInfo, type: 'present' | 'permanent') => {
     if (!jointAccount) return 'Address not available';
 
-    // Use present address if sameAddress is true or if type is 'present'
     const addr =
       jointAccount.sameAddress || type === 'present'
         ? jointAccount.present_address
@@ -141,10 +154,12 @@ const KYCForm = ({
 
     if (!addr) return 'Address not available';
 
-    return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`
-      .trim()
-      .replace(/,\s*,/g, ',')  // remove duplicate commas
-      .replace(/,\s*-/g, '');  // clean ", -"
+    const parts: string[] = [];
+    if (addr.street) parts.push(addr.street);
+    if (addr.city) parts.push(addr.city);
+    if (addr.state) parts.push(addr.state);
+    const addressStr = parts.length > 0 ? parts.join(', ') : 'Address details unavailable';
+    return addr.postal_code ? `${addressStr} - ${addr.postal_code}` : addressStr;
   };
 
   const primaryDocs = getPrimaryDocs();
@@ -199,11 +214,11 @@ const KYCForm = ({
                 <Label className="text-xs sm:text-sm font-medium text-gray-500">User Type</Label>
                 <p className="text-sm sm:text-base font-semibold text-gray-900 capitalize">{userInfo.user_type}</p>
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 lg:col-span-3">
                 <Label className="text-xs sm:text-sm font-medium text-gray-500">Present Address</Label>
                 <p className="text-sm sm:text-base font-semibold text-gray-900">{getPrimaryAddress('present')}</p>
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 lg:col-span-3">
                 <Label className="text-xs sm:text-sm font-medium text-gray-500">Permanent Address</Label>
                 <p className="text-sm sm:text-base font-semibold text-gray-900">{getPrimaryAddress('permanent')}</p>
               </div>
@@ -216,25 +231,25 @@ const KYCForm = ({
                 <p className="text-sm sm:text-base font-semibold text-gray-900">{userInfo.annual_income}</p>
               </div>
               {userInfo.pan_number && (
-                <div>
+                <div key="pan-number">
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">PAN Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900 uppercase">{userInfo.pan_number}</p>
                 </div>
               )}
               {userInfo.aadhar_number && (
-                <div>
+                <div key="aadhar-number">
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">Aadhaar Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900">{userInfo.aadhar_number}</p>
                 </div>
               )}
               {userInfo.gst_number && (
-                <div>
+                <div key="gst-number">
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">GST Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900 uppercase">{userInfo.gst_number}</p>
                 </div>
               )}
               {userInfo.passport_number && (
-                <div>
+                <div key="passport-number">
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">Passport Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900 uppercase">{userInfo.passport_number}</p>
                 </div>
@@ -302,34 +317,34 @@ const KYCForm = ({
                 <Label className="text-xs sm:text-sm font-medium text-gray-500">Annual Income</Label>
                 <p className="text-sm sm:text-base font-semibold text-gray-900">{jointAccount.annual_income}</p>
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 lg:col-span-3">
                 <Label className="text-xs sm:text-sm font-medium text-gray-500">Present Address</Label>
                 <p className="text-sm sm:text-base font-semibold text-gray-900">{getJointAddress(jointAccount, 'present')}</p>
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 lg:col-span-3">
                 <Label className="text-xs sm:text-sm font-medium text-gray-500">Permanent Address</Label>
                 <p className="text-sm sm:text-base font-semibold text-gray-900">{getJointAddress(jointAccount, 'permanent')}</p>
               </div>
               {jointAccount.pan_number && (
-                <div>
+                <div key={`joint-${index}-pan-number`}>
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">PAN Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900 uppercase">{jointAccount.pan_number}</p>
                 </div>
               )}
               {jointAccount.aadhar_number && (
-                <div>
+                <div key={`joint-${index}-aadhar-number`}>
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">Aadhaar Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900">{jointAccount.aadhar_number}</p>
                 </div>
               )}
               {jointAccount.gst_number && (
-                <div>
+                <div key={`joint-${index}-gst-number`}>
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">GST Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900 uppercase">{jointAccount.gst_number}</p>
                 </div>
               )}
               {jointAccount.passport_number && (
-                <div>
+                <div key={`joint-${index}-passport-number`}>
                   <Label className="text-xs sm:text-sm font-medium text-gray-500">Passport Number</Label>
                   <p className="text-sm sm:text-base font-semibold text-gray-900 uppercase">{jointAccount.passport_number}</p>
                 </div>
@@ -351,47 +366,57 @@ const KYCForm = ({
         </CardHeader>
         <CardContent className="p-3 sm:p-5 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {primaryDocs.map((doc) => (
-              <div key={doc.key} className="relative group">
-                <div className="p-3 sm:p-4 border-2 border-dashed border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 hover:border-yellow-400 hover:shadow-md transition-all duration-300">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className="text-xs sm:text-sm font-semibold text-yellow-900">{doc.label}</Label>
-                    {doc.required && (
-                      <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">Required</span>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Input
-                        type="file"
-                        accept="image/jpeg,image/png,application/pdf"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(doc.key, file);
-                        }}
-                        className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
-                      />
-                      <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 pointer-events-none" />
+            {primaryDocs.map((doc) => {
+              const errorId = `error-${doc.key}`;
+              const hintId = `hint-${doc.key}`;
+              return (
+                <div key={doc.key} className="relative group">
+                  <div className="p-3 sm:p-4 border-2 border-dashed border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 hover:border-yellow-400 hover:shadow-md transition-all duration-300">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs sm:text-sm font-semibold text-yellow-900">{doc.label}</Label>
+                      {doc.required && (
+                        <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">Required</span>
+                      )}
                     </div>
                     
-                    {kycDocuments[doc.key] && (
-                      <div className="flex items-center gap-1.5 p-1.5 bg-green-50 border border-green-200 rounded-lg">
-                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
-                        <span className="text-xs sm:text-sm text-green-700 font-medium truncate max-w-[180px] sm:max-w-full">
-                          {(kycDocuments[doc.key] as File)?.name}
-                        </span>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Input
+                          ref={(el) => { primaryFileRefs.current[doc.key] = el; }}
+                          type="file"
+                          accept="image/jpeg,image/png,application/pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(doc.key, file);
+                          }}
+                          className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
+                          aria-invalid={!!fileErrors[doc.key]}
+                          aria-describedby={`${errorId} ${hintId}`}
+                        />
+                        <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 pointer-events-none" />
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
-                    <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                    <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
+                      
+                      {kycDocuments[doc.key] && (
+                        <div className="flex items-center gap-1.5 p-1.5 bg-green-50 border border-green-200 rounded-lg">
+                          <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm text-green-700 font-medium truncate max-w-[180px] sm:max-w-full">
+                            {(kycDocuments[doc.key] as File)?.name}
+                          </span>
+                        </div>
+                      )}
+                      {fileErrors[doc.key] && (
+                        <p id={errorId} className="text-xs text-red-600 mt-1">{fileErrors[doc.key]}</p>
+                      )}
+                    </div>
+                    
+                    <div id={hintId} className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
+                      <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
+                      <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl">
@@ -412,7 +437,7 @@ const KYCForm = ({
 
       {/* Joint Account Holder Documents */}
       {isJointAccount && jointAccounts.map((jointAccount, index) => {
-        const jointDocs = getJointDocs(jointAccount.user_type);
+        const jointDocs = getJointDocs(jointAccount.user_type as 'individual' | 'business' | 'NRI');
         return (
           <Card key={index} className="border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
             <CardHeader className="bg-gradient-to-r from-yellow-100 to-amber-100 border-b-2 border-yellow-300 p-3 sm:p-5">
@@ -425,47 +450,65 @@ const KYCForm = ({
             </CardHeader>
             <CardContent className="p-3 sm:p-5 space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {jointDocs.map((doc) => (
-                  <div key={doc.key} className="relative group">
-                    <div className="p-3 sm:p-4 border-2 border-dashed border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 hover:border-yellow-400 hover:shadow-md transition-all duration-300">
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-xs sm:text-sm font-semibold text-yellow-900">{doc.label}</Label>
-                        {doc.required && (
-                          <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">Required</span>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Input
-                            type="file"
-                            accept="image/jpeg,image/png,application/pdf"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleJointFileUpload(index, doc.key, file);
-                            }}
-                            className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
-                          />
-                          <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 pointer-events-none" />
+                {jointDocs.map((doc) => {
+                  const jointField = `joint${index + 1}${doc.key.charAt(0).toUpperCase() + doc.key.slice(1)}`;
+                  const errorId = `joint-error-${index}-${doc.key}`;
+                  const hintId = `joint-hint-${index}-${doc.key}`;
+                  return (
+                    <div key={doc.key} className="relative group">
+                      <div className="p-3 sm:p-4 border-2 border-dashed border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 hover:border-yellow-400 hover:shadow-md transition-all duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs sm:text-sm font-semibold text-yellow-900">{doc.label}</Label>
+                          {doc.required && (
+                            <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">Required</span>
+                          )}
                         </div>
                         
-                        {kycDocuments[`joint${index + 1}${doc.key.charAt(0).toUpperCase() + doc.key.slice(1)}`] && (
-                          <div className="flex items-center gap-1.5 p-1.5 bg-green-50 border border-green-200 rounded-lg">
-                            <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
-                            <span className="text-xs sm:text-sm text-green-700 font-medium truncate max-w-[180px] sm:max-w-full">
-                              {(kycDocuments[`joint${index + 1}${doc.key.charAt(0).toUpperCase() + doc.key.slice(1)}`] as File)?.name}
-                            </span>
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <Input
+                              ref={(el) => {
+                                if (!jointFileRefs.current[index]) {
+                                  jointFileRefs.current[index] = {};
+                                }
+                                jointFileRefs.current[index][doc.key] = el;
+                              }}
+                              type="file"
+                              accept="image/jpeg,image/png,application/pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleJointFileUpload(index, doc.key, file);
+                              }}
+                              className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
+                              aria-invalid={!!fileErrors[jointField]}
+                              aria-describedby={`${errorId} ${hintId}`}
+                            />
+                            <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 pointer-events-none" />
                           </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
-                        <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                        <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
+                          
+                          {kycDocuments[jointField] && (
+                            <div className="flex items-center gap-1.5 p-1.5 bg-green-50 border border-green-200 rounded-lg">
+                              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                              <span className="text-xs sm:text-sm text-green-700 font-medium truncate max-w-[180px] sm:max-w-full">
+                                {(kycDocuments[jointField] as File)?.name}
+                              </span>
+                            </div>
+                          )}
+                          {fileErrors[jointField] && (
+                            <p id={errorId} className="text-xs text-red-600 mt-1">
+                              {fileErrors[jointField]}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div id={hintId} className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
+                          <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
+                          <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl">
@@ -477,7 +520,7 @@ const KYCForm = ({
                     className="mt-0.5 sm:mt-1 border-2 border-yellow-400 data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
                   />
                   <Label htmlFor={`jointKycTerms-${index}`} className="text-xs sm:text-sm leading-relaxed text-gray-700 cursor-pointer">
-                    I confirm that all documents uploaded for Joint Holder {index + 1} are genuine and authorize <span className="font-semibold text-yellow-800">Kapil Business Park</span> to verify the same. I understand that providing false information may result in legal consequences.
+                    I confirm that all documents uploaded for Joint Holder {index + 1} are genuine and authorize <span className="font-semibold text-yellow-800">{projectName}</span> to verify the same. I understand that providing false information may result in legal consequences.
                   </Label>
                 </div>
               </div>
