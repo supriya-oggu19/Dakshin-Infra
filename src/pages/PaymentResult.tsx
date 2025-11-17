@@ -5,6 +5,7 @@ import { paymentApi } from "@/api/paymentApi";
 import { useToast } from "@/hooks/use-toast";
 import { pdf } from '@react-pdf/renderer';
 import ReceiptDocument from '../forms/ReceiptDocument';
+import { clearPurchaseAndBillingSession } from "@/utils/clearPurchaseBilling";
 
 interface PaymentDetails {
   order_info?: {
@@ -45,14 +46,12 @@ export default function PaymentResult(): JSX.Element {
 
   const handleNavigation = () => {
     if (isSuccess) {
-      // Clear purchase state on success
-      const projectId = sessionStorage.getItem('currentProjectId');
-      if (projectId) {
-        sessionStorage.removeItem(`purchaseState_${projectId}`);
-        sessionStorage.removeItem('currentProjectId');
-        sessionStorage.removeItem(`billingInfo_${projectId}`);
-      }
-    navigate(`/sip?unit=${result?.order_info?.unit_number}`);
+      sessionStorage.setItem("blockBackOnSIP", "1");
+
+      sessionStorage.removeItem('currentProjectId');
+      clearPurchaseAndBillingSession();
+      
+      navigate(`/sip?unit=${result?.order_info?.unit_number}`, { replace: true });
     } else {
       // Extract project ID from order data or use a different method
       const projectId = sessionStorage.getItem('currentProjectId') ||

@@ -360,18 +360,14 @@ const getCompactAddress = (address: any) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Select Account Holders (Optional)
+            Use existing profiles
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label htmlFor="existing-profiles" className="text-base">
-                Use existing profiles
-              </Label>
               <p className="text-sm text-muted-foreground">
-                Choose from your previously created profiles instead of filling
-                new information
+                Choose an existing profile to finish this step quickly.
               </p>
             </div>
             <Switch
