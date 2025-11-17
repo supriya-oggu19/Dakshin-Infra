@@ -109,20 +109,52 @@ const HomeRouteHandler = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (location.pathname === "/") {
-      // Replace the current entry so user can’t go back to previous route
       window.history.pushState(null, "", window.location.href);
-      window.onpopstate = () => {
-        // Prevent navigating back past home
+
+      const handleBack = () => {
         window.history.go(1);
       };
-    } else {
-      // Clean up if user navigates away
-      window.onpopstate = null;
-    }
 
-    return () => {
-      window.onpopstate = null;
+      window.addEventListener("popstate", handleBack);
+
+      return () => {
+        window.removeEventListener("popstate", handleBack);
+      };
+    }
+  }, [location.pathname]);
+
+  return <>{children}</>;
+};
+
+export const SipRouteHandler = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const shouldBlock = location.pathname === "/sip" &&
+                        sessionStorage.getItem("blockBackOnSIP");
+
+    if (!shouldBlock) return;
+    sessionStorage.removeItem("blockBackOnSIP");
+
+    window.history.replaceState(null, "", "/");
+
+    window.history.pushState(null, "", "/projects");
+
+    window.history.pushState(null, "", "/sip");
+
+    const handleBack = () => {
+      if (window.location.pathname === "/sip") return;
+      if (window.location.pathname === "/projects") return;
+
+      if (window.location.pathname === "/") {
+        window.history.pushState(null, "", "/");
+      }
     };
+
+    window.addEventListener("popstate", handleBack);
+
+    return () => window.removeEventListener("popstate", handleBack);
+
   }, [location.pathname]);
 
   return <>{children}</>;
@@ -189,7 +221,17 @@ const App = () => (
                   </AppLayout>
                 }
               />
-              <Route path="/payment-result" element={<PaymentResult />} />
+            
+              <Route
+                path="/payment-result"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <PaymentResult />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Protected Routes */}
               <Route
@@ -225,11 +267,13 @@ const App = () => (
               <Route
                 path="/sip"
                 element={
+                  <SipRouteHandler>
                   <ProtectedRoute>
                     <AppLayout>
                       <SipTracker />
                     </AppLayout>
                   </ProtectedRoute>
+                  </SipRouteHandler>
                 }
               />
               <Route
