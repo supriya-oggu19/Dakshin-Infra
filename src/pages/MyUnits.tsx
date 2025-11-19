@@ -70,6 +70,7 @@ const MyUnits = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loadingCustomerInfo, setLoadingCustomerInfo] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Payment data state for each unit
   const [paymentDataMap, setPaymentDataMap] = useState<
@@ -80,6 +81,14 @@ const MyUnits = () => {
   >({});
   const [activeTabs, setActiveTabs] = useState<Record<string, string>>({});
   const projectId = sessionStorage.getItem('currentProjectId');
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const filteredPortfolioData = portfolioData.filter(property =>
+    property.unit_number.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     clearPurchaseAndBillingSession();
@@ -662,21 +671,52 @@ const MyUnits = () => {
             </div>
           )}
 
+          {/* Search Bar */}
+          <div className="mb-6 sm:mb-8">
+            <div className="relative max-w-md">
+              <input
+                type="text"
+                placeholder="Search by Booking ID..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg 
+                  className="h-5 w-5 text-gray-400" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
           {/* Properties List */}
           <div className="space-y-4 sm:space-y-6">
-            {portfolioData.length === 0 ? (
+            {filteredPortfolioData.length === 0 ? (
               <Card className="border-0 shadow-md">
                 <CardContent className="p-8 text-center">
                   <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Units Found</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    {searchQuery ? 'No Units Found' : 'No Units Found'}
+                  </h3>
                   <p className="text-muted-foreground">
-                    You haven't purchased any units yet. Explore our projects to
-                    get started.
+                    {searchQuery 
+                      ? `No units found matching "${searchQuery}". Try a different booking ID.`
+                      : "You haven't purchased any units yet. Explore our projects to get started."}
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              portfolioData.map((property) => {
+              filteredPortfolioData.map((property) => {
                 const isPaymentCompleted = isPaymentFullyPaid(property.payment_status as PaymentStatus);
                 const isPaymentInProgress = isPaymentOngoing(property.payment_status as PaymentStatus);
                 const isRentalActiveStatus = isRentalActive(property.unit_status as UnitStatus);

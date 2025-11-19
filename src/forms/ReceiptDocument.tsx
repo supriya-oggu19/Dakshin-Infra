@@ -272,7 +272,7 @@ const formatCurrency = (amount: number): string => {
   }
   
   // Use ₹ symbol (will appear as ¹ if font doesn't support it)
-  return `₹${formattedInt}.${decPart}`;
+  return `Rs ${formattedInt}.${decPart}`;
 };
 
 const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data, branch = 'KAPIL HOMES-CRF-CO', printedOn }) => {
