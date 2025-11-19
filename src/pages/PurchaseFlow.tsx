@@ -348,11 +348,10 @@ const PurchaseFlow = () => {
         const params: SchemeListRequest = {
           project_id: id,
           page: 1,
-          limit: 10,
+          limit: 100,
         };
 
         const schemeResponse = await purchaseApi.getInvestmentSchemes(params);
-        console.log("API response:", schemeResponse);
 
         if (schemeResponse.schemes && schemeResponse.schemes.length > 0) {
           setSchemes(schemeResponse.schemes);
