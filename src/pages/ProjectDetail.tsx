@@ -110,9 +110,6 @@ const ProjectDetail = () => {
       const projectData = data?.data;
       if (!projectData) throw new Error("No project details found");
 
-      console.log("Project Data:", projectData); // Debug log
-      console.log("Gallery Images:", projectData.gallery_images); // Debug log
-
       // Format quick info items
       const quickInfoItems = [];
       if (projectData.quick_info?.possession_date) {

@@ -8,11 +8,18 @@ import {
 } from "./models/projectModels";
 
 export const projectApi = {
-  // GET operations using getAxiosClient
-  list: (params?: ListProjectsRequest): Promise<AxiosResponse<ListProjectResponse>> =>
-    getAxiosClient.get(ENDPOINTS.PROJECTS.LIST, { params }),
+  list: (params?: ListProjectsRequest) =>
+    getAxiosClient.get(ENDPOINTS.PROJECTS.LIST, {
+      params,
+      cache: {
+        ttl: 1000 * 60 * 10, // 10 minutes cache
+      },
+    }),
 
-  getById: (id: string): Promise<AxiosResponse<ProjectResponse>> =>
-    getAxiosClient.get(ENDPOINTS.PROJECTS.GET_BY_ID(id)),
-
+  getById: (id: string) =>
+    getAxiosClient.get(ENDPOINTS.PROJECTS.GET_BY_ID(id), {
+      cache: {
+        ttl: 1000 * 60 * 10, // 10 minutes cache
+      },
+    }),
 };
