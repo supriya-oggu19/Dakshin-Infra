@@ -1,4 +1,5 @@
 import axios from "axios";
+import { setupCache } from "axios-cache-interceptor";
 
 const createAxiosClient = (baseURL) => {
   const client = axios.create({
@@ -23,8 +24,34 @@ const createAxiosClient = (baseURL) => {
   return client;
 };
 
-// export const mainAxiosClient = createAxiosClient("https://backend-api.ramyaconstructions.com/api");
-// export const getAxiosClient = createAxiosClient("https://frontend-api.ramyaconstructions.com/api");
+// MAIN (write) client
+export const mainAxiosClient = createAxiosClient("http://localhost:8000/api");
+// CACHED (read) client
+export const getAxiosClient = setupCache(
+  createAxiosClient("http://localhost:8001/api"),
+  {
+    ttl: 0,
+    cacheTakeover: false,
+    interpretHeader: false,
+  }
+);
 
-export const mainAxiosClient=createAxiosClient("http://localhost:8000/api");
-export const getAxiosClient=createAxiosClient("http://localhost:8001/api")
+getAxiosClient.interceptors.response.use((response) => {
+  if (response.cached) {
+    console.log("🔥 CACHE HIT:", response.config.url);
+  } else {
+    console.log("🌐 NETWORK REQUEST:", response.config.url);
+  }
+  return response;
+});
+
+
+// export const mainAxiosClient = createAxiosClient("https://backend-api.ramyaconstructions.com/api");
+// export const getAxiosClient = setupCache(
+//   createAxiosClient("https://frontend-api.ramyaconstructions.com/api"),
+//   {
+//     ttl: 0,
+//     cacheTakeover: false,
+//     interpretHeader: false,
+//   }
+// );
