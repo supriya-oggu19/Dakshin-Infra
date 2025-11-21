@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2,
@@ -14,47 +13,15 @@ import {
   Download,
   Eye,
   Loader2,
-  CreditCard,
-  Award,
-  AlertTriangle,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { portfolioApi } from "../api/portfolio-api";
-import { paymentApi } from "../api/paymentApi";
 import {
   PortfolioItem,
   InvestmentSummaryResponse,
 } from "../api/models/portfolio.model";
-import PaymentModal from "@/components/PaymentModal";
 import { Link } from "react-router-dom";
 import { clearPurchaseAndBillingSession } from "@/utils/clearPurchaseBilling";
-
-// Payment Data Interfaces
-interface Payment {
-  transaction_type: string;
-  order_id: string;
-  amount: number;
-  payment_date: string;
-  due_date: string | null;
-  payment_method: string;
-  payment_status: string;
-  installment_number: number;
-  penalty_amount: number;
-  rebate_amount: number;
-  receipt_id: string;
-}
-
-interface PaymentData {
-  unit_number: string;
-  total_payments: number;
-  payments: Payment[];
-  next_installment?: {
-    installment_number: number;
-    due_date: string;
-    amount: number;
-    status: string;
-  };
-}
 
 // Enum types
 type UnitStatus = 'payment_ongoing' | 'active' | 'rental_active' | 'none';
@@ -66,20 +33,7 @@ const MyUnits = () => {
     useState<InvestmentSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedUnit, setSelectedUnit] = useState<PortfolioItem | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [customerInfo, setCustomerInfo] = useState<any>(null);
-  const [loadingCustomerInfo, setLoadingCustomerInfo] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Payment data state for each unit
-  const [paymentDataMap, setPaymentDataMap] = useState<
-    Record<string, PaymentData>
-  >({});
-  const [loadingPayments, setLoadingPayments] = useState<
-    Record<string, boolean>
-  >({});
-  const [activeTabs, setActiveTabs] = useState<Record<string, string>>({});
   const projectId = sessionStorage.getItem('currentProjectId');
 
   const handleSearch = (query: string) => {
@@ -112,78 +66,11 @@ const MyUnits = () => {
       const portfolio = portfolioResponse.data.portfolio || [];
       setPortfolioData(portfolio);
       setInvestmentSummary(summaryResponse.data);
-
-      // Initialize active tabs for each unit
-      const initialTabs: Record<string, string> = {};
-      portfolio.forEach((unit) => {
-        initialTabs[unit.unit_number] = "overview";
-      });
-      setActiveTabs(initialTabs);
     } catch (err: any) {
       console.error("Error fetching user data:", err);
       setError(err.response?.data?.message || "Failed to fetch data");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchPaymentData = async (unitNumber: string) => {
-    try {
-      setLoadingPayments((prev) => ({ ...prev, [unitNumber]: true }));
-      const response = await paymentApi.getPaymentList({ unit_number: unitNumber });
-      const paymentData = response.data;
-      setPaymentDataMap((prev) => ({
-        ...prev,
-        [unitNumber]: paymentData,
-      }));
-    } catch (err: any) {
-      console.error("Error fetching payment data:", err);
-      setPaymentDataMap((prev) => ({
-        ...prev,
-        [unitNumber]: {
-          unit_number: unitNumber,
-          total_payments: 0,
-          payments: [],
-        },
-      }));
-    } finally {
-      setLoadingPayments((prev) => ({ ...prev, [unitNumber]: false }));
-    }
-  };
-
-  const handleTabChange = (unitNumber: string, value: string) => {
-    setActiveTabs((prev) => ({
-      ...prev,
-      [unitNumber]: value,
-    }));
-
-    // Fetch payment data when Payments tab is selected
-    if (value === "payments" && !paymentDataMap[unitNumber]) {
-      fetchPaymentData(unitNumber);
-    }
-  };
-
-  const handleMakePayment = async (unit: PortfolioItem) => {
-    setSelectedUnit(unit);
-    setLoadingCustomerInfo(true);
-
-    try {
-      const response = await paymentApi.getCustomerInfo(unit.unit_number);
-      const customerData = response.data;
-
-      setCustomerInfo(customerData);
-    } catch (err) {
-      console.error("Error fetching customer info:", err);
-
-      // fallback defaults
-      setCustomerInfo({
-        customer_name: "",
-        customer_email: "",
-        customer_phone: "",
-      });
-    } finally {
-      setLoadingCustomerInfo(false);
-      setShowPaymentModal(true);
     }
   };
 
@@ -263,293 +150,6 @@ const MyUnits = () => {
       return "Active";
     }
     return "Unknown";
-  };
-
-  // Calculate payment progress from payment data
-  const calculatePaymentProgress = (
-    unit: PortfolioItem,
-    paymentData: PaymentData
-  ) => {
-    if (!paymentData || !unit.total_investment) return 0;
-
-    const totalPaid =
-      paymentData.payments
-        ?.filter((payment) => payment.payment_status === "completed")
-        ?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-
-    return (totalPaid / unit.total_investment) * 100;
-  };
-
-  // Calculate totals from payment data
-  const calculateTotals = (paymentData: PaymentData) => {
-    if (!paymentData)
-      return { totalRebates: 0, totalPenalties: 0, totalPaid: 0 };
-
-    const totalRebates =
-      paymentData.payments?.reduce(
-        (sum, payment) => sum + (payment.rebate_amount || 0),
-        0
-      ) || 0;
-
-    const totalPenalties =
-      paymentData.payments?.reduce(
-        (sum, payment) => sum + (payment.penalty_amount || 0),
-        0
-      ) || 0;
-
-    const totalPaid =
-      paymentData.payments
-        ?.filter((payment) => payment.payment_status === "completed")
-        ?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-
-    return { totalRebates, totalPenalties, totalPaid };
-  };
-
-  const getTransactionTypeText = (type: string) => {
-    switch (type) {
-      case "advance":
-        return "Advance Payment";
-      case "installment":
-        return "Installment";
-      case "penalty":
-        return "Penalty";
-      case "rebate":
-        return "Rebate";
-      case "balance_payment":
-        return "Balance Payment";
-      default:
-        return type;
-    }
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500";
-      case "failed":
-        return "bg-red-500";
-      case "pending":
-        return "bg-yellow-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  // Payment Progress Component for the Payments tab
-  const PaymentProgressSection = ({ unit }: { unit: PortfolioItem }) => {
-    const paymentData = paymentDataMap[unit.unit_number];
-    const isLoading = loadingPayments[unit.unit_number];
-    const isPaymentCompleted = isPaymentFullyPaid(unit.payment_status as PaymentStatus);
-
-    if (isLoading) {
-      return (
-        <div className="flex justify-center items-center h-32">
-          <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
-          <span className="text-sm text-muted-foreground">
-            Loading payment data...
-          </span>
-        </div>
-      );
-    }
-
-    if (isPaymentCompleted) {
-      return (
-        <div className="space-y-4">
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <p className="text-green-800 font-medium mb-2 text-sm sm:text-base">
-              ✓ Payment Completed
-            </p>
-            <p className="text-green-700 text-xs sm:text-sm">
-              All payments have been successfully completed for this unit.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            <div className="space-y-1">
-              <p className="text-xs sm:text-sm text-gray-600">Total Paid</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">
-                {formatCurrency(unit.user_paid)}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs sm:text-sm text-gray-600">Advance Paid</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">
-                {formatCurrency(unit.scheme.booking_advance)}
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (!paymentData) {
-      return (
-        <div className="text-center text-muted-foreground py-8">
-          <p>No payment data available</p>
-        </div>
-      );
-    }
-
-    const { totalRebates, totalPenalties, totalPaid } =
-      calculateTotals(paymentData);
-    const progress = calculatePaymentProgress(unit, paymentData);
-
-    return (
-      <div className="space-y-6">
-        {/* Progress Bar */}
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs sm:text-sm font-medium text-foreground">
-              Overall Progress
-            </span>
-            <span className="text-xs sm:text-sm text-muted-foreground">
-              {paymentData.total_payments} payments
-            </span>
-          </div>
-          <Progress value={progress} className="h-3 sm:h-4 mb-4" />
-          <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
-            <span>{formatCurrency(totalPaid)} paid</span>
-            <span>{formatCurrency(unit.total_investment)} total</span>
-          </div>
-        </div>
-
-        {/* Next Payment */}
-        {paymentData.next_installment && (
-          <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="flex-1">
-                <p className="font-medium text-amber-800 mb-1 text-sm sm:text-base">
-                  Next Payment Due
-                </p>
-                <p className="text-xs sm:text-sm text-amber-700">
-                  {formatDate(paymentData.next_installment.due_date)}
-                </p>
-                <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
-                  {formatCurrency(paymentData.next_installment.amount)}
-                </p>
-                <p className="text-xs sm:text-sm text-amber-700 mt-1">
-                  Installment #{paymentData.next_installment.installment_number}
-                </p>
-              </div>
-              <Button
-                size="sm"
-                className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600"
-                onClick={() => handleMakePayment(unit)}
-                disabled={isPaymentFullyPaid(unit.payment_status as PaymentStatus)}
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Pay Now
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Rebate & Penalties */}
-        {(totalRebates > 0 || totalPenalties > 0) && (
-          <div className="grid grid-cols-2 gap-4">
-            {totalRebates > 0 && (
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs sm:text-sm text-green-600 mb-1">
-                      Total Rebates
-                    </p>
-                    <p className="text-lg sm:text-xl font-bold text-green-800">
-                      +{formatCurrency(totalRebates)}
-                    </p>
-                  </div>
-                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
-                </div>
-              </div>
-            )}
-            
-            {totalPenalties > 0 && (
-              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs sm:text-sm text-red-600 mb-1">
-                      Total Penalties
-                    </p>
-                    <p className="text-lg sm:text-xl font-bold text-red-800">
-                      {formatCurrency(totalPenalties)}
-                    </p>
-                  </div>
-                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* All Payments Section with Scroll */}
-        {paymentData.payments && paymentData.payments.length > 0 && (
-          <div className="border-t pt-4">
-            <div className="flex justify-between items-center mb-3">
-              <p className="text-sm font-medium text-foreground">
-                All Payments ({paymentData.payments.length})
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Scroll to view more
-              </p>
-            </div>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {paymentData.payments
-                .slice()
-                .reverse()
-                .map((payment, index) => (
-                  <div
-                    key={`${payment.order_id}-${index}`}
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg text-xs border"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div
-                        className={`w-3 h-3 rounded-full flex-shrink-0 ${getPaymentStatusColor(payment.payment_status)}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <span className="font-medium block truncate">
-                          {getTransactionTypeText(payment.transaction_type)}
-                          {payment.installment_number > 0 &&
-                            ` #${payment.installment_number}`}
-                        </span>
-                        <span className="text-muted-foreground block mt-1">
-                          {formatDate(payment.payment_date)}
-                          {payment.payment_method && ` • ${payment.payment_method.replace('_', ' ')}`}
-                        </span>
-                        {payment.receipt_id && (
-                          <span className="text-xs text-blue-600 block mt-1">
-                            Receipt: {payment.receipt_id}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right ml-4 flex-shrink-0">
-                      <p className="font-semibold text-sm">
-                        {formatCurrency(payment.amount)}
-                      </p>
-                      {payment.rebate_amount > 0 && (
-                        <p className="text-green-600 text-xs">
-                          +{formatCurrency(payment.rebate_amount)} rebate
-                        </p>
-                      )}
-                      {payment.penalty_amount > 0 && (
-                        <p className="text-red-600 text-xs">
-                          +{formatCurrency(payment.penalty_amount)} penalty
-                        </p>
-                      )}
-                      <p className={`text-xs mt-1 ${
-                        payment.payment_status === 'completed' ? 'text-green-600' :
-                        payment.payment_status === 'failed' ? 'text-red-600' :
-                        'text-yellow-600'
-                      }`}>
-                        {payment.payment_status}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
   };
 
   if (loading) {
@@ -717,8 +317,6 @@ const MyUnits = () => {
               </Card>
             ) : (
               filteredPortfolioData.map((property) => {
-                const isPaymentCompleted = isPaymentFullyPaid(property.payment_status as PaymentStatus);
-                const isPaymentInProgress = isPaymentOngoing(property.payment_status as PaymentStatus);
                 const isRentalActiveStatus = isRentalActive(property.unit_status as UnitStatus);
 
                 return (
@@ -770,25 +368,13 @@ const MyUnits = () => {
                     </CardHeader>
 
                     <CardContent className="p-4 sm:p-6">
-                      <Tabs
-                        value={activeTabs[property.unit_number] || "overview"}
-                        onValueChange={(value) =>
-                          handleTabChange(property.unit_number, value)
-                        }
-                        className="w-full"
-                      >
-                        <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-auto">
+                      <Tabs defaultValue="overview" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-auto">
                           <TabsTrigger
                             value="overview"
                             className="text-xs sm:text-sm py-2"
                           >
                             Overview
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="payments"
-                            className="text-xs sm:text-sm py-2"
-                          >
-                            Payments
                           </TabsTrigger>
                           <TabsTrigger
                             value="rental"
@@ -833,10 +419,6 @@ const MyUnits = () => {
                               </p>
                             </div>
                           </div>
-                        </TabsContent>
-
-                        <TabsContent value="payments">
-                          <PaymentProgressSection unit={property} />
                         </TabsContent>
 
                         <TabsContent value="rental">
@@ -910,7 +492,7 @@ const MyUnits = () => {
                         >
                           <Link to={`/sip?unit=${property.unit_number}`}>
                             <Eye className="w-4 h-4 mr-2" />
-                            View Details
+                            View Payment Details
                           </Link>
                         </Button>
                         <Button
@@ -924,21 +506,6 @@ const MyUnits = () => {
                             View Agreement
                           </Link>
                         </Button>
-                        {!isPaymentCompleted && (
-                          <Button
-                            size="sm"
-                            className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600"
-                            onClick={() => handleMakePayment(property)}
-                            disabled={loadingCustomerInfo || isPaymentFullyPaid(property.payment_status as PaymentStatus)}
-                          >
-                            {loadingCustomerInfo ? (
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                              <CreditCard className="w-4 h-4 mr-2" />
-                            )}
-                            Make Payment
-                          </Button>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -948,19 +515,6 @@ const MyUnits = () => {
           </div>
         </div>
       </div>
-
-      {/* Payment Modal */}
-      {showPaymentModal && selectedUnit && (
-        <PaymentModal
-          unit={selectedUnit}
-          customerInfo={customerInfo}
-          onClose={() => {
-            setShowPaymentModal(false);
-            setSelectedUnit(null);
-            setCustomerInfo(null);
-          }}
-        />
-      )}
     </div>
   );
 };

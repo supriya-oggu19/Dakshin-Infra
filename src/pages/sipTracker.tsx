@@ -30,13 +30,11 @@ import {
 import Navigation from "@/components/Navigation";
 import { paymentApi } from "../api/paymentApi";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
 import {
   PortfolioItem,
 } from "../api/models/portfolio.model";
 import { portfolioApi } from "../api/portfolio-api";
 import PaymentModal from "@/components/PaymentModal";
-import { PDFDownloadLink } from '@react-pdf/renderer';
 import { pdf } from '@react-pdf/renderer';
 import ReceiptDocument from '../forms/ReceiptDocument';
 
@@ -66,6 +64,7 @@ interface PaymentData {
     status: string;
   };
 }
+
 // Enum types
 type PaymentStatus = 'advance_paid' | 'partially_paid' | 'fully_paid' | 'none';
 type UnitStatus = 'payment_ongoing' | 'active' | 'rental_active' | 'none';
@@ -130,7 +129,6 @@ const SipTracker = () => {
   };
 
   const fetchPaymentData = async (unitNumber: string) => {
-
     try {
       setLoading(true);
       const response = await paymentApi.getPaymentList({ unit_number: unitNumber });
@@ -141,6 +139,38 @@ const SipTracker = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calculate single payment scheme data
+  const getSinglePaymentData = () => {
+    if (!currentUnit || !paymentData) return null;
+
+    const totalPaid = calculateTotals().totalPaid;
+    const remainingBalance = currentUnit.total_investment - totalPaid;
+    
+    if (remainingBalance <= 0) return null;
+
+    // Find first payment date to calculate due date (90 days from first payment)
+    const firstPayment = paymentData.payments
+      ?.filter(p => p.payment_status === "completed")
+      ?.sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())[0];
+
+    if (!firstPayment) return null;
+
+    const firstPaymentDate = new Date(firstPayment.payment_date);
+    const dueDate = new Date(firstPaymentDate);
+    dueDate.setDate(dueDate.getDate() + 90);
+
+    return {
+      remainingBalance,
+      dueDate: dueDate.toISOString().split('T')[0],
+      firstPaymentDate: firstPayment.payment_date
+    };
+  };
+
+  // Check if single payment is overdue
+  const isSinglePaymentOverdue = (dueDate: string) => {
+    return new Date() > new Date(dueDate);
   };
 
   const handleExport = () => {
@@ -416,9 +446,16 @@ const SipTracker = () => {
   const isPaymentCompleted = currentUnit && 
     isPaymentFullyPaid(currentUnit.payment_status as PaymentStatus);
 
-  // Check if current unit is installment scheme
+  // Check scheme type
   const isInstallmentScheme =
     currentUnit?.scheme?.scheme_type === "installment";
+  const isSinglePaymentScheme =
+    currentUnit?.scheme?.scheme_type === "single_payment";
+
+  // Get single payment data
+  const singlePaymentData = getSinglePaymentData();
+  const isSinglePaymentOverdueFlag = singlePaymentData ? 
+    isSinglePaymentOverdue(singlePaymentData.dueDate) : false;
 
   return (
     <div className="min-h-screen bg-background">
@@ -596,53 +633,96 @@ const SipTracker = () => {
                       </div>
                     </div>
 
-                    {/* Next Payment - Only show for installment schemes */}
-                    {isInstallmentScheme &&
-                      paymentData?.next_installment &&
-                      !isPaymentCompleted && (
-                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                            <div className="flex-1">
-                              <p className="font-medium text-amber-800 mb-1 text-sm sm:text-base">
-                                Next Payment Due
-                              </p>
-                              <p className="text-xs sm:text-sm text-amber-700">
-                                {formatDate(
-                                  paymentData.next_installment.due_date
-                                )}
-                              </p>
-                              <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
-                                {formatCurrency(
-                                  paymentData.next_installment.amount
-                                )}
-                              </p>
-                              <p className="text-xs sm:text-sm text-amber-700 mt-1">
-                                Installment #
-                                {
-                                  paymentData.next_installment
-                                    .installment_number
-                                }
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="luxury"
-                              onClick={() =>
-                                currentUnit && handlePayNow(currentUnit)
-                              }
-                              disabled={loadingCustomerInfo}
-                              className="w-full sm:w-auto"
-                            >
-                              {loadingCustomerInfo ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                <CreditCard className="w-4 h-4 mr-2" />
-                              )}
-                              Pay Now
-                            </Button>
+                    {/* Next Payment - For Installment Schemes */}
+                    {isInstallmentScheme && paymentData?.next_installment && !isPaymentCompleted && (
+                      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="font-medium text-amber-800 mb-1 text-sm sm:text-base">
+                              Next Payment Due
+                            </p>
+                            <p className="text-xs sm:text-sm text-amber-700">
+                              {formatDate(paymentData.next_installment.due_date)}
+                            </p>
+                            <p className="text-lg sm:text-xl font-bold text-amber-900 mt-2">
+                              {formatCurrency(paymentData.next_installment.amount)}
+                            </p>
+                            <p className="text-xs sm:text-sm text-amber-700 mt-1">
+                              Installment #{paymentData.next_installment.installment_number}
+                            </p>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="luxury"
+                            onClick={() => currentUnit && handlePayNow(currentUnit)}
+                            disabled={loadingCustomerInfo}
+                            className="w-full sm:w-auto"
+                          >
+                            {loadingCustomerInfo ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 mr-2" />
+                            )}
+                            Pay Now
+                          </Button>
                         </div>
-                      )}
+                      </div>
+                    )}
+
+                    {/* Balance Payment - For Single Payment Schemes */}
+                    {isSinglePaymentScheme && singlePaymentData && !isPaymentCompleted && (
+                      <div className={`p-4 rounded-lg border ${
+                        isSinglePaymentOverdueFlag 
+                          ? "bg-red-50 border-red-200" 
+                          : "bg-amber-50 border-amber-200"
+                      }`}>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="flex-1">
+                            <p className={`font-medium mb-1 text-sm sm:text-base ${
+                              isSinglePaymentOverdueFlag ? "text-red-800" : "text-amber-800"
+                            }`}>
+                              {isSinglePaymentOverdueFlag ? "Balance Payment Overdue" : "Balance Payment Due"}
+                            </p>
+                            <p className={`text-xs sm:text-sm ${
+                              isSinglePaymentOverdueFlag ? "text-red-700" : "text-amber-700"
+                            }`}>
+                              Due by {formatDate(singlePaymentData.dueDate)}
+                            </p>
+                            <p className={`text-lg sm:text-xl font-bold mt-2 ${
+                              isSinglePaymentOverdueFlag ? "text-red-900" : "text-amber-900"
+                            }`}>
+                              {formatCurrency(singlePaymentData.remainingBalance)}
+                            </p>
+                            <p className={`text-xs sm:text-sm mt-1 ${
+                              isSinglePaymentOverdueFlag ? "text-red-700" : "text-amber-700"
+                            }`}>
+                              Remaining balance (90 days from first payment)
+                            </p>
+                            {isSinglePaymentOverdueFlag && (
+                              <p className="text-xs text-red-600 mt-2 font-medium">
+                                ⚠️ Please pay immediately to avoid penalties
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="luxury"
+                            onClick={() => currentUnit && handlePayNow(currentUnit)}
+                            disabled={loadingCustomerInfo}
+                            className={`w-full sm:w-auto ${
+                              isSinglePaymentOverdueFlag ? "bg-red-600 hover:bg-red-700" : ""
+                            }`}
+                          >
+                            {loadingCustomerInfo ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 mr-2" />
+                            )}
+                            Pay Balance
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Payment Completed Message */}
                     {isPaymentCompleted && (
@@ -740,6 +820,19 @@ const SipTracker = () => {
                         </p>
                       </div>
                     </div>
+                    {isSinglePaymentScheme && (
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-foreground text-sm">
+                            90-Day Balance Payment
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Complete payment within 90 days of first payment
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -877,12 +970,6 @@ const SipTracker = () => {
                                             Latest
                                           </Badge>
                                         )}
-                                        {/* {isLastInstallment && (
-                                          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
-                                            <Star className="w-3 h-3 mr-1" />
-                                            Final
-                                          </Badge>
-                                        )} */}
                                       </div>
                                     </div>
 
@@ -905,24 +992,6 @@ const SipTracker = () => {
 
                                     {/* Additional Payment Details */}
                                     <div className="flex flex-wrap gap-2">
-                                      {/* {payment.rebate_amount && payment.rebate_amount > 0 && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-green-600 border-green-200 bg-green-50 text-xs"
-                                        >
-                                          <TrendingUp className="w-3 h-3 mr-1" />
-                                          +{formatCurrency(payment.rebate_amount)} rebate
-                                        </Badge>
-                                      )}
-                                      {payment.penalty_amount && payment.penalty_amount > 0 && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-red-600 border-red-200 bg-red-50 text-xs"
-                                        >
-                                          <AlertTriangle className="w-3 h-3 mr-1" />
-                                          -{formatCurrency(payment.penalty_amount)} penalty
-                                        </Badge>
-                                      )} */}
                                       {payment.due_date && (
                                         <Badge
                                           variant="outline"
