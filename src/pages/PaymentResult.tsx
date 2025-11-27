@@ -541,7 +541,7 @@ export default function PaymentResult(): JSX.Element {
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="font-medium text-gray-700">Customer Support</p>
-              <p className="text-gray-600">support@ramyaconstructions.com</p>
+              <p className="text-gray-600">support@dakshininfrastructures.com</p>
               <p className="text-gray-600">+91-XXX-XXX-XXXX</p>
             </div>
             <div>
@@ -558,7 +558,7 @@ export default function PaymentResult(): JSX.Element {
         <div className="text-center mb-8 border-b-2 border-gray-300 pb-2 print-section">
           <div className="flex items-center justify-center mb-2">
             <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 font-playfair">RamyaConstructions</h1>
+              <h1 className="text-3xl font-bold text-gray-900 font-playfair">DakshinInfraStructues</h1>
               <p className="text-lg text-gray-600 mt-2">Premium Real Estate Investments</p>
               <p className="text-md text-gray-500 mt-1">PAYMENT RECEIPT</p>
             </div>
@@ -635,13 +635,13 @@ export default function PaymentResult(): JSX.Element {
         <div className="mt-12 pt-6 border-t-2 border-gray-300 print-section">
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">
-              Thank you for choosing RamyaConstructions
+              Thank you for choosing Dakshin Infra Strctures
             </p>
             <p className="text-xs text-gray-500">
               This is a computer-generated receipt and does not require a physical signature.
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              For any queries, contact: support@ramyaconstructions.com | +91-XXX-XXX-XXXX
+              For any queries, contact: support@dakshininfrastructures.com | +91-XXX-XXX-XXXX
             </p>
             <p className="text-xs text-gray-400 mt-4">
               Generated on: {new Date().toLocaleString('en-IN')}

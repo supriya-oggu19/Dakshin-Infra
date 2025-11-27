@@ -333,7 +333,7 @@ const ProjectDetail = () => {
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex items-center justify-center pt-20 min-h-screen">
-          <Loader className="w-9 h-9 animate-spin text-yellow-500" />
+          <Loader className="w-9 h-9 animate-spin text-blue-500" />
         </div>
       </div>
     );
@@ -426,7 +426,7 @@ const ProjectDetail = () => {
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                       {project.status}
                     </Badge>
                     {project.website_url && (
@@ -460,7 +460,7 @@ const ProjectDetail = () => {
                 </div>
 
                 <div className="text-right">
-                  <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-yellow-400 glow-text">
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-400 glow-text">
                     {project.price}
                   </div>
                   <div className="text-white/60 text-sm">
@@ -480,7 +480,7 @@ const ProjectDetail = () => {
                 key={i}
                 onClick={() => setCurrentImageIndex(i)}
                 className={`w-2 h-2 rounded-full transition-colors ${i === currentImageIndex
-                  ? "bg-yellow-400"
+                  ? "bg-blue-400"
                   : "bg-white/40"
                   }`}
               />
@@ -496,28 +496,28 @@ const ProjectDetail = () => {
             {/* LEFT – TABS */}
             <div className="lg:col-span-2 space-y-8">
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-yellow-500/10 backdrop-blur-sm border border-yellow-500/20">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-blue-500/10 backdrop-blur-sm border border-blue-500/20">
                   <TabsTrigger
                     value="overview"
-                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Overview
                   </TabsTrigger>
                   <TabsTrigger
                     value="amenities"
-                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Features
                   </TabsTrigger>
                   <TabsTrigger
                     value="investment"
-                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Investment
                   </TabsTrigger>
                   <TabsTrigger
                     value="gallery"
-                    className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black data-[state=active]:font-semibold"
+                    className="data-[state=active]:bg-blue-500 data-[state=active]:text-black data-[state=active]:font-semibold"
                   >
                     Gallery
                   </TabsTrigger>
@@ -528,7 +528,7 @@ const ProjectDetail = () => {
                   {/* Project Overview */}
                   {/* Project Overview */}
                   <div className="card-luxury p-6 sm:p-8 rounded-xl">
-                    <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gradient-yellow">
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gradient-blue">
                       Project Overview
                     </h2>
                     {project.long_description ? (
@@ -545,8 +545,8 @@ const ProjectDetail = () => {
                   {/* KEY HIGHLIGHTS */}
                   {project.highlights.length > 0 && (
                     <div className="card-luxury p-6 sm:p-8 rounded-xl">
-                      <h3 className="text-xl sm:text-2xl font-bold mb-5 flex items-center text-gradient-yellow">
-                        <Star className="w-6 h-6 mr-2 text-yellow-400" />
+                      <h3 className="text-xl sm:text-2xl font-bold mb-5 flex items-center text-gradient-blue">
+                        <Star className="w-6 h-6 mr-2 text-blue-400" />
                         Project Highlights
                       </h3>
                       <ul className="space-y-3">
@@ -555,7 +555,7 @@ const ProjectDetail = () => {
                             key={i}
                             className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border/50 transition-transform hover:scale-[1.02] hover:bg-background/80"
                           >
-                            <Star className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                            <Star className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                             <span className="text-foreground leading-snug">
                               {h}
                             </span>
@@ -568,8 +568,8 @@ const ProjectDetail = () => {
                   {/* INVESTMENT HIGHLIGHTS */}
                   {project.investmentHighlights.length > 0 && (
                     <div className="card-luxury p-6 sm:p-8 rounded-xl">
-                      <h3 className="text-xl sm:text-2xl font-bold mb-6 flex items-center text-gradient-yellow">
-                        <TrendingUp className="w-6 h-6 mr-2 text-yellow-400" />
+                      <h3 className="text-xl sm:text-2xl font-bold mb-6 flex items-center text-gradient-blue">
+                        <TrendingUp className="w-6 h-6 mr-2 text-blue-400" />
                         Investment Highlights
                       </h3>
 
@@ -580,7 +580,7 @@ const ProjectDetail = () => {
                               key={idx}
                               className="text-center p-5 bg-gradient-to-br from-background to-background/80 rounded-xl border border-border/50 shadow-sm transition-transform hover:scale-105"
                             >
-                              <div className="text-2xl sm:text-3xl font-bold text-yellow-400 glow-text animate-in fade-in duration-500">
+                              <div className="text-2xl sm:text-3xl font-bold text-blue-400 glow-text animate-in fade-in duration-500">
                                 {item.value}
                               </div>
                               <div className="mt-1 font-medium text-foreground">
@@ -604,7 +604,7 @@ const ProjectDetail = () => {
                   <div className="space-y-8">
                     {project.amenities.length > 0 ? (
                       <div className="card-luxury p-6 sm:p-8 rounded-xl">
-                        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-yellow">
+                        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-blue">
                           Features & Aminities
                         </h2>
 
@@ -614,10 +614,10 @@ const ProjectDetail = () => {
                             return (
                               <div
                                 key={index}
-                                className="flex items-start gap-4 p-4 bg-background/50 rounded-lg border border-border/50 hover:border-yellow-500/30 transition-all duration-300"
+                                className="flex items-start gap-4 p-4 bg-background/50 rounded-lg border border-border/50 hover:border-blue-500/30 transition-all duration-300"
                               >
-                                <div className="w-11 h-11 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <Icon className="w-6 h-6 text-yellow-50" />
+                                <div className="w-11 h-11 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <Icon className="w-6 h-6 text-blue-50" />
                                 </div>
                                 <div>
                                   <h4 className="font-semibold text-foreground mb-1">
@@ -657,7 +657,7 @@ const ProjectDetail = () => {
                 {/* ---- GALLERY ---- */}
                 <TabsContent value="gallery" className="mt-6">
                   <div className="card-luxury p-6 sm:p-8 rounded-xl">
-                    <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-yellow">
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gradient-blue">
                       Project Gallery
                     </h2>
                     {project.gallery.length ? (
@@ -711,7 +711,7 @@ const ProjectDetail = () => {
                     onClick={handleBuyNow}
                     variant="luxury"
                     size="lg"
-                    className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90"
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-500/90 hover:to-blue-600/90"
                   >
                     <ShoppingCart className="w-5 h-5 mr-2" />
                     {isAuthenticated ? "Buy Now" : "Login to Buy"}
@@ -746,11 +746,11 @@ const ProjectDetail = () => {
                   </h4>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <div className="flex items-center">
-                      <Phone className="w-4 h-4 mr-2 text-yellow-500" />
+                      <Phone className="w-4 h-4 mr-2 text-blue-500" />
                       Available on website
                     </div>
                     <div className="flex items-center">
-                      <Mail className="w-4 h-4 mr-2 text-yellow-500" />
+                      <Mail className="w-4 h-4 mr-2 text-blue-500" />
                       Contact form available
                     </div>
                   </div>
@@ -769,7 +769,7 @@ const ProjectDetail = () => {
                     return (
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-yellow-500" />
+                          <Icon className="w-4 h-4 text-blue-500" />
                           <dt className="text-muted-foreground">{item.label}</dt>
                         </div>
                         <dd className="font-medium text-right">{item.value}</dd>
@@ -804,7 +804,7 @@ const ProjectDetail = () => {
       <Dialog open={isBrochureOpen} onOpenChange={setIsBrochureOpen}>
         <DialogContent className="max-w-4xl bg-background/95 backdrop-blur-xl border-border">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-gradient-yellow">
+            <DialogTitle className="text-xl font-semibold text-gradient-blue">
               Project Brochures
             </DialogTitle>
           </DialogHeader>
@@ -857,7 +857,7 @@ const ProjectDetail = () => {
                         className="flex items-center justify-between p-3 border rounded-lg bg-card/50"
                       >
                         <div className="flex items-center gap-2">
-                          <FileText className="w-5 h-5 text-yellow-500" />
+                          <FileText className="w-5 h-5 text-blue-500" />
                           <span className="text-sm truncate max-w-[250px]">
                             {fileName}
                           </span>

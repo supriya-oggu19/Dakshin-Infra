@@ -53,7 +53,7 @@ const RefundPolicyPage: React.FC = () => {
 
         {/* Footer Note */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} Ramya Constructions. All Rights Reserved.
+          © {new Date().getFullYear()} Dakshin Infra Structures. All Rights Reserved.
         </div>
       </div>
     </div>

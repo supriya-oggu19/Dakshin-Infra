@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/ramya constructions logo.png";
+import logo from "@/assets/image.png";
 import {
   Menu,
   X,
@@ -54,16 +54,19 @@ const Navigation = () => {
   const isPortfolioActive = portfolioItems.some(item => location.pathname === item.href);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 nav-professional">
-      <div className="container-professional">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-blue-50/95 backdrop-blur-md border-b border-blue-200 shadow-lg">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center h-20 gap-4">
           {/* Logo - Left Side */}
-          <Link to="/" className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+          <Link 
+            to="/" 
+            className="flex items-center flex-shrink-0 transition-transform duration-300 hover:scale-105"
+          >
             <img
               src={logo}
-              alt="Ramya Constructions logo"
-              className="w-32 h-auto md:w-36 lg:w-40 object-contain bg-transparent"
-              style={{ backgroundColor: 'transparent', marginTop: '-4px' }}
+              alt="Dakshin Infra logo"
+              className="h-14 w-auto md:h-16 lg:h-18 object-contain bg-transparent"
+              style={{ backgroundColor: 'transparent' }}
             />
           </Link>
 
@@ -76,12 +79,15 @@ const Navigation = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                    ? "nav-item-active"
-                    : "nav-item-professional"
-                    }`}
+                  className={`flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 transform -translate-y-0.5"
+                      :  "text-gray-800 hover:text-blue-700 hover:bg-blue-100 border border-transparent hover:border-blue-300"
+                  }`}
                 >
-                  <Icon className="w-4 h-4 mr-2" />
+                  <Icon className={`w-4 h-4 mr-2 transition-colors duration-300 ${
+                    isActive ? "text-white" : "text-gray-400"
+                  }`} />
                   {item.name}
                 </Link>
               );
@@ -95,26 +101,30 @@ const Navigation = () => {
                 onMouseLeave={() => setIsPortfolioOpen(false)}
               >
                 <button
-                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isPortfolioActive
-                    ? "nav-item-active"
-                    : "nav-item-professional"
-                    }`}
+                  className={`flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                    isPortfolioActive
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 transform -translate-y-0.5"
+                      : "text-gray-800 hover:text-blue-700 hover:bg-blue-100 border border-transparent hover:border-blue-300"
+                  }`}
                 >
-                  <Briefcase className="w-4 h-4 mr-2" />
+                  <Briefcase className={`w-4 h-4 mr-2 transition-colors duration-300 ${
+                    isPortfolioActive ? "text-white" : "text-gray-400"
+                  }`} />
                   Portfolio
-                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${isPortfolioOpen ? 'rotate-180' : ''
-                    }`} />
+                  <ChevronDown className={`w-4 h-4 ml-1 transition-all duration-300 ${
+                    isPortfolioOpen ? 'rotate-180 text-blue-400' : 'text-gray-500'
+                  }`} />
                 </button>
 
                 {/* Dropdown Menu */}
                 <div
-                  className={`absolute top-full left-0 w-48 bg-white rounded-lg shadow-lg border border-border transition-all duration-200 ${isPortfolioOpen
-                    ? 'opacity-100 visible translate-y-0'
-                    : 'opacity-0 invisible -translate-y-2'
-                    }`}
+                  className={`absolute top-full left-0 w-56 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 transition-all duration-300 ${
+                    isPortfolioOpen
+                      ? 'opacity-100 visible translate-y-0 scale-100'
+                      : 'opacity-0 invisible -translate-y-4 scale-95'
+                  }`}
                   style={{
-                    marginTop: '0.25rem',
-                    transition: 'all 0.2s ease-in-out'
+                    marginTop: '0.5rem',
                   }}
                 >
                   <div className="py-2">
@@ -126,12 +136,15 @@ const Navigation = () => {
                           key={item.name}
                           to={item.href}
                           onClick={() => setIsPortfolioOpen(false)}
-                          className={`flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 ${isActive
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            }`}
+                          className={`flex items-center px-4 py-3 text-sm font-medium transition-all duration-300 mx-2 rounded-lg ${
+                            isActive
+                              ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
+                              : "text-gray-300 hover:text-white hover:bg-gray-800 border border-transparent"
+                          }`}
                         >
-                          <Icon className="w-4 h-4 mr-3" />
+                          <Icon className={`w-4 h-4 mr-3 transition-colors duration-300 ${
+                            isActive ? "text-white" : "text-gray-400"
+                          }`} />
                           {item.name}
                         </Link>
                       );
@@ -146,19 +159,18 @@ const Navigation = () => {
           <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
             {isAuthenticated ? (
               <>
-                <div className="flex items-center px-3 py-2 bg-muted rounded-lg">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-2">
-                    <User className="w-4 h-4 text-primary" />
+<div className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm">                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mr-3 shadow-md">
+                    <User className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-foreground">
-                    <span className="text-primary">{user?.username}</span>
+                  <span className="text-sm font-semibold text-gray">
+                    Welcome, <span className="text-blue-700">{user?.username}</span>
                   </span>
                 </div>
                 <Button
                   onClick={handleLogout}
                   variant="outline"
                   size="sm"
-                  className="border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+                  className="border-blue-600 text-blue-400 hover:text-white hover:border-blue-700 hover:bg-blue-600 font-semibold transition-all duration-300 shadow-sm"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
@@ -166,7 +178,7 @@ const Navigation = () => {
               </>
             ) : (
               <Link to="/login">
-                <Button className="btn-gold">
+                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 border-0 px-6">
                   <LogIn className="w-4 h-4 mr-2" />
                   Login
                 </Button>
@@ -178,12 +190,12 @@ const Navigation = () => {
           <div className="lg:hidden ml-auto">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-3 rounded-xl bg-gray-800 border border-blue-700 text-gray-300 hover:text-white hover:border-blue-500 hover:bg-gray-700 transition-all duration-300 shadow-sm"
             >
               {isMenuOpen ? (
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               ) : (
-                <Menu className="w-6 h-6" />
+                <Menu className="w-5 h-5" />
               )}
             </button>
           </div>
@@ -191,7 +203,7 @@ const Navigation = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="lg:hidden border-t border-border bg-white/95 backdrop-blur-md">
+          <div className="lg:hidden border-t border-gray-800 bg-black/95 backdrop-blur-md animate-slide-in-up">
             <div className="px-4 py-6 space-y-2">
               {publicNavItems.map((item) => {
                 const isActive = location.pathname === item.href;
@@ -201,12 +213,15 @@ const Navigation = () => {
                     key={item.name}
                     to={item.href}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      }`}
+                    className={`flex items-center px-4 py-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                        : "text-gray-300 hover:text-white hover:bg-gray-800 border border-transparent"
+                    }`}
                   >
-                    <Icon className="w-4 h-4 mr-3" />
+                    <Icon className={`w-4 h-4 mr-3 transition-colors duration-300 ${
+                      isActive ? "text-white" : "text-gray-400"
+                    }`} />
                     {item.name}
                   </Link>
                 );
@@ -217,21 +232,23 @@ const Navigation = () => {
                 <div>
                   <button
                     onClick={() => setIsPortfolioOpen(!isPortfolioOpen)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isPortfolioActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      }`}
+                    className={`w-full flex items-center justify-between px-4 py-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      isPortfolioActive
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                        : "text-gray-300 hover:text-white hover:bg-gray-800 border border-transparent"
+                    }`}
                   >
                     <div className="flex items-center">
                       <Briefcase className="w-4 h-4 mr-3" />
                       Portfolio
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isPortfolioOpen ? 'rotate-180' : ''
-                      }`} />
+                    <ChevronDown className={`w-4 h-4 transition-all duration-300 ${
+                      isPortfolioOpen ? 'rotate-180 text-blue-400' : 'text-gray-500'
+                    }`} />
                   </button>
 
                   {isPortfolioOpen && (
-                    <div className="ml-6 mt-2 space-y-1">
+                    <div className="ml-4 mt-2 space-y-1 border-l-2 border-blue-800 pl-4">
                       {portfolioItems.map((item) => {
                         const isActive = location.pathname === item.href;
                         const Icon = item.icon;
@@ -240,12 +257,15 @@ const Navigation = () => {
                             key={item.name}
                             to={item.href}
                             onClick={handlePortfolioItemClick}
-                            className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                              }`}
+                            className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                              isActive
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
+                                : "text-gray-300 hover:text-white hover:bg-gray-800 border border-transparent"
+                            }`}
                           >
-                            <Icon className="w-4 h-4 mr-3" />
+                            <Icon className={`w-4 h-4 mr-3 transition-colors duration-300 ${
+                              isActive ? "text-white" : "text-gray-400"
+                            }`} />
                             {item.name}
                           </Link>
                         );
@@ -256,22 +276,22 @@ const Navigation = () => {
               )}
 
               {/* Mobile Auth */}
-              <div className="border-t border-border pt-4 mt-4">
+              <div className="border-t border-gray-800 pt-4 mt-4">
                 {isAuthenticated ? (
                   <>
-                    <div className="flex items-center px-4 py-3 bg-muted rounded-lg mb-3">
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                        <User className="w-4 h-4 text-primary" />
+                    <div className="flex items-center px-4 py-3 bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl border border-blue-500 mb-3 shadow-sm">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mr-3 shadow-md">
+                        <User className="w-5 h-5 text-white" />
                       </div>
-                      <span className="text-sm font-medium text-foreground">
-                        Welcome, <span className="text-primary">{user?.username}</span>
+                      <span className="text-sm font-semibold text-white">
+                        Welcome, <span className="text-blue-700">{user?.username}</span>
                       </span>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left flex items-center px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 py-4 text-base border-0"
                     >
-                      <LogOut className="w-4 h-4 mr-3" />
+                      <LogOut className="w-5 h-5 mr-2" />
                       Logout
                     </button>
                   </>
@@ -281,8 +301,8 @@ const Navigation = () => {
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center justify-center w-full"
                   >
-                    <Button className="btn-gold w-full">
-                      <LogIn className="w-4 h-4 mr-2" />
+                    <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 w-full py-4 text-base border-0">
+                      <LogIn className="w-5 h-5 mr-2" />
                       Login
                     </Button>
                   </Link>
@@ -292,6 +312,23 @@ const Navigation = () => {
           </div>
         )}
       </div>
+
+      {/* Custom Animation Styles */}
+      <style>{`
+        @keyframes slide-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-in-up {
+          animation: slide-in-up 0.3s ease-out;
+        }
+      `}</style>
     </nav>
   );
 };

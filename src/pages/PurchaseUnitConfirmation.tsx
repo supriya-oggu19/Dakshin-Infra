@@ -7,8 +7,10 @@ import {
   Building,
   Users,
   CheckCircle,
-  ClipboardClock,
+  ClipboardList,
   AlertCircle,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,10 +67,8 @@ const PurchaseUnitConfirmation = ({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Since you're using sandbox, set mode to "sandbox"
-  const CASHFREE_MODE = "sandbox"; // Change to 'production' for live
+  const CASHFREE_MODE = "sandbox";
 
-  // Load billing data from session storage on component mount
   useEffect(() => {
     const loadBillingData = () => {
       const savedBillingInfo = sessionStorage.getItem(`billingInfo_${projectId}`);
@@ -85,8 +85,6 @@ const PurchaseUnitConfirmation = ({
         }
       }
       
-      // Only pre-fill with auth user data if no saved billing data exists
-      // This allows the user to start with their account info but change it if needed
       if (user && (!savedBillingInfo || !JSON.parse(savedBillingInfo).email)) {
         setBillingInfo(prev => ({
           name: prev.name || user.name || "",
@@ -99,7 +97,6 @@ const PurchaseUnitConfirmation = ({
     loadBillingData();
   }, [projectId, user]);
 
-  // Save billing info to session storage when it changes
   useEffect(() => {
     if (billingInfo.name || billingInfo.email || billingInfo.phone) {
       sessionStorage.setItem(`billingInfo_${projectId}`, JSON.stringify(billingInfo));
@@ -185,13 +182,11 @@ const PurchaseUnitConfirmation = ({
   };
 
   const initiateCashfreePayment = (orderData: any) => {
-    // Check if Cashfree script is already loaded
     if (window.Cashfree) {
       initializeAndStartPayment(orderData);
       return;
     }
 
-    // Dynamically load the Cashfree v3 script
     const script = document.createElement("script");
     script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
     script.async = true;
@@ -207,7 +202,6 @@ const PurchaseUnitConfirmation = ({
       });
     };
 
-    // Avoid duplicate scripts
     if (
       !document.querySelector(
         'script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]'
@@ -232,15 +226,13 @@ const PurchaseUnitConfirmation = ({
     }
 
     try {
-      // Initialize Cashfree with sandbox mode
       const cashfree = window.Cashfree({
         mode: CASHFREE_MODE,
       });
 
-      // Open the checkout page (redirect to hosted page)
       const checkoutOptions = {
         paymentSessionId: orderData.payment_session_id,
-        redirectTarget: "_self", // Opens in the same tab; use '_blank' for new tab
+        redirectTarget: "_self",
       };
 
       cashfree.checkout(checkoutOptions);
@@ -282,7 +274,7 @@ const PurchaseUnitConfirmation = ({
         unit_data: {
           project_id: projectId,
           scheme_id: schemeId,
-          user_profile_id: userProfileIds[0], // Primary profile
+          user_profile_id: userProfileIds[0],
           is_joint_ownership: userProfileIds.length > 1,
           joint_owners: userProfileIds
             .slice(1)
@@ -307,7 +299,6 @@ const PurchaseUnitConfirmation = ({
           description:
             "Order created successfully! Redirecting to secure payment page.",
         });
-        // Initiate Cashfree payment
         initiateCashfreePayment(data);
       } else {
         throw new Error(data.message || "Order creation failed");
@@ -328,128 +319,134 @@ const PurchaseUnitConfirmation = ({
 
   const totalInvestment = getTotalInvestment();
   const isInstallment = schemeData?.scheme_type === "installment";
-
-  // Get project name with fallbacks
   const displayProjectName = projectName || "Project";
 
   return (
-    <Card className="border-2 border-amber-200 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-50 border-b-2 border-amber-200">
-        <CardTitle className="flex items-center gap-2 text-amber-500">
-          <ClipboardClock className="w-6 h-6" />
+    <Card className="border border-gray-200 shadow-lg bg-white">
+      <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <CardTitle className="flex items-center gap-3 text-white text-xl">
+          <ClipboardList className="w-6 h-6" />
           Purchase Confirmation
         </CardTitle>
+        <p className="text-blue-100 text-sm mt-1">
+          Review your investment details and complete the purchase
+        </p>
       </CardHeader>
 
-      <CardContent className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Building className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-800">
-                Selected Plan
-              </h3>
+      <CardContent className="p-6 space-y-8">
+        {/* Investment Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Project Details */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Building className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Project Details
+                </h3>
+                <p className="text-sm text-gray-600">Your selected investment</p>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Project:</span>
-                <span className="font-semibold">{displayProjectName}</span>
+            <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600 font-medium">Project:</span>
+                <span className="font-semibold text-gray-900">{displayProjectName}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Scheme:</span>
-                <span className="font-semibold">
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600 font-medium">Scheme:</span>
+                <span className="font-semibold text-gray-900">
                   {schemeData?.scheme_name || "Standard Scheme"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Scheme Type:</span>
-                <span className="font-semibold capitalize">
-                  {schemeData?.scheme_type?.replace("_", " ") ||
-                    "single payment"}
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600 font-medium">Scheme Type:</span>
+                <span className="font-semibold text-gray-900 capitalize">
+                  {schemeData?.scheme_type?.replace("_", " ") || "single payment"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Area per Unit:</span>
-                <span className="font-semibold">
+              <div className="flex justify-between items-center py-2">
+                <span className="text-gray-600 font-medium">Area per Unit:</span>
+                <span className="font-semibold text-gray-900">
                   {schemeData?.area_sqft || 0} sqft
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-orange-600" />
-              <h3 className="text-lg font-semibold text-gray-800">
-                Payment Details
-              </h3>
+          {/* Payment Details */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Payment Summary
+                </h3>
+                <p className="text-sm text-gray-600">Investment breakdown</p>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Ownership:</span>
-                <span className="font-semibold">
+            <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600 font-medium">Ownership:</span>
+                <span className="font-semibold text-gray-900">
                   {isJointOwnership ? "Joint Ownership" : "Single Ownership"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Number of Units:</span>
-                <span className="font-semibold">{numberOfUnits}</span>
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600 font-medium">Number of Units:</span>
+                <span className="font-semibold text-gray-900">{numberOfUnits}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Area:</span>
-                <span className="font-semibold">
-                  {(
-                    (schemeData?.area_sqft || 0) * numberOfUnits
-                  ).toLocaleString()}{" "}
-                  sqft
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600 font-medium">Total Area:</span>
+                <span className="font-semibold text-gray-900">
+                  {((schemeData?.area_sqft || 0) * numberOfUnits).toLocaleString()} sqft
                 </span>
               </div>
 
               {isInstallment ? (
                 <>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Monthly Installment:</span>
-                    <span className="font-semibold">
-                      {formatCurrency(
-                        (schemeData?.monthly_installment_amount || 0) *
-                          numberOfUnits
-                      )}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-gray-600 font-medium">Monthly Installment:</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatCurrency((schemeData?.monthly_installment_amount || 0) * numberOfUnits)}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Installments:</span>
-                    <span className="font-semibold">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-gray-600 font-medium">Total Installments:</span>
+                    <span className="font-semibold text-gray-900">
                       {schemeData?.total_installments || 0}
                     </span>
                   </div>
-
-                  <div className="flex justify-between">
-                    <span className="font-medium">Total Investment:</span>
-                    <span className="font-semibold">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-gray-700 font-semibold">Total Investment:</span>
+                    <span className="font-bold text-blue-600 text-lg">
                       {formatCurrency(totalInvestment)}
                     </span>
                   </div>
-                  <div className="flex justify-between text-green-600">
-                    <span className="font-medium">Booking Advance (Now):</span>
-                    <span className="font-semibold">
+                  <div className="flex justify-between items-center py-2 bg-green-50 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
+                    <span className="text-green-700 font-semibold">Booking Advance (Now):</span>
+                    <span className="font-bold text-green-700 text-lg">
                       {formatCurrency(paymentAmount)}
                     </span>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="flex justify-between text-green-600">
-                    <span className="font-medium">Amount to Pay (Now):</span>
-                    <span className="font-semibold">
+                  <div className="flex justify-between items-center py-2 bg-green-50 -mx-4 -mb-4 px-4 py-3 rounded-b-lg">
+                    <span className="text-green-700 font-semibold">Amount to Pay (Now):</span>
+                    <span className="font-bold text-green-700 text-lg">
                       {formatCurrency(paymentAmount)}
                     </span>
                   </div>
                   {paymentAmount < totalInvestment && (
-                    <div className="flex justify-between text-orange-600">
-                      <span className="text-sm">Balance Due (90 days):</span>
-                      <span className="text-sm font-medium">
+                    <div className="flex justify-between items-center py-2 bg-orange-50 -mx-4 mt-2 px-4 py-2 rounded">
+                      <span className="text-orange-700 text-sm font-medium">Balance Due (90 days):</span>
+                      <span className="text-orange-700 text-sm font-semibold">
                         {formatCurrency(totalInvestment - paymentAmount)}
                       </span>
                     </div>
@@ -460,47 +457,54 @@ const PurchaseUnitConfirmation = ({
           </div>
         </div>
 
-        <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        {/* Billing Information */}
+        <div className="space-y-6 p-6 bg-blue-50 rounded-xl border border-blue-200">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Billing Information
-            </h3>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Billing Information
+                </h3>
+                <p className="text-sm text-blue-700">
+                  Provide your details for payment processing
+                </p>
+              </div>
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={clearBillingData}
-              className="text-xs"
+              className="text-blue-600 border-blue-300 hover:bg-blue-50"
             >
-              Clear
+              Clear All
             </Button>
           </div>
-          <p className="text-sm text-blue-700">
-            Please provide your billing details for payment processing.
-          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-gray-700 font-medium">
                 Full Name *
               </Label>
               <Input
                 id="name"
                 value={billingInfo.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Enter billing name"
-                className={errors.name ? "border-red-500" : ""}
+                placeholder="Enter your full name"
+                className={`h-12 ${errors.name ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.name && (
-                <p className="text-red-500 text-xs flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
+                <p className="text-red-500 text-sm flex items-center gap-2 mt-1">
+                  <AlertCircle className="w-4 h-4" />
                   {errors.name}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700">
+            <div className="space-y-3">
+              <Label htmlFor="email" className="text-gray-700 font-medium">
                 Email Address *
               </Label>
               <Input
@@ -508,19 +512,19 @@ const PurchaseUnitConfirmation = ({
                 type="email"
                 value={billingInfo.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Enter billing email"
-                className={errors.email ? "border-red-500" : ""}
+                placeholder="Enter your email"
+                className={`h-12 ${errors.email ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.email && (
-                <p className="text-red-500 text-xs flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
+                <p className="text-red-500 text-sm flex items-center gap-2 mt-1">
+                  <AlertCircle className="w-4 h-4" />
                   {errors.email}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-700">
+            <div className="space-y-3">
+              <Label htmlFor="phone" className="text-gray-700 font-medium">
                 Phone Number *
               </Label>
               <Input
@@ -529,13 +533,13 @@ const PurchaseUnitConfirmation = ({
                 onChange={(e) =>
                   handleInputChange("phone", e.target.value.replace(/\D/g, ""))
                 }
-                placeholder="Enter billing phone number"
+                placeholder="Enter your phone number"
                 maxLength={10}
-                className={errors.phone ? "border-red-500" : ""}
+                className={`h-12 ${errors.phone ? "border-red-500" : "border-gray-300"}`}
               />
               {errors.phone && (
-                <p className="text-red-500 text-xs flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
+                <p className="text-red-500 text-sm flex items-center gap-2 mt-1">
+                  <AlertCircle className="w-4 h-4" />
                   {errors.phone}
                 </p>
               )}
@@ -543,31 +547,33 @@ const PurchaseUnitConfirmation = ({
           </div>
         </div>
 
-        <div className="flex justify-center pt-4">
-          <Button
-            onClick={handlePurchase}
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-semibold"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Processing...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Confirm & Complete Purchase
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Action Section */}
+        <div className="space-y-4 pt-4">
+          <div className="flex justify-center">
+            <Button
+              onClick={handlePurchase}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                  Processing Payment...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-6 h-6 mr-3" />
+                  Confirm & Complete Purchase
+                </>
+              )}
+            </Button>
+          </div>
 
-        <div className="text-center text-xs text-gray-500">
-          <p>
-            Your billing information is secure and will only be used for payment processing
-          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+            <Shield className="w-4 h-4 text-blue-500" />
+            <span>Your information is secure and encrypted</span>
+          </div>
         </div>
       </CardContent>
     </Card>

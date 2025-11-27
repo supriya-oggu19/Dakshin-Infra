@@ -22,7 +22,7 @@ const TermsAndConditionsPage = () => {
             <section className="mb-8">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Agreement to Terms</h3>
               <p className="text-gray-700 mb-4">
-                If you continue to browse and use this website (<strong>www.ramyaconstructions.com</strong>) and engage with our services, you are agreeing to comply with and be bound by the following terms and conditions of use, which together with our privacy policy govern Ramya Constructions' relationship with you in relation to this website and our commercial real estate services.
+                If you continue to browse and use this website (<strong>www.dakshininfrastructures.com</strong>) and engage with our services, you are agreeing to comply with and be bound by the following terms and conditions of use, which together with our privacy policy govern Dakshin Infra Structures' relationship with you in relation to this website and our commercial real estate services.
               </p>
               <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 my-4">
                 <p className="text-yellow-800 font-semibold">
@@ -30,18 +30,18 @@ const TermsAndConditionsPage = () => {
                 </p>
               </div>
               <p className="text-gray-700">
-                The term 'Ramya Constructions' or 'us' or 'we' refers to the owner of the website and the commercial real estate development company. The term 'you' refers to the user, visitor, customer, or client of our website and services.
+                The term 'Dakshin Infra Structures' or 'us' or 'we' refers to the owner of the website and the commercial real estate development company. The term 'you' refers to the user, visitor, customer, or client of our website and services.
               </p>
             </section>
 
             {/* Company Information */}
             <section className="mb-8">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Company Information</h3>
-              <p className="text-gray-700"><strong>Ramya Constructions</strong></p>
+              <p className="text-gray-700"><strong>Dakshin Infra Structures</strong></p>
               <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
                 <li><strong>Registered Office:</strong> [Complete Business Address]</li>
-                <li><strong>Website:</strong> www.ramyaconstructions.com</li>
-                <li><strong>Email:</strong> info@ramyaconstructions.com</li>
+                <li><strong>Website:</strong> www.dakshininfrastructures.com</li>
+                <li><strong>Email:</strong> info@dakshininfrastructures.com</li>
                 <li><strong>Phone:</strong> [Phone Number]</li>
                 <li><strong>Business:</strong> Commercial real estate development, construction, and sales</li>
                 <li><strong>Services:</strong> Commercial space units, office complexes, retail spaces, warehouses, industrial units</li>
@@ -75,7 +75,7 @@ const TermsAndConditionsPage = () => {
                 <h4 className="text-lg font-semibold text-gray-800 mb-3">Intellectual Property Rights</h4>
                 <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
                   <li>This website contains material which is owned by or licensed to us. This material includes, but is not limited to, the design, layout, look, appearance, graphics, photographs, project images, floor plans, and written content.</li>
-                  <li>All trademarks, logos, and brand names displayed on this website are the property of Ramya Constructions or used with permission.</li>
+                  <li>All trademarks, logos, and brand names displayed on this website are the property of Dakshin Infra Structures or used with permission.</li>
                   <li>Reproduction, distribution, or unauthorized use of this material is prohibited other than in accordance with the copyright notice, which forms part of these terms and conditions.</li>
                   <li>Unauthorized use of this website may give rise to a claim for damages and/or be a criminal offense.</li>
                 </ul>
@@ -248,13 +248,13 @@ const TermsAndConditionsPage = () => {
                 For any questions, concerns, or clarifications regarding these Terms and Conditions:
               </p>
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-gray-700"><strong>Ramya Constructions</strong></p>
+                <p className="text-gray-700"><strong>Dakshin Infra Structures</strong></p>
                 <p className="text-gray-700">Address: [Complete Business Address]</p>
                 <p className="text-gray-700">Phone: [Phone Number]</p>
-                <p className="text-gray-700">Email: info@ramyaconstructions.com</p>
-                <p className="text-gray-700">Customer Service: support@ramyaconstructions.com</p>
-                <p className="text-gray-700">Legal Department: legal@ramyaconstructions.com</p>
-                <p className="text-gray-700">Website: www.ramyaconstructions.com</p>
+                <p className="text-gray-700">Email: info@dakshininfrastructures.com</p>
+                <p className="text-gray-700">Customer Service: support@dakshininfrastructures.com</p>
+                <p className="text-gray-700">Legal Department: legal@dakshininfrastructures.com</p>
+                <p className="text-gray-700">Website: www.dakshininfrastructures.com</p>
                 <p className="text-gray-700">Business Hours: Monday to Saturday, 9:00 AM to 6:00 PM</p>
                 <p className="text-gray-700">Emergency Contact: [Emergency Phone Number]</p>
               </div>

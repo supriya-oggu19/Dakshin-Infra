@@ -25,10 +25,10 @@ const PrivacyPolicyPage = () => {
               <section className="mb-8">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Introduction</h3>
                 <p className="text-gray-700 mb-4">
-                  Ramya Constructions ("we" or "us" or "our") respects the privacy of our users ("user" or "you"). 
+                  Dakshin Infra Structures ("we" or "us" or "our") respects the privacy of our users ("user" or "you"). 
                   We make every effort to treat your personal information as safely and securely as reasonably possible. 
                   This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you 
-                  visit our website (www.ramyaconstructions.com) and when you engage with our services for commercial 
+                  visit our website (www.dakshininfrastructures.com) and when you engage with our services for commercial 
                   real estate development and sales.
                 </p>
                 <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 my-4">
@@ -344,7 +344,7 @@ const PrivacyPolicyPage = () => {
                   <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
                     <li>We may periodically send promotional emails about new projects, special offers, or other information which we think you may find interesting using the email address you have provided</li>
                     <li>We may contact you by email, phone, SMS, or WhatsApp for marketing purposes</li>
-                    <li>You can withdraw your consent at any time by contacting us at unsubscribe@ramyaconstructions.com</li>
+                    <li>You can withdraw your consent at any time by contacting us at unsubscribe@dakshininfrastructures.com</li>
                   </ul>
                 </div>
 
@@ -355,7 +355,7 @@ const PrivacyPolicyPage = () => {
                     SMS, email, or WhatsApp you about our products and offers, even if your number has DND activated on it.
                   </p>
                   <p className="text-yellow-800 mt-2 font-semibold">
-                    By providing your contact information, you authorize Ramya Constructions and its representatives to 
+                    By providing your contact information, you authorize Dakshin Infra Structures and its representatives to 
                     contact you via email, SMS, call, or WhatsApp, which overrides DND/NDNC Registration.
                   </p>
                 </div>
@@ -369,12 +369,12 @@ const PrivacyPolicyPage = () => {
                   we are holding about you is incorrect or incomplete, please contact us as soon as possible:
                 </p>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-gray-700"><strong>Ramya Constructions</strong></p>
+                  <p className="text-gray-700"><strong>Dakshin Infra Structures</strong></p>
                   <p className="text-gray-700">Address: [Complete Business Address]</p>
                   <p className="text-gray-700">Phone: [Phone Number]</p>
-                  <p className="text-gray-700">Email: info@ramyaconstructions.com</p>
-                  <p className="text-gray-700">Privacy Officer: privacy@ramyaconstructions.com</p>
-                  <p className="text-gray-700">Unsubscribe: unsubscribe@ramyaconstructions.com</p>
+                  <p className="text-gray-700">Email: info@dakshininfrastructures.com</p>
+                  <p className="text-gray-700">Privacy Officer: privacy@dakshininfrastructures.com</p>
+                  <p className="text-gray-700">Unsubscribe: unsubscribe@dakshininfrastructures.com</p>
                 </div>
                 <p className="text-gray-700 mt-4">
                   We will promptly correct any information found to be incorrect and respond to your privacy-related 

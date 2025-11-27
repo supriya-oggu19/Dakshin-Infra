@@ -29,6 +29,10 @@ import {
   Loader2,
   ArrowRight,
   CreditCard,
+  Crown,
+  Sparkles,
+  Target,
+  BarChart3,
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { IndianRupee } from "lucide-react";
@@ -99,9 +103,6 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  /* --------------------------------------------------- */
-  /*  HELPERS                                            */
-  /* --------------------------------------------------- */
   const formatCurrency = (amount: number | null | undefined): string => {
     if (amount == null || isNaN(amount)) return 'N/A';
     if (amount === 0) return '₹0';
@@ -125,20 +126,20 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
   const getSchemeTypeColor = (type: SchemeType) => {
     switch (type) {
       case SchemeType.SINGLE_PAYMENT:
-        return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white';
+        return 'bg-gradient-to-r from-blue-600 to-blue-700 text-white';
       case SchemeType.INSTALLMENT:
-        return 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white';
+        return 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white';
       default:
-        return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white';
+        return 'bg-gradient-to-r from-slate-600 to-slate-700 text-white';
     }
   };
 
   const getSchemeTypeDisplayName = (type: SchemeType) => {
     switch (type) {
       case SchemeType.SINGLE_PAYMENT:
-        return 'One‑Time';
+        return 'One‑Time Payment';
       case SchemeType.INSTALLMENT:
-        return 'EMI';
+        return 'Monthly Installments';
       default:
         return type;
     }
@@ -157,39 +158,35 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
 
   const displayProjectName = projectName || 'Project';
 
-  /* --------------------------------------------------- */
-  /*  RENDER – LOADING                                   */
-  /* --------------------------------------------------- */
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
         <Navigation />
         <div className="flex flex-col items-center justify-center min-h-screen pt-20 px-4">
-          <Loader2 className="w-12 h-12 animate-spin text-yellow-500 mb-4" />
-          <p className="text-lg font-semibold text-foreground">
-            Loading Investment Schemes
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mb-6 animate-pulse">
+            <Crown className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-lg font-semibold text-slate-900 mb-2">
+            Loading Investment Plans
           </p>
-          <p className="text-sm text-muted-foreground">
-            Please wait while we fetch the details...
+          <p className="text-sm text-slate-600">
+            Preparing exclusive investment opportunities...
           </p>
         </div>
       </div>
     );
   }
 
-  /* --------------------------------------------------- */
-  /*  RENDER – ERROR                                     */
-  /* --------------------------------------------------- */
   if (error || !id) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
         <Navigation />
         <div className="flex items-center justify-center min-h-screen pt-20 p-4">
-          <Alert className="max-w-md w-full border-red-200 bg-red-50">
+          <Alert className="max-w-md w-full border-red-200 bg-red-50/80 backdrop-blur-sm rounded-2xl">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <AlertDescription className="ml-2">
               <p className="font-semibold text-red-800 mb-1">
-                Error Loading Schemes
+                Unable to Load Plans
               </p>
               <p className="text-red-700 text-sm">{error || 'Invalid project ID'}</p>
             </AlertDescription>
@@ -199,277 +196,280 @@ const InvestmentSchemes: React.FC<InvestmentSchemesProps> = ({
     );
   }
 
-  /* --------------------------------------------------- */
-  /*  MAIN RENDER                                        */
-  /* --------------------------------------------------- */
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
       <Navigation />
 
-      {/* ---------- HERO ---------- */}
-      <header className="bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 text-white py-12 px-4 mt-16 sm:py-16">
-        <div className="max-w-7xl mx-auto text-center space-y-4">
-          <Badge className="bg-white/20 text-white border-white/30 px-3 py-1 text-xs sm:text-sm">
-            {displayProjectName}
-          </Badge>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-            Investment Schemes
+      {/* Premium Hero Section */}
+      <header className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white py-16 px-4 mt-16">
+        <div className="max-w-7xl mx-auto text-center space-y-6">
+          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 px-6 py-3 rounded-full mb-4">
+            <Sparkles className="w-5 h-5 text-white" />
+            <span className="text-white font-semibold text-sm uppercase tracking-wider">
+              Exclusive Investment Portfolio
+            </span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+            Investment Plans
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-yellow-100 max-w-2xl mx-auto">
-            Discover exclusive investment opportunities tailored for your
-            financial goals
+          <p className="text-xl text-blue-100 max-w-2xl mx-auto font-light leading-relaxed">
+            Curated investment opportunities with guaranteed returns and premium benefits
           </p>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* Stats Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Premium Stats Bar */}
         {totalSchemes > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 sm:mb-12">
-            <Card className="shadow-lg">
-              <CardContent className="pt-5 sm:pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Schemes</p>
-                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{totalSchemes}</p>
-                  </div>
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Total Plans</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{totalSchemes}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Starting From */}
-            <Card className="shadow-lg">
-              <CardContent className="pt-5 sm:pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                      Starting From
-                    </p>
-                    <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
-                      {formatCurrency(minInvestmentAmount)}
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                    <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
-                  </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Target className="w-6 h-6 text-blue-600" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-           
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Starting From</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">
+                    {formatCurrency(minInvestmentAmount)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <IndianRupee className="w-6 h-6 text-emerald-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Investment Options</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">Flexible</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Schemes Grid */}
+        {/* Investment Plans Grid */}
         {totalSchemes === 0 ? (
-          <Alert className="max-w-2xl mx-auto border-yellow-500/30 bg-yellow-500/10">
-            <AlertCircle className="h-5 w-5 text-yellow-500" />
-            <AlertDescription className="ml-2">
-              <p className="font-semibold text-foreground mb-1">
-                No Schemes Available
-              </p>
-              <p className="text-muted-foreground text-sm">
-                There are currently no investment schemes available for this
-                project. Please check back later or contact our support team.
-              </p>
-            </AlertDescription>
-          </Alert>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg p-12 text-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Crown className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-4">
+              Premium Plans Coming Soon
+            </h3>
+            <p className="text-slate-600 leading-relaxed">
+              We are curating exclusive investment opportunities for this project. 
+              Please check back soon or contact our investment advisors for early access.
+            </p>
+          </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
               {currentSchemes.map((scheme) => (
-                <Card key={scheme.id} className="border-border shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-card overflow-hidden">
-                  <div className="h-1 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700" />
-
-                  <CardHeader className="pb-2 sm:pb-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                      <CardTitle className="text-base sm:text-lg font-bold text-foreground">
-                        {scheme.scheme_name}
-                      </CardTitle>
-                      <Badge
-                        className={`${getSchemeTypeColor(
-                          scheme.scheme_type
-                        )} px-2 py-0.5 text-xs font-semibold`}
-                      >
-                        {getSchemeTypeDisplayName(scheme.scheme_type)}
-                      </Badge>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Building className="w-3.5 h-3.5" />
-                        <span>{scheme.area_sqft} sqft</span>
+                <div key={scheme.id} className="group">
+                  <Card className="bg-white/80 backdrop-blur-sm border border-white/50 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden">
+                    {/* Premium Header Accent */}
+                    <div className="h-2 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-600" />
+                    
+                    <CardHeader className="pb-4">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+                        <CardTitle className="text-xl font-bold text-slate-900">
+                          {scheme.scheme_name}
+                        </CardTitle>
+                        <Badge
+                          className={`${getSchemeTypeColor(
+                            scheme.scheme_type
+                          )} px-4 py-1.5 text-sm font-semibold rounded-full border-0`}
+                        >
+                          {getSchemeTypeDisplayName(scheme.scheme_type)}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span>
-                          {new Date(scheme.start_date).toLocaleDateString(
-                            'en-IN',
-                            { month: 'short', year: 'numeric' }
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </CardHeader>
 
-                  <CardContent className="space-y-3 pt-0">
-                    {/* Small info tiles – 1 col on mobile, 2 col on sm+ */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                      {/* Booking Advance */}
-                      {scheme.booking_advance && scheme.booking_advance > 0 && (
-                        <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">
-                              Booking Advance
-                            </span>
-                          </div>
-                          <span className="text-sm sm:text-base font-bold text-emerald-600">
-                            {formatCurrency(scheme.booking_advance)}
+                      <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                        <div className="flex items-center gap-2">
+                          <Building className="w-4 h-4" />
+                          <span>{scheme.area_sqft} sqft</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            {new Date(scheme.start_date).toLocaleDateString(
+                              'en-IN',
+                              { month: 'short', year: 'numeric' }
+                            )}
                           </span>
                         </div>
-                      )}
+                      </div>
+                    </CardHeader>
 
-                      {/* EMI (installment) */}
-                      {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                        <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">
-                              Monthly EMI
-                            </span>
-                          </div>
-                          <span className="text-sm sm:text-base font-bold text-foreground">
-                            {formatCurrency(scheme.monthly_installment_amount)}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Balance days (single) */}
-                      {scheme.scheme_type === SchemeType.SINGLE_PAYMENT &&
-                        scheme.balance_payment_days && (
-                          <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span className="text-xs font-medium text-muted-foreground">
-                                Balance Payment
+                    <CardContent className="space-y-6">
+                      {/* Investment Metrics Grid */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Booking Advance */}
+                        {scheme.booking_advance && scheme.booking_advance > 0 && (
+                          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CreditCard className="w-4 h-4 text-slate-600" />
+                              <span className="text-sm font-medium text-slate-700">
+                                Booking Advance
                               </span>
                             </div>
-                            <span className="text-sm sm:text-base font-bold text-foreground">
-                              {scheme.balance_payment_days} days
+                            <span className="text-lg font-bold text-emerald-600">
+                              {formatCurrency(scheme.booking_advance)}
                             </span>
                           </div>
                         )}
 
-                      {/* Duration (installment) */}
-                      {scheme.scheme_type === SchemeType.INSTALLMENT && (
-                        <div className="bg-background p-2.5 rounded-lg border border-border hover:shadow-md transition-shadow">
-                          <div className="text-xs font-medium text-muted-foreground mb-1">
-                            Duration
-                          </div>
-                          <span className="text-sm sm:text-base font-bold text-foreground">
-                            {scheme.total_installments || 'N/A'} months
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Monthly Rental Income */}
-                      {scheme.monthly_rental_income && (
-                        <div className="bg-background p-2.5 rounded-lg border hover:shadow-md transition-shadow col-span-1">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <TrendingUp className="w-3.5 h-3.5" />
-                            <span className="text-xs font-medium">
-                              Monthly Rental Income
+                        {/* EMI */}
+                        {scheme.scheme_type === SchemeType.INSTALLMENT && (
+                          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Clock className="w-4 h-4 text-slate-600" />
+                              <span className="text-sm font-medium text-slate-700">
+                                Monthly EMI
+                              </span>
+                            </div>
+                            <span className="text-lg font-bold text-slate-900">
+                              {formatCurrency(scheme.monthly_installment_amount)}
                             </span>
                           </div>
-                          <span className="text-sm sm:text-base font-bold text-primary">
-                            {formatCurrency(scheme.monthly_rental_income)}
-                          </span>
+                        )}
+
+                        {/* Balance Payment */}
+                        {scheme.scheme_type === SchemeType.SINGLE_PAYMENT &&
+                          scheme.balance_payment_days && (
+                            <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Clock className="w-4 h-4 text-slate-600" />
+                                <span className="text-sm font-medium text-slate-700">
+                                  Balance Payment
+                                </span>
+                              </div>
+                              <span className="text-lg font-bold text-slate-900">
+                                {scheme.balance_payment_days} days
+                              </span>
+                            </div>
+                          )}
+
+                        {/* Duration */}
+                        {scheme.scheme_type === SchemeType.INSTALLMENT && (
+                          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200">
+                            <div className="text-sm font-medium text-slate-700 mb-2">
+                              Investment Duration
+                            </div>
+                            <span className="text-lg font-bold text-slate-900">
+                              {scheme.total_installments || 'N/A'} months
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Rental Income Highlight */}
+                      {scheme.monthly_rental_income && (
+                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <TrendingUp className="w-5 h-5 text-emerald-600" />
+                              <div>
+                                <div className="font-semibold text-emerald-800">
+                                  Monthly Rental Income
+                                </div>
+                                <div className="text-lg font-bold text-emerald-600">
+                                  {formatCurrency(scheme.monthly_rental_income)}
+                                </div>
+                              </div>
+                            </div>
+                            {scheme.rental_start_month && (
+                              <Badge className="bg-emerald-600 text-white px-3 py-1 text-xs">
+                                Starts Month {scheme.rental_start_month}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       )}
-                    </div>
 
-                    {/* Rental start month badge */}
-                    {scheme.rental_start_month && (
-                      <div className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/30 text-xs sm:text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium flex items-center gap-1">
-                            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                            Rental Returns Start
-                          </span>
-                          <span className="font-bold text-emerald-500">
-                            Month {scheme.rental_start_month}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Invest Button */}
-                    <Button
-                      onClick={() => handleInvestNow(scheme.id)}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-500/90 hover:to-yellow-600/90 text-white font-semibold py-4 sm:py-5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group"
-                    >
-                      Invest Now
-                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </CardContent>
-                </Card>
+                      {/* Premium CTA Button */}
+                      <Button
+                        onClick={() => handleInvestNow(scheme.id)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group text-lg"
+                      >
+                        <Crown className="w-5 h-5 mr-3" />
+                        Invest in This Plan
+                        <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
               ))}
             </div>
 
-            {/* ---- Pagination ---- */}
+            {/* Premium Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center mt-10 sm:mt-12">
-                <Pagination>
-                  <PaginationContent className="flex flex-wrap gap-1 sm:gap-2">
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (currentPage > 1) handlePageChange(currentPage - 1);
-                        }}
-                        className="px-3 py-2 text-sm sm:text-base"
-                      />
-                    </PaginationItem>
+              <div className="flex justify-center mt-16">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg p-6">
+                  <Pagination>
+                    <PaginationContent className="flex items-center gap-2">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage > 1) handlePageChange(currentPage - 1);
+                          }}
+                          className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
+                        />
+                      </PaginationItem>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handlePageChange(page);
-                            }}
-                            className={`px-3 py-2 text-sm sm:text-base rounded-md transition-colors ${currentPage === page
-                              ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-semibold shadow-md'
-                              : 'bg-white text-gray-700 border border-gray-200 hover:bg-yellow-50'
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                        (page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(page);
+                              }}
+                              className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                                currentPage === page
+                                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                                  : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
                               }`}
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      )
-                    )}
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      )}
 
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (currentPage < totalPages)
-                            handlePageChange(currentPage + 1);
-                        }}
-                        className="px-3 py-2 text-sm sm:text-base"
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage < totalPages)
+                              handlePageChange(currentPage + 1);
+                          }}
+                          className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
               </div>
             )}
           </>

@@ -13,6 +13,9 @@ import {
   Download,
   Eye,
   Loader2,
+  Search,
+  FileText,
+  BarChart3,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { portfolioApi } from "../api/portfolio-api";
@@ -154,13 +157,13 @@ const MyUnits = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white">
         <Navigation />
-        <div className="pt-16 sm:pt-20 pb-8 sm:pb-12">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-8">
+        <div className="pt-20 pb-12">
+          <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="flex justify-center items-center h-64">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <span className="ml-2 text-lg">Loading your units...</span>
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-lg text-gray-600">Loading your units...</span>
             </div>
           </div>
         </div>
@@ -170,13 +173,16 @@ const MyUnits = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white">
         <Navigation />
-        <div className="pt-16 sm:pt-20 pb-8 sm:pb-12">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-8">
-            <div className="text-center text-red-600">
-              <p>Error: {error}</p>
-              <Button onClick={fetchUserData} className="mt-4">
+        <div className="pt-20 pb-12">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="text-center text-red-600 bg-red-50 p-6 rounded-lg border border-red-200">
+              <p className="mb-4">Error: {error}</p>
+              <Button 
+                onClick={fetchUserData} 
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
                 Retry
               </Button>
             </div>
@@ -187,128 +193,118 @@ const MyUnits = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <Navigation />
 
-      <div className="pt-16 sm:pt-20 pb-8 sm:pb-12">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-8">
+      <div className="pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Header */}
-          <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-              My Units
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Manage and track your property investments and rental income
-            </p>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  My Units
+                </h1>
+                <p className="text-gray-600">
+                  Manage and track your property investments and rental income
+                </p>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search by Booking ID..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Summary Cards */}
           {investmentSummary && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-              <Card className="border-0 shadow-md">
-                <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                        Total Units
-                      </p>
-                      <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+                      <p className="text-sm text-gray-600 mb-1">Total Units</p>
+                      <p className="text-2xl font-bold text-gray-900">
                         {investmentSummary.total_units}
                       </p>
                     </div>
-                    <Building2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-primary" />
+                    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-blue-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-md">
-                <CardContent className="p-3 sm:p-4 lg:p-6">
+              <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                        Total Investment
-                      </p>
-                      <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+                      <p className="text-sm text-gray-600 mb-1">Total Investment</p>
+                      <p className="text-2xl font-bold text-gray-900">
                         {formatCurrency(investmentSummary.total_invested)}
                       </p>
                     </div>
-                    <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-primary" />
+                    <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+                      <IndianRupee className="w-6 h-6 text-green-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-md">
-                <CardContent className="p-3 sm:p-4 lg:p-6">
+              <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                        Amount Paid
-                      </p>
-                      <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+                      <p className="text-sm text-gray-600 mb-1">Amount Paid</p>
+                      <p className="text-2xl font-bold text-gray-900">
                         {formatCurrency(investmentSummary.total_paid)}
                       </p>
                     </div>
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-primary" />
+                    <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-purple-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-md">
-                <CardContent className="p-3 sm:p-4 lg:p-6">
+              <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                        Balance Amount
-                      </p>
-                      <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+                      <p className="text-sm text-gray-600 mb-1">Balance Amount</p>
+                      <p className="text-2xl font-bold text-gray-900">
                         {formatCurrency(investmentSummary.total_balance)}
                       </p>
                     </div>
-                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-primary" />
+                    <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="w-6 h-6 text-orange-600" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* Search Bar */}
-          <div className="mb-6 sm:mb-8">
-            <div className="relative max-w-md">
-              <input
-                type="text"
-                placeholder="Search by Booking ID..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg 
-                  className="h-5 w-5 text-gray-400" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
           {/* Properties List */}
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-6">
             {filteredPortfolioData.length === 0 ? (
-              <Card className="border-0 shadow-md">
-                <CardContent className="p-8 text-center">
-                  <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    {searchQuery ? 'No Units Found' : 'No Units Found'}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-12 text-center">
+                  <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {searchQuery ? 'No Units Found' : 'No Units Yet'}
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-gray-600 max-w-md mx-auto">
                     {searchQuery 
                       ? `No units found matching "${searchQuery}". Try a different booking ID.`
                       : "You haven't purchased any units yet. Explore our projects to get started."}
@@ -322,41 +318,36 @@ const MyUnits = () => {
                 return (
                   <Card
                     key={property.unit_id}
-                    className="border-0 shadow-md hover:shadow-lg transition-shadow"
+                    className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <CardHeader className="border-b bg-card p-4 sm:p-6">
-                      <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-                        <div className="min-w-0">
-                          <div className="mb-2">
-                            <div className="text-sm text-muted-foreground mb-1">
-                              Project Name
-                            </div>
-                            <div className="text-lg font-semibold text-card-foreground">
+                    <CardHeader className="border-b border-gray-100 bg-white p-6">
+                      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-3">
+                            <div className="text-sm text-gray-600 mb-1">Project Name</div>
+                            <div className="text-lg font-semibold text-gray-900">
                               {property.project.project_name}
                             </div>
                           </div>
                           <div className="mb-3">
-                            <div className="text-sm text-muted-foreground mb-1">
-                              Booking ID
-                            </div>
-                            <div className="text-xl font-bold text-primary">
+                            <div className="text-sm text-gray-600 mb-1">Booking ID</div>
+                            <div className="text-xl font-bold text-blue-600">
                               {property.unit_number}
                             </div>
                           </div>
-                          <div className="flex items-start text-muted-foreground mb-2">
+                          <div className="flex items-start text-gray-600">
                             <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm break-words">
-                              {property.project.project_code} - Floor{" "}
-                              {property.project.floor_number}
+                            <span className="text-sm">
+                              {property.project.project_code} - Floor {property.project.floor_number}
                             </span>
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-3">
                           <Badge
-                            className={getStatusColor(
+                            className={`border ${getStatusColor(
                               property.payment_status as PaymentStatus,
                               property.unit_status as UnitStatus
-                            )}
+                            )}`}
                           >
                             {getStatusText(
                               property.payment_status as PaymentStatus,
@@ -367,54 +358,42 @@ const MyUnits = () => {
                       </div>
                     </CardHeader>
 
-                    <CardContent className="p-4 sm:p-6">
+                    <CardContent className="p-6">
                       <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-auto">
-                          <TabsTrigger
-                            value="overview"
-                            className="text-xs sm:text-sm py-2"
-                          >
+                        <TabsList className="grid w-full grid-cols-2 mb-6">
+                          <TabsTrigger value="overview" className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
                             Overview
                           </TabsTrigger>
-                          <TabsTrigger
-                            value="rental"
-                            className="text-xs sm:text-sm py-2"
-                          >
+                          <TabsTrigger value="rental" className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" />
                             Rental
                           </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                            <div className="space-y-1">
-                              <p className="text-xs sm:text-sm text-muted-foreground">
-                                Purchase Date
-                              </p>
-                              <p className="text-sm sm:text-base text-foreground font-medium">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-600">Purchase Date</p>
+                              <p className="text-base font-medium text-gray-900">
                                 {formatDate(property.purchase_date)}
                               </p>
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-xs sm:text-sm text-muted-foreground">
-                                Investment Scheme
-                              </p>
-                              <p className="text-sm sm:text-base text-foreground font-medium break-words">
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-600">Investment Scheme</p>
+                              <p className="text-base font-medium text-gray-900 break-words">
                                 {property.scheme.scheme_name}
                               </p>
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-xs sm:text-sm text-muted-foreground">
-                                Total Investment
-                              </p>
-                              <p className="text-sm sm:text-base text-foreground font-medium">
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-600">Total Investment</p>
+                              <p className="text-base font-medium text-gray-900">
                                 {formatCurrency(property.total_investment)}
                               </p>
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-xs sm:text-sm text-muted-foreground">
-                                Unit Area
-                              </p>
-                              <p className="text-sm sm:text-base text-foreground font-medium">
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-600">Unit Area</p>
+                              <p className="text-base font-medium text-gray-900">
                                 {property.total_area_sqft} sqft
                               </p>
                             </div>
@@ -425,56 +404,46 @@ const MyUnits = () => {
                           <div className="space-y-4">
                             {isRentalActiveStatus ? (
                               <>
-                                <div className="bg-purple-50 p-3 sm:p-4 rounded-lg border border-purple-200">
-                                  <p className="text-purple-800 font-medium mb-2 text-sm sm:text-base">
+                                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                                  <p className="text-purple-800 font-medium mb-2">
                                     💰 Rental Income Active
                                   </p>
-                                  <p className="text-purple-700 text-xs sm:text-sm">
-                                    Monthly rental income:{" "}
-                                    {formatCurrency(property.monthly_rental)}
+                                  <p className="text-purple-700 text-sm">
+                                    Monthly rental income: {formatCurrency(property.monthly_rental)}
                                   </p>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                  <div className="space-y-1">
-                                    <p className="text-xs sm:text-sm text-gray-600">
-                                      Monthly Rental
-                                    </p>
-                                    <p className="text-sm sm:text-base font-medium text-gray-900">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                  <div className="space-y-2">
+                                    <p className="text-sm text-gray-600">Monthly Rental</p>
+                                    <p className="text-base font-medium text-gray-900">
                                       {formatCurrency(property.monthly_rental)}
                                     </p>
                                   </div>
-                                  <div className="space-y-1">
-                                    <p className="text-xs sm:text-sm text-gray-600">
-                                      Rental Start Date
-                                    </p>
-                                    <p className="text-sm sm:text-base font-medium text-gray-900">
+                                  <div className="space-y-2">
+                                    <p className="text-sm text-gray-600">Rental Start Date</p>
+                                    <p className="text-base font-medium text-gray-900">
                                       {formatDate(property.rental_start_date)}
                                     </p>
                                   </div>
-                                  <div className="space-y-1">
-                                    <p className="text-xs sm:text-sm text-gray-600">
-                                      Total Received
-                                    </p>
-                                    <p className="text-sm sm:text-base font-medium text-gray-900">
+                                  <div className="space-y-2">
+                                    <p className="text-sm text-gray-600">Total Received</p>
+                                    <p className="text-base font-medium text-gray-900">
                                       Not Available
                                     </p>
                                   </div>
                                 </div>
                               </>
                             ) : (
-                              <div className="bg-orange-50 p-3 sm:p-4 rounded-lg border border-orange-200">
-                                <p className="text-orange-800 font-medium mb-2 text-sm sm:text-base flex items-center gap-1.5">
-                                  <Clock className="w-4 h-4 text-orange-800" />
+                              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                                <p className="text-orange-800 font-medium mb-2 flex items-center gap-2">
+                                  <Clock className="w-4 h-4" />
                                   Rental Pending
                                 </p>
-                                <p className="text-orange-700 text-xs sm:text-sm">
-                                  Rental income will start from{" "}
-                                  {formatDate(property.rental_start_date)} after
-                                  payment completion.
+                                <p className="text-orange-700 text-sm">
+                                  Rental income will start from {formatDate(property.rental_start_date)} after payment completion.
                                 </p>
-                                <p className="text-orange-700 text-xs sm:text-sm mt-2">
-                                  Expected monthly rental:{" "}
-                                  {formatCurrency(property.monthly_rental)}
+                                <p className="text-orange-700 text-sm mt-2">
+                                  Expected monthly rental: {formatCurrency(property.monthly_rental)}
                                 </p>
                               </div>
                             )}
@@ -483,26 +452,24 @@ const MyUnits = () => {
                       </Tabs>
 
                       {/* Action Buttons */}
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
+                      <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-6 border-t border-gray-100">
                         <Button
                           variant="outline"
-                          size="sm"
-                          className="w-full sm:w-auto border-gray-400"
+                          className="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
                           asChild
                         >
                           <Link to={`/sip?unit=${property.unit_number}`}>
-                            <Eye className="w-4 h-4 mr-2" />
+                            <Eye className="w-4 h-4" />
                             View Payment Details
                           </Link>
                         </Button>
                         <Button
                           variant="outline"
-                          size="sm"
-                          className="w-full sm:w-auto border-gray-400"
+                          className="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
                           asChild
                         >
                           <Link to={`/agreements?unit=${property.unit_number}`}>
-                            <Download className="w-4 h-4 mr-2" />
+                            <FileText className="w-4 h-4" />
                             View Agreement
                           </Link>
                         </Button>
