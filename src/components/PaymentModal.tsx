@@ -24,6 +24,7 @@ import {
   Lock,
   CheckCircle2,
   XCircle,
+  Shield,
 } from "lucide-react";
 
 interface PaymentModalProps {
@@ -298,47 +299,47 @@ const PaymentModal = ({
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
+          <DialogTitle className="flex items-center gap-2 text-blue-900">
+            <CreditCard className="w-5 h-5 text-blue-600" />
             {isInstallmentScheme ? "Make Payment" : "Complete Payment"}
           </DialogTitle>
         </DialogHeader>
 
         {/* Unit Information */}
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
+        <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="font-semibold text-sm">
+                <h3 className="font-semibold text-lg text-gray-900">
                   {unit.project.project_name}
                 </h3>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-gray-600 mt-1">
                   {unit.unit_number}
                 </p>
               </div>
-              <Badge variant="outline" className="bg-amber-50 text-amber-700">
+              <Badge className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1">
                 {unit.scheme.scheme_name}
               </Badge>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-muted-foreground">Total Investment:</span>
-                <p className="font-medium">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-1">
+                <span className="text-gray-600 font-medium">Total Investment:</span>
+                <p className="font-bold text-gray-900 text-lg">
                   {formatCurrency(unit.total_investment)}
                 </p>
               </div>
-              <div>
-                <span className="text-muted-foreground">Balance:</span>
-                <p className="font-medium text-red-600">
+              <div className="space-y-1">
+                <span className="text-gray-600 font-medium">Balance:</span>
+                <p className="font-bold text-red-600 text-lg">
                   {formatCurrency(unit.balance_amount)}
                 </p>
               </div>
               {isInstallmentScheme && (
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">
+                <div className="col-span-2 space-y-1">
+                  <span className="text-gray-600 font-medium">
                     Monthly Installment:
                   </span>
-                  <p className="font-medium text-green-600">
+                  <p className="font-bold text-green-600 text-lg">
                     {formatCurrency(installmentAmount)}
                   </p>
                 </div>
@@ -349,35 +350,35 @@ const PaymentModal = ({
 
         {/* Customer Information */}
         {customerInfo && (
-          <Card>
-            <CardContent className="p-4">
-              <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-                <User className="w-4 h-4" />
+          <Card className="border border-gray-200 shadow-sm">
+            <CardContent className="p-6">
+              <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-gray-900">
+                <User className="w-5 h-5 text-blue-600" />
                 Customer Details
               </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span className={!customerInfo.customer_name ? "text-orange-600" : ""}>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <User className="w-4 h-4 text-gray-500" />
+                  <span className={!customerInfo.customer_name ? "text-orange-600 font-medium" : "text-gray-700"}>
                     {customerInfo.customer_name || "Name not provided"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span className={!customerInfo.customer_email ? "text-orange-600" : ""}>
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <Mail className="w-4 h-4 text-gray-500" />
+                  <span className={!customerInfo.customer_email ? "text-orange-600 font-medium" : "text-gray-700"}>
                     {customerInfo.customer_email || "Email not provided"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span className={!customerInfo.customer_phone ? "text-orange-600" : ""}>
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <Phone className="w-4 h-4 text-gray-500" />
+                  <span className={!customerInfo.customer_phone ? "text-orange-600 font-medium" : "text-gray-700"}>
                     {customerInfo.customer_phone || "Phone not provided"}
                   </span>
                 </div>
               </div>
               {(!customerInfo.customer_name || !customerInfo.customer_phone) && (
-                <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
-                  <p className="text-xs text-orange-700">
+                <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-sm text-orange-700 font-medium">
                     ⚠️ Complete customer information is required for payment processing
                   </p>
                 </div>
@@ -387,57 +388,43 @@ const PaymentModal = ({
         )}
 
         {/* Payment Options */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {isInstallmentScheme && (
             <>
-              <Label className="text-base font-medium">Select Payment Type</Label>
+              <Label className="text-lg font-semibold text-gray-900">Select Payment Type</Label>
               <RadioGroup
                 value={selectedOption}
                 onValueChange={setSelectedOption}
-                className="space-y-3"
+                className="space-y-4"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="installment" id="installment" />
+                <div className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                  <RadioGroupItem value="installment" id="installment" className="text-blue-600" />
                   <Label htmlFor="installment" className="flex-1 cursor-pointer">
                     <div className="flex justify-between items-center">
-                      <span>Monthly Installment</span>
-                      <span className="font-semibold text-amber-600">
+                      <span className="text-gray-900 font-medium">Monthly Installment</span>
+                      <span className="font-bold text-blue-600 text-lg">
                         {formatCurrency(installmentAmount)}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Pay your regular monthly installment
+                    <p className="text-sm text-gray-600 mt-1">
+                      Pay your regular monthly installment amount
                     </p>
                   </Label>
                 </div>
-                {/* <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom" className="flex-1 cursor-pointer">
-                    <div className="flex justify-between items-center">
-                      <span>Custom Amount</span>
-                      <span className="font-semibold text-blue-600">
-                        Up to {formatCurrency(Math.min(balanceAmount, MAX_PAYMENT_AMOUNT))}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Pay any amount (min: {formatCurrency(installmentAmount)})
-                    </p>
-                  </Label>
-                </div> */}
               </RadioGroup>
             </>
           )}
 
           {/* Amount Input */}
-          <div className="space-y-3">
-            <Label htmlFor="amount" className="text-sm font-semibold">
+          <div className="space-y-4">
+            <Label htmlFor="amount" className="text-lg font-semibold text-gray-900">
               {isInstallmentScheme && selectedOption === "installment" 
                 ? "Installment Amount" 
                 : "Enter Payment Amount"}
             </Label>
             <div className="relative w-full">
               <IndianRupee
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 pointer-events-none"
               />
               <Input
                 id="amount"
@@ -447,12 +434,12 @@ const PaymentModal = ({
                 value={paymentAmount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 className={`
-                  pl-9 pr-3 py-2 text-base
-                  focus:ring-amber-200 focus:ring-2 focus:border-amber-500
+                  pl-12 pr-4 py-3 text-lg font-medium
+                  focus:ring-blue-200 focus:ring-4 focus:border-blue-500
                   ${
                     validationErrors.length > 0
-                      ? "border-red-500"
-                      : "border-gray-300"
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300 bg-white"
                   }
                 `}
                 disabled={isInstallmentScheme && selectedOption === "installment"}
@@ -461,21 +448,20 @@ const PaymentModal = ({
 
             {/* Amount Suggestions */}
           {!isInstallmentScheme && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Suggested Amounts:</Label>
-              <div className="flex gap-2 flex-wrap">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-gray-900">Suggested Amounts:</Label>
+              <div className="flex gap-3 flex-wrap">
                 {getAmountSuggestions().map((amount, index) => (
                   <Button
                     key={index}
                     variant="outline"
-                    size="sm"
                     onClick={() => setPaymentAmount(amount.toString())}
                     className={`
-                      text-xs font-medium border-2 
+                      px-4 py-2 font-medium border-2 rounded-lg
                       ${
                         paymentAmount === amount.toString()
-                          ? "border-amber-500 bg-amber-50 text-amber-700"
-                          : "border-gray-300 hover:border-amber-400"
+                          ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
+                          : "border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-600"
                       }
                       transition-all duration-200
                     `}
@@ -487,7 +473,7 @@ const PaymentModal = ({
             </div>
           )}
 
-            <p className="text-xs text-muted-foreground font-medium">
+            <p className="text-sm text-gray-600 font-medium">
               Maximum payment amount: ₹{MAX_PAYMENT_AMOUNT.toLocaleString('en-IN')} (10 lakhs)
               {isInstallmentScheme && selectedOption === "custom" && (
                 <span> • Minimum: {formatCurrency(installmentAmount)}</span>
@@ -496,50 +482,51 @@ const PaymentModal = ({
           </div>
         </div>
 
-        {/* Payment Summary - Always Visible */}
+        {/* Payment Summary */}
         <Card className={`border-l-4 ${
-          validationErrors.length > 0 ? "border-l-red-500 bg-red-50" : "border-l-green-500 bg-green-50"
+  validationErrors.length > 0 
+    ? "border-l-red-500 bg-red-50" 
+    : "border-l-green-500 bg-gradient-to-r from-green-50 to-green-25"
+}`}>
+  <CardContent className="p-6">
+    <h4 className="font-bold text-lg mb-4 flex items-center gap-3 text-gray-900">
+      <IndianRupee className="w-5 h-5 text-green-600" />
+      Payment Summary
+    </h4>
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-lg font-semibold text-gray-700">Amount to Pay:</span>
+        <span className={`text-2xl font-bold ${
+          validationErrors.length > 0 ? "text-red-700" : "text-green-700"
         }`}>
-          <CardContent className="p-4">
-            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <IndianRupee className="w-4 h-4" />
-              Payment Summary
-            </h4>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Amount to Pay:</span>
-                <span className={`text-lg font-bold ${
-                  validationErrors.length > 0 ? "text-red-700" : "text-green-700"
-                }`}>
-                  {paymentAmount ? formatCurrency(parseFloat(paymentAmount)) : "₹0"}
-                </span>
-              </div>
-              {isInstallmentScheme && selectedOption === "custom" && parseFloat(paymentAmount) > installmentAmount && (
-                <div className="text-xs text-green-600 bg-green-100 p-2 rounded">
-                  ✓ Includes monthly installment of {formatCurrency(installmentAmount)} + additional payment
-                </div>
-              )}
-              {validationErrors.length === 0 && paymentAmount && (
-                <div className="text-xs text-green-600">
-                  ✓ This amount is within acceptable limits
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
+          {paymentAmount ? formatCurrency(parseFloat(paymentAmount)) : "₹0"}
+        </span>
+      </div>
+      {isInstallmentScheme && selectedOption === "custom" && parseFloat(paymentAmount) > installmentAmount && (
+        <div className="text-sm text-green-700 bg-green-100 p-3 rounded-lg border border-green-200">
+          ✓ Includes monthly installment of {formatCurrency(installmentAmount)} + additional payment
+        </div>
+      )}
+      {validationErrors.length === 0 && paymentAmount && (
+        <div className="text-sm text-green-700 font-medium">
+          ✓ This amount is within acceptable limits
+        </div>
+      )}
+    </div>
+  </CardContent>
+</Card>
         {/* Main Error Message */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center gap-2 text-red-700">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="font-medium">Payment Error</span>
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-3 text-red-700 mb-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="font-semibold text-lg">Payment Error</span>
             </div>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
+            <p className="text-red-700 mb-3">{error}</p>
             <Button 
               variant="outline" 
               size="sm" 
-              className="mt-2 text-xs"
+              className="border-red-300 text-red-700 hover:bg-red-100"
               onClick={() => setError(null)}
             >
               Dismiss
@@ -548,11 +535,11 @@ const PaymentModal = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-4 pt-2">
           <Button
             variant="outline"
             onClick={onClose}
-            className="flex-1 border-gray-300"
+            className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 py-3 text-lg font-semibold"
             disabled={loading}
           >
             Cancel
@@ -560,16 +547,16 @@ const PaymentModal = ({
           <Button
             onClick={handlePayment}
             disabled={isPaymentDisabled()}
-            className="flex-1 bg-amber-400 hover:bg-amber-500"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                 Processing...
               </>
             ) : (
               <>
-                <CreditCard className="w-4 h-4 mr-2" />
+                <CreditCard className="w-5 h-5 mr-3" />
                 {validationErrors.length > 0 ? "Fix Errors" : "Proceed to Pay"}
               </>
             )}
@@ -577,9 +564,9 @@ const PaymentModal = ({
         </div>
 
         {/* Security Note */}
-        <div className="flex items-center justify-center space-x-1 text-xs text-muted-foreground">
-          <Lock className="w-4 h-4 fill-amber-300" strokeWidth={1.5} />
-          <span>Your payment is secure and encrypted</span>
+        <div className="flex items-center justify-center space-x-3 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg border">
+          <Shield className="w-5 h-5 text-blue-500" />
+          <span className="font-medium">Your payment is secure and encrypted</span>
         </div>
       </DialogContent>
     </Dialog>

@@ -167,12 +167,12 @@ const KYCForm = ({
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Primary Account Holder Details */}
-      <Card className="border-2 border-yellow-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b-2 border-yellow-200 p-3 sm:p-5">
+      <Card className="border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-amber-50 border-b-2 border-blue-200 p-3 sm:p-5">
           <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-base sm:text-lg">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 sm:p-2 bg-yellow-400 rounded-lg flex-shrink-0">
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-900" />
+              <div className="p-1.5 sm:p-2 bg-blue-400 rounded-lg flex-shrink-0">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-900" />
               </div>
               <span className="font-bold text-gray-800">Primary Account Holder</span>
             </div>
@@ -180,7 +180,7 @@ const KYCForm = ({
               variant="outline"
               size="sm"
               onClick={() => setCurrentStep('user-info')}
-              className="border-2 border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 transition-all duration-200 text-xs sm:text-sm w-full sm:w-auto"
+              className="border-2 border-blue-400 text-blue-700 hover:bg-blue-50 hover:text-blue-800 transition-all duration-200 text-xs sm:text-sm w-full sm:w-auto"
             >
               <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
               Edit Details
@@ -263,12 +263,12 @@ const KYCForm = ({
 
       {/* Joint Account Holders */}
       {isJointAccount && jointAccounts.map((jointAccount, index) => (
-        <Card key={index} className="border-2 border-yellow-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b-2 border-yellow-200 p-3 sm:p-5">
+        <Card key={index} className="border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-amber-50 border-b-2 border-blue-200 p-3 sm:p-5">
             <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-base sm:text-lg">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 sm:p-2 bg-yellow-400 rounded-lg flex-shrink-0">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-900" />
+                <div className="p-1.5 sm:p-2 bg-blue-400 rounded-lg flex-shrink-0">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-900" />
                 </div>
                 <span className="font-bold text-gray-800">Joint Account Holder {index + 1}</span>
               </div>
@@ -276,7 +276,7 @@ const KYCForm = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentStep('user-info')}
-                className="border-2 border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 transition-all duration-200 text-xs sm:text-sm w-full sm:w-auto"
+                className="border-2 border-blue-400 text-blue-700 hover:bg-blue-50 hover:text-blue-800 transition-all duration-200 text-xs sm:text-sm w-full sm:w-auto"
               >
                 <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
                 Edit Details
@@ -355,10 +355,10 @@ const KYCForm = ({
       ))}
 
       {/* Primary Account Holder Documents */}
-      <Card className="border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-yellow-100 to-amber-100 border-b-2 border-yellow-300 p-3 sm:p-5">
+      <Card className="border-2 border-blue-300 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-100 to-amber-100 border-b-2 border-blue-300 p-3 sm:p-5">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <div className="p-1.5 sm:p-2 bg-yellow-500 rounded-lg flex-shrink-0">
+            <div className="p-1.5 sm:p-2 bg-blue-500 rounded-lg flex-shrink-0">
               <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <span className="font-bold text-gray-800">Document Upload - Primary Holder</span>
@@ -371,11 +371,11 @@ const KYCForm = ({
               const hintId = `hint-${doc.key}`;
               return (
                 <div key={doc.key} className="relative group">
-                  <div className="p-3 sm:p-4 border-2 border-dashed border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 hover:border-yellow-400 hover:shadow-md transition-all duration-300">
+                  <div className="p-3 sm:p-4 border-2 border-dashed border-blue-300 rounded-xl bg-gradient-to-br from-blue-50 to-amber-50 hover:border-blue-400 hover:shadow-md transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-xs sm:text-sm font-semibold text-yellow-900">{doc.label}</Label>
+                      <Label className="text-xs sm:text-sm font-semibold text-blue-900">{doc.label}</Label>
                       {doc.required && (
-                        <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">Required</span>
+                        <span className="px-1.5 py-0.5 bg-blue-200 text-blue-800 text-xs font-bold rounded-full">Required</span>
                       )}
                     </div>
                     
@@ -389,11 +389,11 @@ const KYCForm = ({
                             const file = e.target.files?.[0];
                             if (file) handleFileUpload(doc.key, file);
                           }}
-                          className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
+                          className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
                           aria-invalid={!!fileErrors[doc.key]}
                           aria-describedby={`${errorId} ${hintId}`}
                         />
-                        <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 pointer-events-none" />
+                        <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 pointer-events-none" />
                       </div>
                       
                       {kycDocuments[doc.key] && (
@@ -409,9 +409,9 @@ const KYCForm = ({
                       )}
                     </div>
                     
-                    <div id={hintId} className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
-                      <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                      <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
+                    <div id={hintId} className="flex items-start gap-1.5 mt-2 p-1.5 bg-blue-100 rounded-lg text-xs">
+                      <AlertCircle className="w-3.5 h-3.5 text-blue-700 flex-shrink-0 mt-0.5" />
+                      <p className="text-blue-800">JPG, PNG, PDF (Max 10MB)</p>
                     </div>
                   </div>
                 </div>
@@ -419,16 +419,16 @@ const KYCForm = ({
             })}
           </div>
 
-          <div className="p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl">
+          <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-amber-50 border-2 border-blue-300 rounded-xl">
             <div className="flex flex-col sm:flex-row items-start gap-3">
               <Checkbox
                 id="kycTerms"
                 checked={kycAccepted}
                 onCheckedChange={(checked) => setKycAccepted(checked as boolean)}
-                className="mt-0.5 sm:mt-1 border-2 border-yellow-400 data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
+                className="mt-0.5 sm:mt-1 border-2 border-blue-400 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
               />
               <Label htmlFor="kycTerms" className="text-xs sm:text-sm leading-relaxed text-gray-700 cursor-pointer">
-                I confirm that all documents uploaded are genuine and authorize <span className="font-semibold text-yellow-800">{projectName}</span> to verify the same. I understand that providing false information may result in legal consequences.
+                I confirm that all documents uploaded are genuine and authorize <span className="font-semibold text-blue-800">{projectName}</span> to verify the same. I understand that providing false information may result in legal consequences.
               </Label>
             </div>
           </div>
@@ -439,10 +439,10 @@ const KYCForm = ({
       {isJointAccount && jointAccounts.map((jointAccount, index) => {
         const jointDocs = getJointDocs(jointAccount.user_type as 'individual' | 'business' | 'NRI');
         return (
-          <Card key={index} className="border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-yellow-100 to-amber-100 border-b-2 border-yellow-300 p-3 sm:p-5">
+          <Card key={index} className="border-2 border-blue-300 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-100 to-amber-100 border-b-2 border-blue-300 p-3 sm:p-5">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <div className="p-1.5 sm:p-2 bg-yellow-500 rounded-lg flex-shrink-0">
+                <div className="p-1.5 sm:p-2 bg-blue-500 rounded-lg flex-shrink-0">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <span className="font-bold text-gray-800">Document Upload - Joint Holder {index + 1}</span>
@@ -456,11 +456,11 @@ const KYCForm = ({
                   const hintId = `joint-hint-${index}-${doc.key}`;
                   return (
                     <div key={doc.key} className="relative group">
-                      <div className="p-3 sm:p-4 border-2 border-dashed border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 hover:border-yellow-400 hover:shadow-md transition-all duration-300">
+                      <div className="p-3 sm:p-4 border-2 border-dashed border-blue-300 rounded-xl bg-gradient-to-br from-blue-50 to-amber-50 hover:border-blue-400 hover:shadow-md transition-all duration-300">
                         <div className="flex items-center justify-between mb-2">
-                          <Label className="text-xs sm:text-sm font-semibold text-yellow-900">{doc.label}</Label>
+                          <Label className="text-xs sm:text-sm font-semibold text-blue-900">{doc.label}</Label>
                           {doc.required && (
-                            <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full">Required</span>
+                            <span className="px-1.5 py-0.5 bg-blue-200 text-blue-800 text-xs font-bold rounded-full">Required</span>
                           )}
                         </div>
                         
@@ -479,11 +479,11 @@ const KYCForm = ({
                                 const file = e.target.files?.[0];
                                 if (file) handleJointFileUpload(index, doc.key, file);
                               }}
-                              className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-yellow-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
+                              className="text-xs sm:text-sm file:text-xs sm:file:text-sm border-2 border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all cursor-pointer pr-9 sm:pr-11 truncate"
                               aria-invalid={!!fileErrors[jointField]}
                               aria-describedby={`${errorId} ${hintId}`}
                             />
-                            <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 pointer-events-none" />
+                            <Upload className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 pointer-events-none" />
                           </div>
                           
                           {kycDocuments[jointField] && (
@@ -501,9 +501,9 @@ const KYCForm = ({
                           )}
                         </div>
                         
-                        <div id={hintId} className="flex items-start gap-1.5 mt-2 p-1.5 bg-yellow-100 rounded-lg text-xs">
-                          <AlertCircle className="w-3.5 h-3.5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                          <p className="text-yellow-800">JPG, PNG, PDF (Max 10MB)</p>
+                        <div id={hintId} className="flex items-start gap-1.5 mt-2 p-1.5 bg-blue-100 rounded-lg text-xs">
+                          <AlertCircle className="w-3.5 h-3.5 text-blue-700 flex-shrink-0 mt-0.5" />
+                          <p className="text-blue-800">JPG, PNG, PDF (Max 10MB)</p>
                         </div>
                       </div>
                     </div>
@@ -511,16 +511,16 @@ const KYCForm = ({
                 })}
               </div>
 
-              <div className="p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl">
+              <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-amber-50 border-2 border-blue-300 rounded-xl">
                 <div className="flex flex-col sm:flex-row items-start gap-3">
                   <Checkbox
                     id={`jointKycTerms-${index}`}
                     checked={jointKycAccepted[index] || false}
                     onCheckedChange={(checked) => handleJointKycAccepted(index, checked as boolean)}
-                    className="mt-0.5 sm:mt-1 border-2 border-yellow-400 data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
+                    className="mt-0.5 sm:mt-1 border-2 border-blue-400 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                   />
                   <Label htmlFor={`jointKycTerms-${index}`} className="text-xs sm:text-sm leading-relaxed text-gray-700 cursor-pointer">
-                    I confirm that all documents uploaded for Joint Holder {index + 1} are genuine and authorize <span className="font-semibold text-yellow-800">{projectName}</span> to verify the same. I understand that providing false information may result in legal consequences.
+                    I confirm that all documents uploaded for Joint Holder {index + 1} are genuine and authorize <span className="font-semibold text-blue-800">{projectName}</span> to verify the same. I understand that providing false information may result in legal consequences.
                   </Label>
                 </div>
               </div>

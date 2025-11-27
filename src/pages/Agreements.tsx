@@ -83,7 +83,7 @@ const Agreements = () => {
       if (!grouped.has(key)) {
         grouped.set(key, {
           unitNumber: item.unit_number,
-          projectName: "Ramya Constructions",
+          projectName: "Dakshin Infra Structures",
           documents: [],
           signatories: [],
           agreementDate: item.agreement_date,
@@ -433,8 +433,7 @@ const Agreements = () => {
                               {searchTerm}
                             </h3>
                             <p className="text-sm text-gray-600">
-                              Ramya Constructions
-                            </p>
+Dakshin Infra Structures                            </p>
                           </div>
                           <Badge className="bg-red-100 text-red-700 border-red-200 font-medium">
                             Not Available

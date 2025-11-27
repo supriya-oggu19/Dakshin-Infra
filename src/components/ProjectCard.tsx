@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Square, ArrowRight, Star } from "lucide-react";
+import { MapPin, Square, ArrowRight, Star, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface ProjectCardProps {
@@ -60,89 +60,85 @@ export default function ProjectCard({
   const statusConfig = getStatusConfig(status);
 
   return (
-    <div className="group w-full max-w-sm mx-auto overflow-hidden rounded-xl bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <div className="group w-full max-w-sm mx-auto overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 border border-white/50">
       {/* Image Container */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+      <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-100 to-blue-50">
         <img
           src={displayImage}
           alt={title}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => {
             e.currentTarget.src = placeholder;
           }}
         />
 
         {/* Status Badge with Dot */}
-        <div className="absolute left-3 top-3 flex items-center gap-1.5">
+        <div className="absolute left-4 top-4 flex items-center gap-2">
           <div className={`h-2 w-2 rounded-full ${statusConfig.dot}`} />
           <Badge
             variant="outline"
-            className={`border ${statusConfig.bg} px-2.5 py-0.5 text-xs font-semibold tracking-wide`}
+            className={`border ${statusConfig.bg} px-3 py-1 text-xs font-semibold tracking-wide backdrop-blur-sm`}
           >
             {statusConfig.label}
           </Badge>
         </div>
 
         {/* Price Badge */}
-        <div className="absolute right-3 top-3">
-          <div className="rounded-lg bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-sm ring-1 ring-black/5">
-            <span className="text-lg font-bold text-primary tracking-tight">{price}</span>
+        <div className="absolute right-4 top-4">
+          <div className="rounded-xl bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm ring-1 ring-black/5">
+            <span className="text-lg font-bold text-blue-600 tracking-tight">{price}</span>
           </div>
         </div>
 
         {/* Hover Gradient + Description */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-        <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 md:block">
-          <p className="line-clamp-2 rounded-md bg-white/20 p-2.5 text-xs font-medium text-white backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        <div className="absolute inset-x-4 bottom-4 translate-y-4 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+          <p className="rounded-xl bg-white/20 p-3 text-sm font-medium text-white backdrop-blur-sm line-clamp-2">
             {description || "Premium property investment opportunity"}
           </p>
         </div>
       </div>
 
       {/* Card Body */}
-      <div className="flex flex-col p-4 md:p-5">
+      <div className="flex flex-col p-6">
         {/* Title */}
-        <h3 className="line-clamp-2 text-lg font-bold text-gray-900 transition-colors duration-300 group-hover:text-primary md:text-xl">
+        <h3 className="line-clamp-2 text-xl font-bold text-slate-900 transition-colors duration-300 group-hover:text-blue-700 mb-3">
           {title}
         </h3>
 
         {/* Location */}
-        <div className="mt-2 flex items-center text-sm text-gray-600">
-          <MapPin className="mr-1.5 size-4 flex-shrink-0 text-primary" />
+        <div className="flex items-center text-sm text-slate-600 mb-4">
+          <MapPin className="mr-2 size-4 flex-shrink-0 text-blue-500" />
           <span className="line-clamp-1 font-medium">{location}</span>
         </div>
 
         {/* Area & Premium Tags */}
-        <div className="mt-3 flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
-          {/* <div className="flex items-center gap-1.5 rounded-md bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700">
-            <Square className="size-3.5 text-gray-500" />
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
+          <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
+            <Building2 className="size-3.5 text-blue-500" />
             {area}
-          </div> */}
-          <div className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700">
-            <Star className="size-3.5 fill-amber-500 text-amber-500" />
+          </div>
+          <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+            <Star className="size-3.5 fill-blue-500 text-blue-500" />
             Premium
           </div>
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
         {/* CTA Button */}
-        {/* CTA Button – YELLOW BACKGROUND */}
-        <Link to={`/projects/${id}`} className="mt-4 block">
+        <Link to={`/projects/${id}`} className="block">
           <Button
             className={`
-      group/btn relative w-full overflow-hidden rounded-lg
-      bg-gradient-to-r from-yellow-400 to-yellow-500
-      px-6 py-5 text-sm font-bold text-gray-900
-      shadow-md transition-all duration-300
-      hover:from-yellow-500 hover:to-yellow-600
-      hover:shadow-lg hover:-translate-y-0.5
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2
-    `}
+              group/btn relative w-full overflow-hidden rounded-xl
+              bg-gradient-to-r from-blue-600 to-blue-700
+              px-6 py-4 text-base font-semibold text-white
+              shadow-lg transition-all duration-300
+              hover:from-blue-700 hover:to-blue-800
+              hover:shadow-xl hover:-translate-y-1
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+            `}
           >
             <span className="relative z-10">View Details</span>
-            <ArrowRight className="relative z-10 ml-2 size-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+            <ArrowRight className="relative z-10 ml-3 size-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
 
             {/* Shine effect on hover */}
             <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover/btn:translate-x-full" />
@@ -151,7 +147,7 @@ export default function ProjectCard({
       </div>
 
       {/* Top Accent Line */}
-      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500 opacity-0 transition-opacity duration-500 group-hover:opacity-100 rounded-t-2xl" />
     </div>
   );
 }

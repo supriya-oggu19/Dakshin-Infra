@@ -9,10 +9,11 @@ import {
   Twitter,
   Linkedin,
   Instagram,
+  ArrowUp,
 } from "lucide-react";
 
-import { contactInfoApi } from "../api/contactInfoApi";   // adjust path if needed
-import { ContactInfo } from "../api/models/contactInfo.model"; // adjust path if needed
+import { contactInfoApi } from "../api/contactInfoApi";
+import { ContactInfo } from "../api/models/contactInfo.model";
 
 const Footer = () => {
   const [contactInfo, setContactInfo] = useState<{
@@ -20,12 +21,12 @@ const Footer = () => {
     emails: ContactInfo[];
   }>({ phones: [], emails: [] });
   const [loading, setLoading] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const loadContacts = async () => {
       try {
         const { data } = await contactInfoApi.getAll();
-
         const active = data.filter((c) => c.is_active);
 
         const phones = active
@@ -47,6 +48,26 @@ const Footer = () => {
     loadContacts();
   }, []);
 
+  useEffect(() => {
+    const toggleVisibility = () => {
+      if (window.pageYOffset > 300) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+    };
+
+    window.addEventListener("scroll", toggleVisibility);
+    return () => window.removeEventListener("scroll", toggleVisibility);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
   const quickLinks = [
     { name: "About Us", href: "/about" },
     { name: "Projects", href: "/projects" },
@@ -58,164 +79,221 @@ const Footer = () => {
     { name: "Privacy Policy", href: "/privacy-policy" },
     { name: "Terms & Conditions", href: "/terms" },
     { name: "Refund Policy", href: "/refund-policy" },
-   
+  ];
+
+  const socialLinks = [
+    { icon: Facebook, href: "#", color: "hover:bg-blue-500" },
+    { icon: Twitter, href: "#", color: "hover:bg-sky-400" },
+    { icon: Linkedin, href: "#", color: "hover:bg-blue-600" },
+    { icon: Instagram, href: "#", color: "hover:bg-pink-500" },
   ];
 
   return (
-    <footer className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-t border-yellow-200">
-      {/* Top Section */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-        {/* 1. Brand & Social */}
-        <div>
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-14 h-14 bg-yellow-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <Building2 className="w-8 h-8 text-white" />
-            </div>
-            <span className="text-2xl font-bold">
-              Ramya <span className="text-yellow-600">Constructions</span>
-            </span>
-          </div>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            Redefining modern infrastructure and investment opportunities in
-            Hyderabad with excellence and integrity.
-          </p>
-          <div className="flex space-x-4">
-            {[
-              { icon: Facebook, href: "#" },
-              { icon: Twitter, href: "#" },
-              { icon: Linkedin, href: "#" },
-              { icon: Instagram, href: "#" },
-            ].map((s, i) => (
-              <a
-                key={i}
-                href={s.href}
-                className="w-12 h-12 bg-yellow-500 hover:bg-yellow-600 rounded-full flex items-center justify-center transition-all duration-300 group shadow-md"
-              >
-                <s.icon className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
-              </a>
-            ))}
-          </div>
-        </div>
+    <footer className="relative bg-gradient-to-br from-slate-50 to-gray-100 border-t border-gray-200">
+      {/* Scroll to Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-8 right-8 w-12 h-12 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center transition-all duration-300 z-50 shadow-2xl ${
+          isVisible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-10 pointer-events-none"
+        }`}
+      >
+        <ArrowUp className="w-6 h-6 text-white" />
+      </button>
 
-        {/* 2. Company Info */}
-        <div>
-          <h3 className="text-lg font-bold text-yellow-700 mb-4 uppercase tracking-wide">
-            Company Details
-          </h3>
-          <div className="text-gray-700 text-sm space-y-2">
-            <p className="font-semibold">Ramya Constructions Ltd.</p>
-            <p>CIN: U45200AP1992PLC014532</p>
-            <p>Incorporated: 17th Dec 1992</p>
-            <p className="text-yellow-600 font-medium pt-2 border-t border-gray-200 mt-2">
-              RERA Approved 
-            </p>
-          </div>
-        </div>
-
-        {/* 3. Quick Links + Policies */}
-        <div>
-          <h3 className="text-lg font-bold text-yellow-700 mb-4 uppercase tracking-wide">
-            Quick Links
-          </h3>
-          <ul className="space-y-2 text-sm text-gray-700">
-            {quickLinks.map((link, i) => (
-              <li key={i}>
-                <a href={link.href} className="hover:text-yellow-600 transition-colors">
-                  {link.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-8">
-            <h3 className="text-lg font-bold text-yellow-700 mb-4 uppercase tracking-wide">
-              Policies
-            </h3>
-            <ul className="space-y-2 text-sm text-gray-700">
-              {legalLinks.map((link, i) => (
-                <li key={i}>
-                  <a href={link.href} className="hover:text-yellow-600 transition-colors">
-                    {link.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* 4. Contact Info */}
-        <div>
-          <h3 className="text-lg font-bold text-yellow-700 mb-4 uppercase tracking-wide">
-            Contact
-          </h3>
-          {loading ? (
-            <p className="text-gray-500 text-sm">Loading contact info…</p>
-          ) : (
-            <div className="space-y-4 text-sm text-gray-700">
-              <div className="flex items-start space-x-3">
-                <MapPin className="w-5 h-5 text-yellow-600 mt-1 flex-shrink-0" />
-                <p>
-                   Kapil Towers, Survey 115/1 , ISB Rd , Financial District, Gachibowli, Hyderabad,
-                  Telangana - 500032
+      {/* Main Content */}
+      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Left Column - Brand & Description */}
+          <div className="space-y-8">
+            <div className="flex items-center space-x-4 group">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-300">
+                <Building2 className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Dakshin Infra Structures
+                </h2>
+                <p className="text-blue-600 font-medium text-sm mt-1">
+                  Building Tomorrow's Landmarks
                 </p>
               </div>
+            </div>
 
-              {/* Phones */}
-              {contactInfo.phones.length > 0 ? (
-                <div className="space-y-2">
-                  {contactInfo.phones.map((p) => (
+            <p className="text-gray-600 leading-relaxed text-lg max-w-md">
+              Redefining modern infrastructure and investment opportunities in
+              Hyderabad with excellence, innovation, and unwavering integrity.
+            </p>
+
+            <div className="flex space-x-4">
+              {socialLinks.map((social, index) => (
+                <a
+                  key={index}
+                  href={social.href}
+                  className={`w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-sm ${social.color}`}
+                >
+                  <social.icon className="w-5 h-5 text-gray-600 hover:text-white transition-colors" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column - Links & Contact */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Quick Links */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-2 border-b border-gray-300">
+                Quick Links
+              </h3>
+              <ul className="space-y-3">
+                {quickLinks.map((link, index) => (
+                  <li key={index}>
                     <a
-                      key={p.id}
-                      href={`tel:${p.contact_value}`}
-                      className="flex items-center space-x-3 hover:text-yellow-600 transition-colors"
+                      href={link.href}
+                      className="text-gray-600 hover:text-blue-600 transition-all duration-300 hover:translate-x-2 flex items-center group font-medium"
                     >
-                      <Phone className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                      <span>{p.contact_value}</span>
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 group-hover:bg-blue-600 transition-colors" />
+                      {link.name}
                     </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Policies */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-2 border-b border-gray-300">
+                Policies
+              </h3>
+              <ul className="space-y-3">
+                {legalLinks.map((link, index) => (
+                  <li key={index}>
+                    <a
+                      href={link.href}
+                      className="text-gray-600 hover:text-blue-600 transition-all duration-300 hover:translate-x-2 flex items-center group font-medium"
+                    >
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 group-hover:bg-blue-600 transition-colors" />
+                      {link.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-2 border-b border-gray-300">
+                Contact
+              </h3>
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((n) => (
+                    <div
+                      key={n}
+                      className="h-4 bg-gray-300 rounded animate-pulse"
+                    />
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">No phone numbers available</p>
-              )}
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3 group">
+                    <MapPin className="w-5 h-5 text-blue-500 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <p className="text-gray-600 text-sm leading-relaxed group-hover:text-gray-900 transition-colors">
+                      Kapil Towers, Survey 115/1, ISB Rd, Financial District,
+                      Gachibowli, Hyderabad, Telangana - 500032
+                    </p>
+                  </div>
 
-              {/* Emails */}
-              {contactInfo.emails.length > 0 ? (
-                <div className="space-y-2">
-                  {contactInfo.emails.map((e) => (
-                    <a
-                      key={e.id}
-                      href={`mailto:${e.contact_value}`}
-                      className="flex items-center space-x-3 hover:text-yellow-600 transition-colors"
-                    >
-                      <Mail className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                      <span>{e.contact_value}</span>
-                    </a>
-                  ))}
+                  {/* Phones */}
+                  {contactInfo.phones.length > 0 ? (
+                    <div className="space-y-2">
+                      {contactInfo.phones.map((phone) => (
+                        <a
+                          key={phone.id}
+                          href={`tel:${phone.contact_value}`}
+                          className="flex items-center space-x-3 text-gray-600 hover:text-blue-600 transition-all duration-300 group font-medium"
+                        >
+                          <Phone className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" />
+                          <span className="text-sm">{phone.contact_value}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No phone numbers available</p>
+                  )}
+
+                  {/* Emails */}
+                  {contactInfo.emails.length > 0 ? (
+                    <div className="space-y-2">
+                      {contactInfo.emails.map((email) => (
+                        <a
+                          key={email.id}
+                          href={`mailto:${email.contact_value}`}
+                          className="flex items-center space-x-3 text-gray-600 hover:text-blue-600 transition-all duration-300 group font-medium"
+                        >
+                          <Mail className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" />
+                          <span className="text-sm">{email.contact_value}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No emails available</p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-gray-500">No emails available</p>
               )}
             </div>
-          )}
+          </div>
+        </div>
+
+        {/* Company Info Bar */}
+        <div className="mt-12 pt-8 border-t border-gray-300">
+          <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
+            <div className="text-center lg:text-left">
+              <p className="text-gray-700 font-semibold">
+                Dakshin Infra Structures Pvt Ltd.
+              </p>
+              <p className="text-gray-600 text-sm mt-1">
+                CIN: U45200AP1992PLC014532 • Incorporated: 17th Dec 1992
+              </p>
+            </div>
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-full shadow-lg">
+              <span className="text-white font-medium text-sm">
+                🏢 RERA Approved & Registered
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Bottom Footer */}
-      <div className="border-t border-gray-200 bg-gray-50/60 backdrop-blur-sm">
+      <div className="bg-white border-t border-gray-300">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-800">
-            <div className="text-center md:text-left mb-3 md:mb-0">
-              <p>© 2024 Ramya Constructions Ltd. All rights reserved.</p>
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
+            <div className="text-center md:text-left">
+              <p className="text-gray-600 text-sm">
+                © 2024 Dakshin Infra Structures Pvt Ltd. All rights reserved.
+              </p>
             </div>
-
-            <div className="flex space-x-6 text-[15px] text-gray-700 font-medium">
-              <a href="/privacy-policy" className="hover:text-yellow-600 transition-colors duration-200">
+            <div className="flex space-x-6 text-gray-600 text-sm">
+              <a
+                href="/privacy-policy"
+                className="hover:text-blue-600 transition-colors duration-200 hover:underline font-medium"
+              >
                 Privacy
               </a>
-              <a href="/terms" className="hover:text-yellow-600 transition-colors duration-200">
+              <a
+                href="/terms"
+                className="hover:text-blue-600 transition-colors duration-200 hover:underline font-medium"
+              >
                 Terms
               </a>
-             
+              <a
+                href="/refund-policy"
+                className="hover:text-blue-600 transition-colors duration-200 hover:underline font-medium"
+              >
+                Refunds
+              </a>
             </div>
           </div>
         </div>
